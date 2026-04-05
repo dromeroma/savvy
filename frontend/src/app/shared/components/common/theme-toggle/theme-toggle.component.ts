@@ -1,44 +1,58 @@
-import { Component, inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, ElementRef, HostListener, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subscription } from 'rxjs';
-import { ThemeService, ThemeMode, FunPalette, FUN_PALETTES } from '../../../services/theme.service';
+import { ThemeService, FUN_PALETTES, FunPalette } from '../../../services/theme.service';
 
 @Component({
   selector: 'app-theme-toggle',
   imports: [CommonModule],
   templateUrl: './theme-toggle.component.html',
 })
-export class ThemeToggleComponent implements OnInit, OnDestroy {
-  private readonly themeService = inject(ThemeService);
-  private subs: Subscription[] = [];
-
-  mode: ThemeMode = 'light';
-  palette!: FunPalette;
+export class ThemeToggleComponent {
+  mode$;
+  palette$;
   palettes = FUN_PALETTES;
-  showPalettePicker = false;
+  showPicker = false;
 
-  ngOnInit() {
-    this.subs.push(
-      this.themeService.mode$.subscribe(m => this.mode = m),
-      this.themeService.palette$.subscribe(p => this.palette = p),
-    );
+  @ViewChild('pickerContainer', { static: false }) pickerContainer!: ElementRef;
+  @ViewChild('toggleBtn', { static: false }) toggleBtn!: ElementRef;
+
+  constructor(private themeService: ThemeService) {
+    this.mode$ = this.themeService.mode$;
+    this.palette$ = this.themeService.palette$;
   }
 
-  ngOnDestroy() {
-    this.subs.forEach(s => s.unsubscribe());
+  onToggleClick(): void {
+    const current = this.themeService.currentMode;
+
+    if (current === 'fun') {
+      if (this.showPicker) {
+        this.showPicker = false;
+        this.themeService.toggleTheme(); // fun -> light
+      } else {
+        this.showPicker = true;
+      }
+    } else {
+      this.themeService.toggleTheme();
+      // If entering fun (coming from dark), open picker
+      if (current === 'dark') {
+        this.showPicker = true;
+      }
+    }
   }
 
-  toggleTheme() {
-    this.themeService.toggleTheme();
-    this.showPalettePicker = false;
+  selectPalette(palette: FunPalette): void {
+    this.themeService.selectPalette(palette);
+    this.showPicker = false;
   }
 
-  togglePalettePicker() {
-    this.showPalettePicker = !this.showPalettePicker;
-  }
-
-  selectPalette(p: FunPalette) {
-    this.themeService.selectPalette(p);
-    this.showPalettePicker = false;
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (!this.showPicker) return;
+    const target = event.target as Node;
+    const pickerEl = this.pickerContainer?.nativeElement;
+    const btnEl = this.toggleBtn?.nativeElement;
+    if (pickerEl && !pickerEl.contains(target) && btnEl && !btnEl.contains(target)) {
+      this.showPicker = false;
+    }
   }
 }

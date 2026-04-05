@@ -8,7 +8,6 @@ export interface User {
 export interface LoginRequest {
   email: string;
   password: string;
-  org_slug: string;
 }
 
 export interface RegisterRequest {
@@ -25,15 +24,27 @@ export interface TokenResponse {
   token_type: string;
 }
 
+export interface Organization {
+  id: string;
+  name: string;
+  slug: string;
+  type: string;
+}
+
+export interface OrgWithRole extends Organization {
+  role: string;
+}
+
 export interface AuthResponse {
   tokens: TokenResponse;
   user: User;
   organization: Organization;
 }
 
-export interface Organization {
-  id: string;
-  name: string;
-  slug: string;
-  type: string;
+export interface LoginResponse {
+  tokens: TokenResponse | null;
+  user: User;
+  organization: Organization | null;
+  organizations: OrgWithRole[] | null;
+  requires_org_selection: boolean;
 }

@@ -1,86 +1,106 @@
-<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-purple-100 px-4">
+<div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
   <div class="w-full max-w-md">
     <!-- Logo -->
     <div class="text-center mb-8">
-      <h1 class="text-4xl font-bold text-indigo-700">Savvy</h1>
-      <p class="text-gray-500 mt-1">Plataforma de gestión inteligente</p>
+      <h1 class="text-4xl font-bold text-brand-500">Savvy</h1>
+      <p class="text-gray-500 dark:text-gray-400 mt-1">Plataforma de gestión inteligente</p>
     </div>
 
     <!-- Card -->
-    <div class="bg-white rounded-2xl shadow-xl p-8">
-      <h2 class="text-2xl font-semibold text-gray-800 mb-6">Iniciar Sesión</h2>
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-theme-lg p-8">
 
       @if (error()) {
-        <div class="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+        <div class="mb-4 p-3 bg-error-50 border border-error-200 text-error-700 dark:bg-error-500/10 dark:border-error-500/30 dark:text-error-400 rounded-lg text-sm">
           {{ error() }}
         </div>
       }
 
-      <form (ngSubmit)="onSubmit()" class="space-y-5">
-        <div>
-          <label for="org_slug" class="block text-sm font-medium text-gray-700 mb-1">
-            Organización
-          </label>
-          <input
-            id="org_slug"
-            type="text"
-            [(ngModel)]="form.org_slug"
-            name="org_slug"
-            required
-            placeholder="mi-organizacion"
-            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
-          />
-        </div>
+      <!-- ORG SELECTOR -->
+      @if (showOrgSelector()) {
+        <h2 class="text-2xl font-semibold text-gray-800 dark:text-white mb-2">Selecciona tu organización</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Tu cuenta pertenece a varias organizaciones.</p>
 
-        <div>
-          <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
-            Correo electrónico
-          </label>
-          <input
-            id="email"
-            type="email"
-            [(ngModel)]="form.email"
-            name="email"
-            required
-            placeholder="tu@email.com"
-            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
-          />
-        </div>
-
-        <div>
-          <label for="password" class="block text-sm font-medium text-gray-700 mb-1">
-            Contraseña
-          </label>
-          <input
-            id="password"
-            type="password"
-            [(ngModel)]="form.password"
-            name="password"
-            required
-            placeholder="••••••••"
-            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
-          />
-        </div>
-
-        <button
-          type="submit"
-          [disabled]="loading()"
-          class="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-medium rounded-lg transition duration-200 cursor-pointer disabled:cursor-not-allowed"
-        >
-          @if (loading()) {
-            <span>Ingresando...</span>
-          } @else {
-            <span>Ingresar</span>
+        <div class="space-y-3">
+          @for (org of organizations(); track org.id) {
+            <button
+              (click)="selectOrg(org)"
+              [disabled]="loading()"
+              class="w-full flex items-center gap-4 p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-300 hover:bg-brand-50 dark:hover:bg-brand-500/10 transition text-left group"
+            >
+              <div class="w-10 h-10 rounded-lg bg-brand-50 dark:bg-brand-500/20 flex items-center justify-center text-brand-500 font-bold text-lg shrink-0">
+                {{ org.name.charAt(0) }}
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold text-gray-800 dark:text-white group-hover:text-brand-600 truncate">{{ org.name }}</p>
+                <p class="text-xs text-gray-400 capitalize">{{ org.role }}</p>
+              </div>
+              <svg class="w-5 h-5 text-gray-300 group-hover:text-brand-500 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
           }
-        </button>
-      </form>
+        </div>
 
-      <p class="mt-6 text-center text-sm text-gray-500">
-        ¿No tienes cuenta?
-        <a routerLink="/auth/register" class="text-indigo-600 hover:text-indigo-800 font-medium">
-          Regístrate aquí
-        </a>
-      </p>
+        <button (click)="showOrgSelector.set(false)" class="mt-4 w-full text-center text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+          ← Volver al login
+        </button>
+
+      } @else {
+
+        <!-- LOGIN FORM -->
+        <h2 class="text-2xl font-semibold text-gray-800 dark:text-white mb-6">Iniciar Sesión</h2>
+
+        <form (ngSubmit)="onSubmit()" class="space-y-5">
+          <div>
+            <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Correo electrónico
+            </label>
+            <input
+              id="email"
+              type="email"
+              [(ngModel)]="form.email"
+              name="email"
+              required
+              placeholder="tu@email.com"
+              class="h-11 w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white rounded-lg focus:ring-3 focus:ring-brand-500/20 focus:border-brand-300 outline-none transition text-sm"
+            />
+          </div>
+
+          <div>
+            <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Contraseña
+            </label>
+            <input
+              id="password"
+              type="password"
+              [(ngModel)]="form.password"
+              name="password"
+              required
+              placeholder="••••••••"
+              class="h-11 w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white rounded-lg focus:ring-3 focus:ring-brand-500/20 focus:border-brand-300 outline-none transition text-sm"
+            />
+          </div>
+
+          <button
+            type="submit"
+            [disabled]="loading()"
+            class="w-full py-2.5 px-4 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300 text-white font-medium rounded-lg transition duration-200 shadow-theme-xs"
+          >
+            @if (loading()) {
+              <span>Ingresando...</span>
+            } @else {
+              <span>Ingresar</span>
+            }
+          </button>
+        </form>
+
+        <p class="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+          ¿No tienes cuenta?
+          <a routerLink="/auth/register" class="text-brand-500 hover:text-brand-600 font-medium">
+            Regístrate aquí
+          </a>
+        </p>
+      }
     </div>
   </div>
 </div>

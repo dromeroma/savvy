@@ -13,6 +13,7 @@ from src.modules.auth.schemas import (
     AuthResponse,
     ChangePasswordRequest,
     LoginRequest,
+    LoginResponse,
     RefreshRequest,
     RegisterRequest,
     TokenResponse,
@@ -45,15 +46,15 @@ async def register(
 
 @router.post(
     "/login",
-    response_model=TokenResponse,
+    response_model=LoginResponse,
     status_code=status.HTTP_200_OK,
-    summary="Authenticate and obtain token pair",
+    summary="Authenticate — returns tokens or org selector",
 )
 async def login(
     data: LoginRequest,
     db: AsyncSession = Depends(get_db),
     service: AuthService = Depends(get_auth_service),
-) -> TokenResponse:
+) -> LoginResponse:
     return await service.login(db, data)
 
 

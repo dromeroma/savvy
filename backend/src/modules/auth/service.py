@@ -23,7 +23,9 @@ from src.modules.auth.schemas import (
     AuthResponse,
     ChangePasswordRequest,
     LoginRequest,
+    LoginResponse,
     OrganizationResponse,
+    OrgWithRole,
     RegisterRequest,
     TokenResponse,
     UserResponse,
@@ -123,16 +125,14 @@ class AuthService:
         self,
         db: AsyncSession,
         data: LoginRequest,
-    ) -> TokenResponse:
-        """Authenticate user by email, password, and organization slug."""
-        # Find organization
-        org = await db.scalar(
-            select(Organization).where(Organization.slug == data.org_slug),
-        )
-        if org is None:
-            raise UnauthorizedError("Invalid credentials.")
+    ) -> LoginResponse:
+        """Authenticate user by email and password.
 
-        # Find user by email (globally unique)
+        If the user belongs to 1 org → returns tokens directly.
+        If 2+ orgs and no org_id provided → returns org list for selection.
+        If 2+ orgs and org_id provided → returns tokens for that org.
+        """
+        # Find user by email
         user = await db.scalar(
             select(User).where(User.email == data.email),
         )
@@ -142,17 +142,51 @@ class AuthService:
         if user.deleted_at is not None:
             raise UnauthorizedError("This account has been deactivated.")
 
-        # Verify user is a member of this organization
-        membership = await db.scalar(
-            select(Membership).where(
-                and_(
-                    Membership.organization_id == org.id,
-                    Membership.user_id == user.id,
-                ),
-            ),
+        # Get all memberships
+        result = await db.execute(
+            select(Membership, Organization)
+            .join(Organization, Organization.id == Membership.organization_id)
+            .where(Membership.user_id == user.id)
+            .order_by(Membership.joined_at),
         )
-        if membership is None:
-            raise UnauthorizedError("Invalid credentials.")
+        memberships = result.all()
+
+        if not memberships:
+            raise UnauthorizedError("No organization found for this user.")
+
+        user_response = UserResponse.model_validate(user)
+
+        # Multiple orgs and no org_id specified → return list
+        if len(memberships) > 1 and data.org_id is None:
+            orgs_with_roles = [
+                OrgWithRole(
+                    id=org.id,
+                    name=org.name,
+                    slug=org.slug,
+                    type=org.type,
+                    role=mem.role,
+                )
+                for mem, org in memberships
+            ]
+            return LoginResponse(
+                user=user_response,
+                organizations=orgs_with_roles,
+                requires_org_selection=True,
+            )
+
+        # Resolve which org to use
+        if data.org_id:
+            # Find the specific membership
+            match = next(
+                ((mem, org) for mem, org in memberships if org.id == data.org_id),
+                None,
+            )
+            if match is None:
+                raise UnauthorizedError("You are not a member of this organization.")
+            membership, org = match
+        else:
+            # Single org → use it directly
+            membership, org = memberships[0]
 
         # Update last login
         user.last_login_at = datetime.now(UTC)
@@ -178,9 +212,13 @@ class AuthService:
         db.add(rt)
         await db.flush()
 
-        return TokenResponse(
-            access_token=access_token,
-            refresh_token=refresh_token_str,
+        return LoginResponse(
+            tokens=TokenResponse(
+                access_token=access_token,
+                refresh_token=refresh_token_str,
+            ),
+            user=user_response,
+            organization=OrganizationResponse.model_validate(org),
         )
 
     # ------------------------------------------------------------------

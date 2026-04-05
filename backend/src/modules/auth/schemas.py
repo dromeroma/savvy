@@ -29,7 +29,7 @@ class LoginRequest(BaseModel):
 
     email: EmailStr
     password: str
-    org_slug: str = Field(..., min_length=2, max_length=100)
+    org_id: uuid.UUID | None = None  # Optional: if user has multiple orgs
 
 
 class RefreshRequest(BaseModel):
@@ -87,9 +87,31 @@ class OrganizationResponse(BaseModel):
     type: str
 
 
+class OrgWithRole(BaseModel):
+    """Organization + user's role in it (for org selector)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    name: str
+    slug: str
+    type: str
+    role: str
+
+
 class AuthResponse(BaseModel):
     """Full response returned after successful registration."""
 
     tokens: TokenResponse
     user: UserResponse
     organization: OrganizationResponse
+
+
+class LoginResponse(BaseModel):
+    """Login response — tokens if single org, org list if multiple."""
+
+    tokens: TokenResponse | None = None
+    user: UserResponse
+    organization: OrganizationResponse | None = None
+    organizations: list[OrgWithRole] | None = None
+    requires_org_selection: bool = False

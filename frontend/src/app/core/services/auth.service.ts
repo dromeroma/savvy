@@ -5,6 +5,7 @@ import { ApiService } from './api.service';
 import {
   AuthResponse,
   LoginRequest,
+  LoginResponse,
   TokenResponse,
   User,
 } from '../models/user.model';
@@ -17,9 +18,13 @@ export class AuthService {
   private readonly api = inject(ApiService);
   private readonly router = inject(Router);
 
-  login(data: LoginRequest): Observable<TokenResponse> {
-    return this.api.post<TokenResponse>('/auth/login', data).pipe(
-      tap((res) => this.storeTokens(res)),
+  login(data: LoginRequest): Observable<LoginResponse> {
+    return this.api.post<LoginResponse>('/auth/login', data).pipe(
+      tap((res) => {
+        if (res.tokens) {
+          this.storeTokens(res.tokens);
+        }
+      }),
     );
   }
 
