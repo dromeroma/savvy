@@ -142,7 +142,7 @@ Listar todas las tablas que agrega esta app.
 ```sql
 CREATE TABLE {nombre_tabla} (
     id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id   UUID        NOT NULL REFERENCES organizations(id),
+    organization_id UUID    NOT NULL REFERENCES organizations(id),
     {campo1}    {TIPO}      {NOT NULL} {DEFAULT},
     {campo2}    {TIPO}      {NOT NULL} {DEFAULT},
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -153,7 +153,7 @@ CREATE TABLE {nombre_tabla} (
 | Columna | Tipo | Descripcion |
 |---------|------|-------------|
 | `id` | UUID | Identificador unico |
-| `tenant_id` | UUID | FK a organizations |
+| `organization_id` | UUID | FK a organizations |
 | `{campo1}` | {TIPO} | {Descripcion} |
 
 ### Diagrama de relaciones
@@ -193,7 +193,7 @@ CREATE TABLE {nombre_tabla} (
 
 | Evento | Payload | Cuando se emite |
 |--------|---------|----------------|
-| `{app}.{entidad}.{accion}` | `{ id, tenant_id, ... }` | {Descripcion} |
+| `{app}.{entidad}.{accion}` | `{ id, organization_id, ... }` | {Descripcion} |
 
 ### Eventos consumidos
 
@@ -209,21 +209,21 @@ CREATE TABLE {nombre_tabla} (
 
 | Tipo | Cobertura objetivo | Herramienta |
 |------|-------------------|-------------|
-| Unitarios | {80%+} | Vitest |
-| Integracion | {Endpoints criticos} | Vitest + Supertest |
+| Unitarios | {80%+} | pytest |
+| Integracion | {Endpoints criticos} | pytest + httpx |
 | E2E | {Flujos principales} | {Herramienta} |
 
 ### Ejecutar tests
 
 ```bash
 # Todos los tests de la app
-bun test src/apps/{app_prefix}/
+pytest tests/apps/{app_prefix}/
 
 # Tests unitarios
-bun test src/apps/{app_prefix}/ --grep "unit"
+pytest tests/apps/{app_prefix}/ -k "unit"
 
 # Tests de integracion
-bun test src/apps/{app_prefix}/ --grep "integration"
+pytest tests/apps/{app_prefix}/ -k "integration"
 ```
 
 ---

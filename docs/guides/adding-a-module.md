@@ -39,31 +39,29 @@ Crear un documento en `docs/modules/{nombre}/README.md` con esta informacion.
 ## Paso 2: Crear la estructura de carpetas
 
 ```
-src/core/{nombre_modulo}/
-  handlers/              <-- Handlers HTTP (uno por endpoint)
-  services/              <-- Logica de negocio
-  repositories/          <-- Acceso a base de datos
-  schemas/               <-- Schemas de validacion Zod
-  middleware/             <-- Middlewares especificos del modulo (si aplica)
-  routes.ts              <-- Definicion de rutas
-  index.ts               <-- Export publico del modulo
+app/
+  models/
+    {nombre}.py                <-- Modelo SQLAlchemy
+  routers/
+    {nombre}.py                <-- Router FastAPI con endpoints
+  schemas/
+    {nombre}.py                <-- Schemas Pydantic (request/response)
+  services/
+    {nombre}_service.py        <-- Logica de negocio
 ```
 
-### Archivo index.ts
+### Export del modulo
 
-El `index.ts` es la interfaz publica del modulo. Solo exporta lo que otros modulos necesitan:
+Cada router se registra en `app/main.py`:
 
-```typescript
-// src/core/{nombre}/index.ts
+```python
+# app/main.py
+from app.routers import auth, organizations, nombre
 
-// Rutas (para registrar en el gateway)
-export { nombreRoutes } from './routes'
-
-// Servicios (para uso por otros modulos, si aplica)
-export { NombreService } from './services/nombre.service'
-
-// Tipos (para tipado en otros modulos)
-export type { NombreEntity, CreateNombreInput } from './schemas/nombre.schema'
+app = FastAPI()
+app.include_router(auth.router)
+app.include_router(organizations.router)
+app.include_router(nombre.router)
 ```
 
 ---
@@ -81,231 +79,215 @@ migrations/{numero_secuencial}_create_{nombre_tabla}.sql
 Checklist obligatorio:
 
 - [ ] `id UUID PRIMARY KEY DEFAULT gen_random_uuid()`
-- [ ] `tenant_id UUID NOT NULL REFERENCES organizations(id)` (si la tabla tiene datos por org)
+- [ ] `organization_id UUID NOT NULL REFERENCES organizations(id)` (si la tabla tiene datos por org)
 - [ ] `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
 - [ ] `updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
 - [ ] Trigger `trg_{tabla}_updated_at`
 - [ ] Indices en foreign keys
-- [ ] Indice en `tenant_id` (si aplica)
-- [ ] RLS habilitado (si tiene `tenant_id`)
+- [ ] Indice en `organization_id` (si aplica)
+- [ ] RLS habilitado (si tiene `organization_id`)
 - [ ] `deleted_at TIMESTAMPTZ` si se necesita soft delete
 
-### 3.3 Crear el schema Drizzle
+### 3.3 Crear el modelo SQLAlchemy
 
-```typescript
-// src/core/{nombre}/models/{tabla}.model.ts
-import { pgTable, uuid, varchar, timestamptz, jsonb } from 'drizzle-orm/pg-core'
+```python
+# app/models/{nombre}.py
+import uuid
+from sqlalchemy import ForeignKey, String
+from sqlalchemy.orm import Mapped, mapped_column
+from app.models.base import Base, OrgMixin, TimestampMixin
 
-export const nombreTabla = pgTable('{tabla}', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  tenantId: uuid('tenant_id').notNull().references(() => organizations.id),
-  // ... campos
-  createdAt: timestamptz('created_at').notNull().defaultNow(),
-  updatedAt: timestamptz('updated_at').notNull().defaultNow(),
-})
+class NombreTabla(Base, OrgMixin, TimestampMixin):
+    __tablename__ = "{tabla}"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    # organization_id viene de OrgMixin
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    # ... campos adicionales
+    # created_at, updated_at vienen de TimestampMixin
 ```
 
 ---
 
-## Paso 4: Implementar el repositorio
+## Paso 4: Implementar el servicio
 
-El repositorio encapsula las queries a base de datos. Nunca hacer queries directamente desde handlers o services.
+El servicio contiene la logica de negocio. Valida reglas de negocio, coordina acceso a datos, y emite eventos.
 
-```typescript
-// src/core/{nombre}/repositories/{nombre}.repository.ts
+```python
+# app/services/{nombre}_service.py
+from sqlalchemy.ext.asyncio import AsyncSession
 
-export class NombreRepository {
-  constructor(private db: Database) {}
+class NombreService:
+    def __init__(self, db: AsyncSession):
+        self.db = db
 
-  async findById(id: string): Promise<NombreEntity | null> {
-    // Query con Drizzle
-  }
+    async def create(self, org_id: uuid.UUID, data: CreateNombreInput) -> NombreEntity:
+        # 1. Validar reglas de negocio
+        # 2. Crear en BD
+        # 3. Emitir evento (si aplica)
+        # 4. Retornar resultado
+        ...
 
-  async findByTenant(tenantId: string, pagination: Pagination): Promise<PaginatedResult<NombreEntity>> {
-    // Query paginada
-  }
+    async def get_by_id(self, org_id: uuid.UUID, item_id: uuid.UUID) -> NombreEntity | None:
+        ...
 
-  async create(data: CreateNombreInput): Promise<NombreEntity> {
-    // Insert
-  }
-
-  async update(id: string, data: UpdateNombreInput): Promise<NombreEntity> {
-    // Update
-  }
-
-  async softDelete(id: string): Promise<void> {
-    // UPDATE SET deleted_at = NOW()
-  }
-}
+    async def list_by_org(self, org_id: uuid.UUID, page: int, per_page: int):
+        ...
 ```
 
 ---
 
-## Paso 5: Implementar el servicio
+## Paso 5: Implementar los schemas Pydantic
 
-El servicio contiene la logica de negocio. Valida reglas de negocio, coordina repositorios, y emite eventos.
+```python
+# app/schemas/{nombre}.py
+from pydantic import BaseModel
 
-```typescript
-// src/core/{nombre}/services/{nombre}.service.ts
+class CreateNombreRequest(BaseModel):
+    name: str  # min_length=2, max_length=100
+    description: str | None = None
 
-export class NombreService {
-  constructor(
-    private repo: NombreRepository,
-    private eventBus: EventBus // Si emite eventos
-  ) {}
-
-  async create(input: CreateNombreInput, context: RequestContext): Promise<NombreEntity> {
-    // 1. Validar reglas de negocio
-    // 2. Crear en BD via repositorio
-    // 3. Emitir evento (si aplica)
-    // 4. Retornar resultado
-  }
-}
+class NombreResponse(BaseModel):
+    id: uuid.UUID
+    organization_id: uuid.UUID
+    name: str
+    created_at: datetime
+    updated_at: datetime
 ```
 
 ---
 
-## Paso 6: Implementar los schemas de validacion
+## Paso 6: Implementar el router
 
-Usar Zod para definir schemas de input:
+Un router con todos los endpoints del modulo:
 
-```typescript
-// src/core/{nombre}/schemas/create-{nombre}.schema.ts
-import { z } from 'zod'
+```python
+# app/routers/{nombre}.py
+from fastapi import APIRouter, Depends
+from app.core.dependencies import get_current_user, get_org_id, require_role
 
-export const createNombreSchema = z.object({
-  name: z.string().min(2).max(100),
-  description: z.string().max(500).optional(),
-  // ... campos
-})
+router = APIRouter(prefix="/api/v1/{nombre}", tags=["{nombre}"])
 
-export type CreateNombreInput = z.infer<typeof createNombreSchema>
+@router.get("/")
+async def list_items(
+    org_id: uuid.UUID = Depends(get_org_id),
+    user = Depends(get_current_user),
+):
+    ...
+
+@router.post("/", status_code=201)
+async def create_item(
+    data: CreateNombreRequest,
+    org_id: uuid.UUID = Depends(get_org_id),
+    user = Depends(require_role("admin")),
+):
+    ...
+
+@router.get("/{item_id}")
+async def get_item(
+    item_id: uuid.UUID,
+    org_id: uuid.UUID = Depends(get_org_id),
+    user = Depends(get_current_user),
+):
+    ...
+
+@router.patch("/{item_id}")
+async def update_item(
+    item_id: uuid.UUID,
+    data: UpdateNombreRequest,
+    org_id: uuid.UUID = Depends(get_org_id),
+    user = Depends(require_role("admin")),
+):
+    ...
+
+@router.delete("/{item_id}")
+async def delete_item(
+    item_id: uuid.UUID,
+    org_id: uuid.UUID = Depends(get_org_id),
+    user = Depends(require_role("admin")),
+):
+    ...
 ```
 
 ---
 
-## Paso 7: Implementar los handlers
+## Paso 7: Registrar en la app FastAPI
 
-Un handler por endpoint. Cada handler:
-1. Extrae y valida el input.
-2. Llama al servicio.
-3. Retorna la respuesta formateada.
+Agregar el router al punto de entrada:
 
-```typescript
-// src/core/{nombre}/handlers/create-{nombre}.handler.ts
-import { Context } from 'hono'
-import { createNombreSchema } from '../schemas/create-nombre.schema'
+```python
+# app/main.py
+from app.routers.{nombre} import router as nombre_router
 
-export async function createNombreHandler(c: Context) {
-  const body = await c.req.json()
-  const input = createNombreSchema.parse(body)
-  const context = c.get('requestContext')
-
-  const result = await nombreService.create(input, context)
-
-  return c.json({ data: result }, 201)
-}
+app.include_router(nombre_router)
 ```
 
 ---
 
-## Paso 8: Definir las rutas
-
-```typescript
-// src/core/{nombre}/routes.ts
-import { Hono } from 'hono'
-import { authMiddleware } from '../shared/middleware/auth.middleware'
-import { rbacMiddleware } from '../shared/middleware/rbac.middleware'
-import { createNombreHandler } from './handlers/create-nombre.handler'
-import { listNombreHandler } from './handlers/list-nombre.handler'
-// ...
-
-export const nombreRoutes = new Hono()
-  .get('/', authMiddleware, listNombreHandler)
-  .post('/', authMiddleware, rbacMiddleware('admin'), createNombreHandler)
-  .get('/:id', authMiddleware, getNombreHandler)
-  .put('/:id', authMiddleware, rbacMiddleware('admin'), updateNombreHandler)
-  .delete('/:id', authMiddleware, rbacMiddleware('admin'), deleteNombreHandler)
-```
-
----
-
-## Paso 9: Registrar en el gateway
-
-Agregar las rutas del modulo al gateway:
-
-```typescript
-// src/core/gateway/app.ts
-import { nombreRoutes } from '../{nombre}/routes'
-
-// ... rutas existentes ...
-app.route('/api/v1/{nombre}', nombreRoutes)
-```
-
----
-
-## Paso 10: Escribir tests
+## Paso 8: Escribir tests
 
 ### Tests unitarios (services)
 
-```typescript
-// tests/core/{nombre}/services/{nombre}.service.test.ts
-import { describe, it, expect, vi } from 'vitest'
+```python
+# tests/{nombre}/test_{nombre}_service.py
+import pytest
 
-describe('NombreService', () => {
-  it('debe crear un recurso correctamente', async () => {
-    // Arrange: mock del repositorio
-    // Act: llamar al servicio
-    // Assert: verificar resultado y efectos secundarios
-  })
+class TestNombreService:
+    async def test_create_item(self, db_session):
+        # Arrange: preparar datos
+        # Act: llamar al servicio
+        # Assert: verificar resultado
+        ...
 
-  it('debe validar reglas de negocio', async () => {
-    // ...
-  })
-})
+    async def test_business_rules(self, db_session):
+        ...
 ```
 
 ### Tests de integracion (endpoints)
 
-```typescript
-// tests/core/{nombre}/routes.test.ts
-import { describe, it, expect } from 'vitest'
+```python
+# tests/{nombre}/test_{nombre}_routes.py
+import pytest
+from httpx import AsyncClient
 
-describe('POST /api/v1/{nombre}', () => {
-  it('debe crear y retornar 201', async () => {
-    const response = await app.request('/api/v1/{nombre}', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${testToken}`
-      },
-      body: JSON.stringify({ name: 'Test' })
-    })
+class TestNombreEndpoints:
+    async def test_create_returns_201(self, client: AsyncClient, auth_headers):
+        response = await client.post(
+            "/api/v1/{nombre}",
+            json={"name": "Test"},
+            headers=auth_headers,
+        )
+        assert response.status_code == 201
+        assert response.json()["data"]["name"] == "Test"
 
-    expect(response.status).toBe(201)
-    const body = await response.json()
-    expect(body.data.name).toBe('Test')
-  })
-
-  it('debe retornar 403 si no tiene permisos', async () => {
-    // ...
-  })
-})
+    async def test_requires_auth(self, client: AsyncClient):
+        response = await client.get("/api/v1/{nombre}")
+        assert response.status_code == 401
 ```
 
 ### Test de aislamiento multi-tenant
 
-```typescript
-it('no debe acceder a datos de otro tenant', async () => {
-  // Crear recurso con tenant A
-  // Intentar acceder con tenant B
-  // Verificar que retorna 404 o lista vacia
-})
+```python
+async def test_org_isolation(self, client, org_a_headers, org_b_headers):
+    # 1. Crear recurso con org A
+    response = await client.post(
+        "/api/v1/{nombre}",
+        json={"name": "Recurso A"},
+        headers=org_a_headers,
+    )
+    item_id = response.json()["data"]["id"]
+
+    # 2. Intentar acceder con org B
+    response = await client.get(
+        f"/api/v1/{{nombre}}/{item_id}",
+        headers=org_b_headers,
+    )
+    assert response.status_code == 404
 ```
 
 ---
 
-## Paso 11: Documentar
+## Paso 9: Documentar
 
 Actualizar la documentacion:
 
@@ -322,10 +304,10 @@ Antes de hacer merge del modulo:
 
 - [ ] Estructura de carpetas correcta
 - [ ] Migracion de BD creada y probada
-- [ ] RLS configurado en tablas con tenant_id
-- [ ] Schemas Zod para toda validacion de input
-- [ ] Handlers, services y repositories implementados
-- [ ] Rutas registradas en el gateway
+- [ ] RLS configurado en tablas con organization_id
+- [ ] Schemas Pydantic para toda validacion de input
+- [ ] Router, servicios y modelos implementados
+- [ ] Router registrado en app/main.py
 - [ ] Tests unitarios con cobertura > 80%
 - [ ] Tests de integracion para endpoints principales
 - [ ] Test de aislamiento multi-tenant
@@ -336,7 +318,7 @@ Antes de hacer merge del modulo:
 
 ## Ejemplo completo: Modulo Notifications
 
-Para ver un ejemplo completo de un modulo, revisa la estructura del modulo Auth en `src/core/auth/` y su documentacion en [docs/modules/auth/README.md](../modules/auth/README.md).
+Para ver un ejemplo completo de un modulo, revisa la estructura del modulo Auth en `app/routers/auth.py` y su documentacion en [docs/modules/auth/README.md](../modules/auth/README.md).
 
 ---
 

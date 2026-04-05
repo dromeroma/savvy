@@ -89,7 +89,7 @@ La app usa el sistema de auth del core. No implementa su propia autenticacion.
 Cliente App        SavvyCore Auth        App Module
     |                    |                    |
     | Login              |                    |
-    |------  ------------->|                    |
+    |------------------->|                    |
     |                    |                    |
     | JWT con org_id     |                    |
     |<-------------------|                    |
@@ -106,11 +106,11 @@ Cliente App        SavvyCore Auth        App Module
 
 ### 2. Multi-tenancy
 
-Toda tabla de la app incluye `tenant_id` y usa las mismas convenciones de RLS del core.
+Toda tabla de la app incluye `organization_id` y usa las mismas convenciones de RLS del core. En Python, se hereda de `OrgMixin` para incluir automaticamente el campo.
 
 ### 3. Routing
 
-Las rutas de la app se montan bajo el namespace de la app:
+Las rutas de la app se montan bajo el namespace de la app en FastAPI:
 
 ```
 /api/v1/pos/products          <-- SavvyPOS
@@ -142,27 +142,27 @@ Migraciones de SavvyLogistics:
 ### 5. Estructura de carpetas
 
 ```
-src/
-  core/                   <-- SavvyCore (no se modifica al agregar una app)
-    auth/
-    organization/
-    gateway/
-    shared/
+app/
+  core/                       <-- SavvyCore (no se modifica al agregar una app)
+    config.py
+    database.py
+    security.py
+    dependencies.py
+  models/                     <-- Modelos SQLAlchemy del core
+  routers/                    <-- Routers del core
+  schemas/                    <-- Schemas Pydantic del core
+  services/                   <-- Servicios del core
   apps/
-    pos/                  <-- SavvyPOS
-      handlers/
-      services/
-      repositories/
+    pos/                      <-- SavvyPOS
       models/
-      routes.ts
-      index.ts
-    logistics/            <-- SavvyLogistics
-      handlers/
+      routers/
+      schemas/
       services/
-      repositories/
+    logistics/                <-- SavvyLogistics
       models/
-      routes.ts
-      index.ts
+      routers/
+      schemas/
+      services/
 ```
 
 ---

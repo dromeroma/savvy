@@ -96,7 +96,7 @@ CREATE TABLE organizations (
 
 | Columna | Tipo | Nullable | Default | Descripcion |
 |---------|------|----------|---------|-------------|
-| `id` | UUID | NO | `gen_random_uuid()` | Identificador unico, usado como `tenant_id` en otras tablas |
+| `id` | UUID | NO | `gen_random_uuid()` | Identificador unico, usado como `organization_id` en otras tablas |
 | `name` | VARCHAR(100) | NO | - | Nombre de la organizacion |
 | `slug` | VARCHAR(120) | NO | - | Slug unico para URLs. Generado a partir del nombre |
 | `type` | VARCHAR(20) | NO | `'business'` | Tipo: `personal` o `business` |

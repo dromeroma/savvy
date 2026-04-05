@@ -6,7 +6,7 @@
 
 El modulo de Organization gestiona las entidades tenant del sistema. Cada organizacion representa una empresa o equipo que usa la plataforma. Funcionalidades principales:
 
-- CRUD de organizaciones
+- Consulta y actualizacion de la organizacion activa
 - Gestion de membresias (usuarios dentro de una org)
 - Sistema de invitaciones
 - Configuracion por organizacion
@@ -25,12 +25,12 @@ El modulo de Organization gestiona las entidades tenant del sistema. Cada organi
 | name             |        | user_id          |        | name             |
 | slug             |        | role             |        | email            |
 | type             |        | joined_at        |        | password_hash    |
-| settings (jsonb) |        | created_at       |        | created_at       |
-| created_at       |        | updated_at       |        | updated_at       |
-| updated_at       |        +------------------+        +------------------+
-| deleted_at       |
-+------------------+
-         |
+| settings (jsonb) |        | created_at       |        | email_verified_at|
+| created_at       |        | updated_at       |        | last_login_at    |
+| updated_at       |        +------------------+        | created_at       |
+| deleted_at       |                                    | updated_at       |
++------------------+                                    | deleted_at       |
+         |                                              +------------------+
          |
          o
 +------------------+
@@ -44,9 +44,12 @@ El modulo de Organization gestiona las entidades tenant del sistema. Cada organi
 | invited_by       |
 | status           |
 | expires_at       |
+| accepted_at      |
 | created_at       |
 +------------------+
 ```
+
+**Nota importante**: Los usuarios son **globales** -- no tienen FK directa a organizaciones. Un usuario se relaciona con organizaciones exclusivamente a traves de la tabla `memberships`. Un usuario puede pertenecer a multiples organizaciones.
 
 ### Tipos de organizacion
 
@@ -82,69 +85,32 @@ El campo `settings` es JSONB y almacena configuracion especifica:
 
 | Metodo | Ruta | Descripcion | Rol minimo |
 |--------|------|-------------|-----------|
-| POST | `/api/v1/organizations` | Crear organizacion | Autenticado |
-| GET | `/api/v1/organizations` | Listar mis organizaciones | Autenticado |
-| GET | `/api/v1/organizations/:id` | Obtener detalle de org | member |
-| PUT | `/api/v1/organizations/:id` | Actualizar organizacion | admin |
-| DELETE | `/api/v1/organizations/:id` | Eliminar organizacion | owner |
-| GET | `/api/v1/organizations/:id/members` | Listar miembros | member |
-| PUT | `/api/v1/organizations/:id/members/:uid` | Cambiar rol de miembro | admin |
-| DELETE | `/api/v1/organizations/:id/members/:uid` | Remover miembro | admin |
-| POST | `/api/v1/organizations/:id/invitations` | Enviar invitacion | admin |
-| GET | `/api/v1/organizations/:id/invitations` | Listar invitaciones | admin |
-| DELETE | `/api/v1/organizations/:id/invitations/:inv_id` | Cancelar invitacion | admin |
-| POST | `/api/v1/invitations/:token/accept` | Aceptar invitacion | Autenticado |
-| POST | `/api/v1/invitations/:token/reject` | Rechazar invitacion | Autenticado |
+| GET | `/api/v1/organizations/me` | Obtener organizacion activa | member |
+| PATCH | `/api/v1/organizations/me` | Actualizar organizacion activa | admin |
+| GET | `/api/v1/organizations/members` | Listar miembros de la org activa | member |
+| POST | `/api/v1/organizations/members/invite` | Enviar invitacion | admin |
+| PATCH | `/api/v1/organizations/members/{membership_id}/role` | Cambiar rol de miembro | admin |
+| DELETE | `/api/v1/organizations/members/{membership_id}` | Remover miembro | admin |
+| POST | `/api/v1/organizations/invitations/{token}/accept` | Aceptar invitacion | Autenticado |
 
 Ver [Endpoints detallados](../../api/organization-endpoints.md) para ejemplos de request/response.
 
 ---
 
-## Flujo de creacion de organizacion
+## Flujo de consulta de organizacion activa
 
 ```
-1. Usuario autenticado envia POST /api/v1/organizations
-   { "name": "Mi Restaurante", "type": "business" }
+1. Usuario autenticado envia GET /api/v1/organizations/me
+   (El org_id viene del JWT)
 
-2. Servidor valida:
-   - Nombre no vacio, longitud 2-100 caracteres
-   - Tipo valido ("business")
-   - Generar slug unico a partir del nombre ("mi-restaurante")
+2. Servidor:
+   - Extrae org_id del JWT via dependency get_org_id
+   - Busca la organizacion en BD
+   - Retorna los datos de la organizacion activa
 
-3. Servidor crea (en transaccion):
-   a) INSERT en `organizations` con los datos
-   b) INSERT en `memberships` con rol "owner" para el usuario creador
-
-4. Servidor responde:
-   - 201 Created
-   - Body: { data: { id, name, slug, type, ... } }
-```
-
-```
-Usuario               Servidor                    Base de datos
-  |                      |                              |
-  | POST /organizations  |                              |
-  | { name, type }       |                              |
-  |--------------------->|                              |
-  |                      |                              |
-  |                      | BEGIN TRANSACTION             |
-  |                      |----------------------------->|
-  |                      |                              |
-  |                      | INSERT organization           |
-  |                      |----------------------------->|
-  |                      |              org_id          |
-  |                      |<-----------------------------|
-  |                      |                              |
-  |                      | INSERT membership             |
-  |                      | (user, org, role=owner)       |
-  |                      |----------------------------->|
-  |                      |                              |
-  |                      | COMMIT                        |
-  |                      |----------------------------->|
-  |                      |                              |
-  | 201 Created          |                              |
-  | { data: org }        |                              |
-  |<---------------------|                              |
+3. Servidor responde:
+   - 200 OK
+   - Body: { data: { id, name, slug, type, settings, ... } }
 ```
 
 ---
@@ -164,7 +130,7 @@ Usuario               Servidor                    Base de datos
 ### Cambio de rol
 
 ```
-PUT /api/v1/organizations/:id/members/:uid
+PATCH /api/v1/organizations/members/{membership_id}/role
 { "role": "admin" }
 
 Validaciones:
@@ -177,7 +143,7 @@ Validaciones:
 ### Remocion de miembro
 
 ```
-DELETE /api/v1/organizations/:id/members/:uid
+DELETE /api/v1/organizations/members/{membership_id}
 
 Validaciones:
 - El solicitante debe ser admin o owner
@@ -195,7 +161,7 @@ Validaciones:
 ```
 Admin/Owner                Servidor              Email              Invitado
    |                          |                    |                    |
-   | POST /invitations        |                    |                    |
+   | POST /members/invite     |                    |                    |
    | { email, role }          |                    |                    |
    |------------------------->|                    |                    |
    |                          |                    |                    |
@@ -208,6 +174,7 @@ Admin/Owner                Servidor              Email              Invitado
    |                          | 2. Crear invitacion |                    |
    |                          |    token = nanoid() |                    |
    |                          |    expires = 7 dias |                    |
+   |                          |    status = pending |                    |
    |                          |                    |                    |
    |                          | 3. Enviar email     |                    |
    |                          |------------------->|                    |
@@ -219,13 +186,14 @@ Admin/Owner                Servidor              Email              Invitado
    |                          |                    |                    |
    |                          |                    |    Clic en link    |
    |                          |                    |                    |
-   |                          | POST /invitations/:token/accept        |
+   |                          | POST /invitations/{token}/accept       |
    |                          |<---------------------------------------|
    |                          |                    |                    |
    |                          | 4. Validar token    |                    |
    |                          | 5. Crear membresia  |                    |
-   |                          | 6. Marcar inv.      |                    |
-   |                          |    como aceptada    |                    |
+   |                          | 6. Actualizar inv.  |                    |
+   |                          |    status=accepted   |                    |
+   |                          |    accepted_at=NOW() |                    |
    |                          |                    |                    |
    |                          | 200 OK              |                    |
    |                          |--------------------------------------->|
@@ -237,7 +205,7 @@ Admin/Owner                Servidor              Email              Invitado
 | Estado | Codigo | Descripcion |
 |--------|--------|-------------|
 | Pendiente | `pending` | Enviada, esperando respuesta |
-| Aceptada | `accepted` | El invitado acepto y fue agregado como miembro |
+| Aceptada | `accepted` | El invitado acepto y fue agregado como miembro. Se registra `accepted_at`. |
 | Rechazada | `rejected` | El invitado rechazo la invitacion |
 | Expirada | `expired` | Pasaron 7 dias sin respuesta |
 | Cancelada | `cancelled` | El admin cancelo la invitacion |
@@ -277,37 +245,17 @@ Slug:   "mi-restaurante-el-buen-sabor-1"
 ## Estructura de carpetas del modulo
 
 ```
-src/core/organization/
-  handlers/
-    create-org.handler.ts
-    get-org.handler.ts
-    list-orgs.handler.ts
-    update-org.handler.ts
-    delete-org.handler.ts
-    list-members.handler.ts
-    update-member.handler.ts
-    remove-member.handler.ts
-    create-invitation.handler.ts
-    list-invitations.handler.ts
-    cancel-invitation.handler.ts
-    accept-invitation.handler.ts
-    reject-invitation.handler.ts
-  services/
-    organization.service.ts
-    membership.service.ts
-    invitation.service.ts
-    slug.service.ts
-  repositories/
-    organization.repository.ts
-    membership.repository.ts
-    invitation.repository.ts
+app/
+  routers/
+    organizations.py           <-- Router FastAPI con endpoints de org
   schemas/
-    create-org.schema.ts
-    update-org.schema.ts
-    create-invitation.schema.ts
-    update-member.schema.ts
-  routes.ts
-  index.ts
+    organization.py            <-- Schemas Pydantic (request/response)
+  services/
+    organization_service.py    <-- Logica de negocio
+  models/
+    organization.py            <-- Modelo SQLAlchemy de organizations
+    membership.py              <-- Modelo SQLAlchemy de memberships
+    invitation.py              <-- Modelo SQLAlchemy de invitations
 ```
 
 ---

@@ -8,6 +8,8 @@
 
 **SavvyCore** es el nucleo compartido sobre el cual se construyen todas las aplicaciones SaaS de Savvitrix Solutions (SavvyPOS, SavvyLogistics, SavvyInventory, etc.). Proporciona autenticacion, gestion de organizaciones, gateway API, multi-tenancy y las convenciones base que todo producto debe seguir.
 
+**Stack tecnologico**: Python 3.12+ / FastAPI / SQLAlchemy 2.0 / PostgreSQL 16 / Redis
+
 ---
 
 ## Indice de documentacion
@@ -16,8 +18,8 @@
 
 | Documento | Descripcion |
 |-----------|-------------|
-| [Arquitectura General](./architecture/overview.md) | Vision general: monoilto modular, API-first, multi-tenant |
-| [Multi-tenancy](./architecture/multi-tenancy.md) | Estrategia de multi-tenancy: BD compartida, schema compartido, RLS |
+| [Arquitectura General](./architecture/overview.md) | Vision general: monolito modular, API-first, multi-tenant |
+| [Multi-tenancy](./architecture/multi-tenancy.md) | Estrategia de multi-tenancy: BD compartida, schema compartido, RLS con organization_id |
 | [Escalabilidad](./architecture/scalability.md) | Plan de evolucion: microservicios, event bus, multi-region, IA |
 | [Stack Tecnologico](./architecture/tech-stack.md) | Decisiones de tecnologia con alternativas evaluadas |
 
@@ -26,7 +28,7 @@
 | Documento | Descripcion |
 |-----------|-------------|
 | [Auth](./modules/auth/README.md) | Autenticacion JWT, flujos de registro/login, RBAC |
-| [Organization](./modules/organization/README.md) | Gestion de organizaciones, membresías, invitaciones |
+| [Organization](./modules/organization/README.md) | Gestion de organizaciones, membresias, invitaciones |
 | [API Gateway](./modules/gateway/README.md) | Pipeline de middleware, routing, versionado |
 
 ### Base de Datos
@@ -34,15 +36,15 @@
 | Documento | Descripcion |
 |-----------|-------------|
 | [Esquema de BD](./database/schema.md) | Esquema completo Fase 1: tablas, columnas, tipos, constraints |
-| [Convenciones de BD](./database/conventions.md) | Naming, UUIDs, tenant_id, timestamps, indices |
+| [Convenciones de BD](./database/conventions.md) | Naming, UUIDs, organization_id, timestamps, indices |
 
 ### API
 
 | Documento | Descripcion |
 |-----------|-------------|
 | [Convenciones API](./api/README.md) | REST, versionado, headers, errores, paginacion |
-| [Endpoints de Auth](./api/auth-endpoints.md) | Endpoints de autenticacion con ejemplos |
-| [Endpoints de Organization](./api/organization-endpoints.md) | Endpoints de organizacion con ejemplos |
+| [Endpoints de Auth](./api/auth-endpoints.md) | Endpoints de autenticacion con ejemplos (7 endpoints) |
+| [Endpoints de Organization](./api/organization-endpoints.md) | Endpoints de organizacion con ejemplos (7 endpoints) |
 
 ### Aplicaciones SaaS
 
@@ -57,6 +59,27 @@
 |-----------|-------------|
 | [Agregar un Modulo](./guides/adding-a-module.md) | Paso a paso para crear un nuevo modulo en el core |
 | [Agregar una App](./guides/adding-an-app.md) | Paso a paso para crear una nueva app SaaS |
+
+---
+
+## Endpoints de la API (13 total)
+
+| Metodo | Ruta | Descripcion |
+|--------|------|-------------|
+| POST | `/api/v1/auth/register` | Registrar nuevo usuario |
+| POST | `/api/v1/auth/login` | Iniciar sesion |
+| POST | `/api/v1/auth/refresh` | Renovar access token |
+| POST | `/api/v1/auth/logout` | Cerrar sesion |
+| GET | `/api/v1/auth/me` | Obtener perfil del usuario |
+| PATCH | `/api/v1/auth/me` | Actualizar perfil del usuario |
+| POST | `/api/v1/auth/change-password` | Cambiar contrasena |
+| GET | `/api/v1/organizations/me` | Obtener organizacion activa |
+| PATCH | `/api/v1/organizations/me` | Actualizar organizacion activa |
+| GET | `/api/v1/organizations/members` | Listar miembros |
+| POST | `/api/v1/organizations/members/invite` | Enviar invitacion |
+| PATCH | `/api/v1/organizations/members/{membership_id}/role` | Cambiar rol de miembro |
+| DELETE | `/api/v1/organizations/members/{membership_id}` | Remover miembro |
+| POST | `/api/v1/organizations/invitations/{token}/accept` | Aceptar invitacion |
 
 ---
 

@@ -6,118 +6,20 @@
 
 ```
 /api/v1/organizations
-/api/v1/invitations
 ```
 
 Todos los endpoints requieren autenticacion (`Authorization: Bearer <token>`) salvo que se indique lo contrario.
 
 ---
 
-## POST /organizations
+## GET /organizations/me
 
-Crea una nueva organizacion. El usuario autenticado se convierte en owner automaticamente.
-
-### Request
-
-```http
-POST /api/v1/organizations
-Authorization: Bearer <access_token>
-Content-Type: application/json
-
-{
-  "name": "Mi Restaurante El Buen Sabor"
-}
-```
-
-| Campo | Tipo | Obligatorio | Validacion |
-|-------|------|-------------|-----------|
-| `name` | string | Si | 2-100 caracteres |
-
-### Response (201 Created)
-
-```http
-HTTP/1.1 201 Created
-Location: /api/v1/organizations/550e8400-e29b-41d4-a716-446655440000
-
-{
-  "data": {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "name": "Mi Restaurante El Buen Sabor",
-    "slug": "mi-restaurante-el-buen-sabor",
-    "type": "business",
-    "settings": {},
-    "created_at": "2026-03-28T10:00:00.000Z",
-    "updated_at": "2026-03-28T10:00:00.000Z"
-  }
-}
-```
-
-### Errores posibles
-
-| Status | Codigo | Cuando |
-|--------|--------|--------|
-| 400 | `VALIDATION_ERROR` | Nombre vacio o fuera de rango |
-| 401 | `UNAUTHORIZED` | Token invalido |
-| 409 | `CONFLICT` | Slug generado ya existe (reintentar con variante) |
-
----
-
-## GET /organizations
-
-Lista las organizaciones a las que el usuario autenticado pertenece.
+Obtiene el detalle de la organizacion activa (la del `org_id` en el JWT). El usuario debe ser miembro.
 
 ### Request
 
 ```http
-GET /api/v1/organizations?page=1&per_page=20
-Authorization: Bearer <access_token>
-```
-
-### Response (200 OK)
-
-```json
-{
-  "data": [
-    {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
-      "name": "Mi Restaurante El Buen Sabor",
-      "slug": "mi-restaurante-el-buen-sabor",
-      "type": "business",
-      "role": "owner",
-      "members_count": 5,
-      "created_at": "2026-03-28T10:00:00.000Z"
-    },
-    {
-      "id": "660e8400-e29b-41d4-a716-446655440001",
-      "name": "Juan Perez",
-      "slug": "juan-perez",
-      "type": "personal",
-      "role": "owner",
-      "members_count": 1,
-      "created_at": "2026-03-28T09:00:00.000Z"
-    }
-  ],
-  "pagination": {
-    "page": 1,
-    "per_page": 20,
-    "total": 2,
-    "total_pages": 1,
-    "has_next": false,
-    "has_prev": false
-  }
-}
-```
-
----
-
-## GET /organizations/:id
-
-Obtiene el detalle de una organizacion. El usuario debe ser miembro.
-
-### Request
-
-```http
-GET /api/v1/organizations/550e8400-e29b-41d4-a716-446655440000
+GET /api/v1/organizations/me
 Authorization: Bearer <access_token>
 ```
 
@@ -153,14 +55,14 @@ Authorization: Bearer <access_token>
 
 ---
 
-## PUT /organizations/:id
+## PATCH /organizations/me
 
-Actualiza una organizacion. Requiere rol `admin` o `owner`.
+Actualiza la organizacion activa. Requiere rol `admin` o `owner`.
 
 ### Request
 
 ```http
-PUT /api/v1/organizations/550e8400-e29b-41d4-a716-446655440000
+PATCH /api/v1/organizations/me
 Authorization: Bearer <access_token>
 Content-Type: application/json
 
@@ -208,43 +110,14 @@ Content-Type: application/json
 
 ---
 
-## DELETE /organizations/:id
+## GET /organizations/members
 
-Elimina una organizacion (soft delete). Solo el `owner` puede ejecutar esta accion. No se puede eliminar una organizacion de tipo `personal`.
-
-### Request
-
-```http
-DELETE /api/v1/organizations/550e8400-e29b-41d4-a716-446655440000
-Authorization: Bearer <access_token>
-```
-
-### Response (200 OK)
-
-```json
-{
-  "message": "Organizacion eliminada exitosamente"
-}
-```
-
-### Errores posibles
-
-| Status | Codigo | Cuando |
-|--------|--------|--------|
-| 403 | `INSUFFICIENT_PERMISSIONS` | No es owner |
-| 404 | `NOT_FOUND` | No existe |
-| 422 | `UNPROCESSABLE_ENTITY` | Es una organizacion personal (no eliminable) |
-
----
-
-## GET /organizations/:id/members
-
-Lista los miembros de una organizacion. Requiere ser miembro.
+Lista los miembros de la organizacion activa. Requiere ser miembro.
 
 ### Request
 
 ```http
-GET /api/v1/organizations/550e8400-.../members?page=1&per_page=20
+GET /api/v1/organizations/members?page=1&per_page=20
 Authorization: Bearer <access_token>
 ```
 
@@ -297,86 +170,14 @@ Authorization: Bearer <access_token>
 
 ---
 
-## PUT /organizations/:id/members/:user_id
+## POST /organizations/members/invite
 
-Cambia el rol de un miembro. Requiere `admin` o `owner`.
-
-### Request
-
-```http
-PUT /api/v1/organizations/550e8400-.../members/660e8400-...
-Authorization: Bearer <access_token>
-Content-Type: application/json
-
-{
-  "role": "admin"
-}
-```
-
-| Campo | Tipo | Obligatorio | Validacion |
-|-------|------|-------------|-----------|
-| `role` | string | Si | `owner`, `admin`, o `member` |
-
-### Response (200 OK)
-
-```json
-{
-  "data": {
-    "id": "bbb-222",
-    "user_id": "660e8400-...",
-    "role": "admin",
-    "updated_at": "2026-03-28T15:00:00.000Z"
-  }
-}
-```
-
-### Errores posibles
-
-| Status | Codigo | Cuando |
-|--------|--------|--------|
-| 403 | `INSUFFICIENT_PERMISSIONS` | Intenta asignar un rol mayor al propio |
-| 404 | `NOT_FOUND` | El miembro no existe en esta org |
-| 422 | `UNPROCESSABLE_ENTITY` | Intenta degradar al unico owner |
-
----
-
-## DELETE /organizations/:id/members/:user_id
-
-Remueve un miembro de la organizacion. Requiere `admin` o `owner`. Un miembro puede removerse a si mismo (abandonar la org).
+Envia una invitacion por email para unirse a la organizacion activa. Requiere `admin` o `owner`.
 
 ### Request
 
 ```http
-DELETE /api/v1/organizations/550e8400-.../members/770e8400-...
-Authorization: Bearer <access_token>
-```
-
-### Response (200 OK)
-
-```json
-{
-  "message": "Miembro removido exitosamente"
-}
-```
-
-### Errores posibles
-
-| Status | Codigo | Cuando |
-|--------|--------|--------|
-| 403 | `INSUFFICIENT_PERMISSIONS` | Intenta remover a alguien con rol mayor |
-| 404 | `NOT_FOUND` | El miembro no existe |
-| 422 | `UNPROCESSABLE_ENTITY` | Es el unico owner de la org |
-
----
-
-## POST /organizations/:id/invitations
-
-Envia una invitacion por email. Requiere `admin` o `owner`.
-
-### Request
-
-```http
-POST /api/v1/organizations/550e8400-.../invitations
+POST /api/v1/organizations/members/invite
 Authorization: Bearer <access_token>
 Content-Type: application/json
 
@@ -417,56 +218,57 @@ Content-Type: application/json
 
 ---
 
-## GET /organizations/:id/invitations
+## PATCH /organizations/members/{membership_id}/role
 
-Lista las invitaciones de una organizacion. Requiere `admin` o `owner`.
+Cambia el rol de un miembro. Requiere `admin` o `owner`.
 
 ### Request
 
 ```http
-GET /api/v1/organizations/550e8400-.../invitations?status=pending
+PATCH /api/v1/organizations/members/bbb-222/role
 Authorization: Bearer <access_token>
+Content-Type: application/json
+
+{
+  "role": "admin"
+}
 ```
+
+| Campo | Tipo | Obligatorio | Validacion |
+|-------|------|-------------|-----------|
+| `role` | string | Si | `owner`, `admin`, o `member` |
 
 ### Response (200 OK)
 
 ```json
 {
-  "data": [
-    {
-      "id": "inv-123",
-      "email": "nuevo@ejemplo.com",
-      "role": "member",
-      "status": "pending",
-      "invited_by": {
-        "id": "550e8400-...",
-        "name": "Juan Perez"
-      },
-      "expires_at": "2026-04-04T10:00:00.000Z",
-      "created_at": "2026-03-28T10:00:00.000Z"
-    }
-  ],
-  "pagination": {
-    "page": 1,
-    "per_page": 20,
-    "total": 1,
-    "total_pages": 1,
-    "has_next": false,
-    "has_prev": false
+  "data": {
+    "id": "bbb-222",
+    "user_id": "660e8400-...",
+    "role": "admin",
+    "updated_at": "2026-03-28T15:00:00.000Z"
   }
 }
 ```
 
+### Errores posibles
+
+| Status | Codigo | Cuando |
+|--------|--------|--------|
+| 403 | `INSUFFICIENT_PERMISSIONS` | Intenta asignar un rol mayor al propio |
+| 404 | `NOT_FOUND` | El miembro no existe en esta org |
+| 422 | `UNPROCESSABLE_ENTITY` | Intenta degradar al unico owner |
+
 ---
 
-## DELETE /organizations/:id/invitations/:inv_id
+## DELETE /organizations/members/{membership_id}
 
-Cancela una invitacion pendiente. Requiere `admin` o `owner`.
+Remueve un miembro de la organizacion activa. Requiere `admin` o `owner`. Un miembro puede removerse a si mismo (abandonar la org).
 
 ### Request
 
 ```http
-DELETE /api/v1/organizations/550e8400-.../invitations/inv-123
+DELETE /api/v1/organizations/members/ccc-333
 Authorization: Bearer <access_token>
 ```
 
@@ -474,20 +276,28 @@ Authorization: Bearer <access_token>
 
 ```json
 {
-  "message": "Invitacion cancelada exitosamente"
+  "message": "Miembro removido exitosamente"
 }
 ```
 
+### Errores posibles
+
+| Status | Codigo | Cuando |
+|--------|--------|--------|
+| 403 | `INSUFFICIENT_PERMISSIONS` | Intenta remover a alguien con rol mayor |
+| 404 | `NOT_FOUND` | El miembro no existe |
+| 422 | `UNPROCESSABLE_ENTITY` | Es el unico owner de la org |
+
 ---
 
-## POST /invitations/:token/accept
+## POST /organizations/invitations/{token}/accept
 
-Acepta una invitacion. El usuario debe estar autenticado. Si el email de la invitacion coincide con el del usuario autenticado, se crea la membresia.
+Acepta una invitacion. El usuario debe estar autenticado. Si el email de la invitacion coincide con el del usuario autenticado, se crea la membresia y se actualiza la invitacion (`status = accepted`, `accepted_at = NOW()`).
 
 ### Request
 
 ```http
-POST /api/v1/invitations/tok_abc123def456/accept
+POST /api/v1/organizations/invitations/tok_abc123def456/accept
 Authorization: Bearer <access_token>
 ```
 
@@ -511,32 +321,11 @@ Authorization: Bearer <access_token>
 
 | Status | Codigo | Cuando |
 |--------|--------|--------|
-| 400 | `BAD_REQUEST` | La invitacion no esta en estado pendiente |
+| 400 | `BAD_REQUEST` | La invitacion no esta en estado `pending` |
 | 401 | `UNAUTHORIZED` | No autenticado |
 | 403 | `FORBIDDEN` | El email del usuario no coincide con el de la invitacion |
 | 404 | `NOT_FOUND` | Token invalido |
 | 410 | `GONE` | La invitacion ha expirado |
-
----
-
-## POST /invitations/:token/reject
-
-Rechaza una invitacion.
-
-### Request
-
-```http
-POST /api/v1/invitations/tok_abc123def456/reject
-Authorization: Bearer <access_token>
-```
-
-### Response (200 OK)
-
-```json
-{
-  "message": "Invitacion rechazada"
-}
-```
 
 ---
 

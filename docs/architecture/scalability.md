@@ -28,8 +28,8 @@ Fase 1 (Actual)          Fase 2                  Fase 3                 Fase 4
 
 ### Arquitectura
 
-- Un solo proceso Node.js/Bun que contiene todos los modulos.
-- Un servidor PostgreSQL.
+- Un solo proceso Python/FastAPI que contiene todos los modulos.
+- Un servidor PostgreSQL (Supabase).
 - Redis para cache basico y rate limiting.
 - Deploy en un solo servidor o contenedor.
 
@@ -44,8 +44,8 @@ Fase 1 (Actual)          Fase 2                  Fase 3                 Fase 4
 
 ### Estrategias de optimizacion en esta fase
 
-1. **Indices de BD** apropiados en todas las tablas (especialmente `tenant_id`).
-2. **Connection pooling** con PgBouncer o pool nativo.
+1. **Indices de BD** apropiados en todas las tablas (especialmente `organization_id`).
+2. **Connection pooling** con pool nativo de SQLAlchemy async o PgBouncer.
 3. **Cache en Redis** para datos de lectura frecuente (perfiles, permisos, configuracion de org).
 4. **Compresion gzip/brotli** en respuestas HTTP.
 5. **Paginacion obligatoria** en todos los endpoints de listado.
@@ -66,12 +66,12 @@ Fase 1 (Actual)          Fase 2                  Fase 3                 Fase 4
 +----------------+       +----------------+
 | Monolito       |       | Redis Cluster  |
 | Modular        |------>| (Cache Layer)  |
-|                |       +----------------+
+| (FastAPI)      |       +----------------+
 |                |
 |                |       +----------------+
 |                |------>| Event Bus      |
 |                |       | (Redis Streams |
-|                |       |  o BullMQ)     |
+|                |       |  o Celery)     |
 |                |       +----------------+
 |                |
 |                |       +----------------+       +----------------+
@@ -139,7 +139,7 @@ Modulo Organization            Event Bus                  Modulo Audit
 ```
 ANTES (Monolito):
 +------------------------------------------+
-| Monolito                                 |
+| Monolito (FastAPI)                       |
 | +------+ +--------+ +-----------+        |
 | | Auth | | Billing| | Notific.  |        |
 | +------+ +--------+ +-----------+        |
@@ -228,7 +228,7 @@ Ejemplos:
 
 ### Estrategia de datos multi-region
 
-- **Datos de tenant**: Residentes en la region del tenant (configurable).
+- **Datos de organizacion**: Residentes en la region de la organizacion (configurable).
 - **Datos de referencia** (planes, features): Replicados globalmente.
 - **Sesiones/Cache**: Locales por region.
 
@@ -272,6 +272,7 @@ Para no bloquear la integracion futura con IA:
 2. **IDs correlacionados**: Toda accion tiene trace_id para reconstruir flujos.
 3. **Datos temporales**: `created_at` y `updated_at` en toda tabla permiten analisis temporal.
 4. **API estandar**: Los modelos de IA se integraran como un servicio mas consumiendo la misma API.
+5. **Stack Python**: El uso de Python facilita la integracion directa con librerias de ML/IA.
 
 ---
 

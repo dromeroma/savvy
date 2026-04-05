@@ -6,8 +6,8 @@
 
 El API Gateway es el punto de entrada unico para todas las peticiones HTTP hacia SavvyCore. Su responsabilidad es:
 
-- Ejecutar un pipeline secuencial de middlewares
-- Enrutar peticiones al modulo correcto
+- Ejecutar un pipeline de middlewares y dependencies de FastAPI
+- Enrutar peticiones al router correcto
 - Gestionar versionado de la API
 - Aplicar politicas transversales (seguridad, rate limiting, logging)
 
@@ -15,7 +15,7 @@ El API Gateway es el punto de entrada unico para todas las peticiones HTTP hacia
 
 ## Pipeline de middleware
 
-Cada peticion pasa por los siguientes middlewares en orden estricto. Si cualquier middleware rechaza la peticion, la cadena se detiene y se retorna el error al cliente.
+Cada peticion pasa por los siguientes middlewares/dependencies en orden. Si cualquiera rechaza la peticion, la cadena se detiene y se retorna el error al cliente.
 
 ```
 Peticion HTTP entrante
@@ -28,9 +28,9 @@ Peticion HTTP entrante
         |
         v
 +-------------------+
-| 2. Rate Limiting  |  Limita peticiones por IP (global) y por tenant (si autenticado).
+| 2. Rate Limiting  |  Limita peticiones por IP (global) y por organizacion (si autenticado).
 |                   |  - Global: 100 req/min por IP
-|                   |  - Por tenant: segun plan (1000-10000 req/min)
+|                   |  - Por organizacion: segun plan (1000-10000 req/min)
 |                   |  - Por endpoint: configurable (ej. login: 5 req/min)
 +-------------------+
         |
@@ -38,40 +38,41 @@ Peticion HTTP entrante
 +-------------------+
 | 3. CORS           |  Configura origenes permitidos, metodos, headers.
 |                   |  - Dev: http://localhost:*
-|                   |  - Prod: dominios registrados por tenant
+|                   |  - Prod: dominios registrados por organizacion
 +-------------------+
         |
         v
 +-------------------+
-| 4. Body Parser    |  Parsea el body de la peticion (JSON).
+| 4. Body Parser    |  FastAPI parsea automaticamente el body (JSON).
 |                   |  - Limite de tamano: 1MB por defecto
 |                   |  - Content-Type: application/json
 +-------------------+
         |
         v
 +-------------------+
-| 5. Tenant         |  Identifica el tenant desde JWT o headers.
-| Resolution        |  Establece SET app.current_tenant en PostgreSQL.
-|                   |  Adjunta tenant al contexto de la peticion.
-+-------------------+
-        |
-        v
-+-------------------+
-| 6. Authentication |  Valida el JWT del header Authorization.
-|                   |  Si la ruta es publica, pasa sin validar.
+| 5. Authentication |  Dependency que valida el JWT del header Authorization.
+| (get_current_user)|  Si la ruta es publica, no se aplica.
 |                   |  Si el JWT es invalido o expirado: 401.
 +-------------------+
         |
         v
 +-------------------+
-| 7. Authorization  |  Verifica que el rol del usuario permite acceder
-| (RBAC)            |  a esta ruta. Si no tiene permiso: 403.
+| 6. Organization   |  Dependency get_org_id que extrae org_id del JWT.
+| Resolution        |  Establece SET app.current_org en PostgreSQL.
+| (get_org_id)      |  Adjunta org_id al contexto de la peticion.
 +-------------------+
         |
         v
 +-------------------+
-| 8. Validation     |  Valida body, query params y path params contra
-|                   |  schemas Zod del endpoint. Si falla: 400.
+| 7. Authorization  |  Dependency que verifica que el rol del usuario permite
+| (RBAC)            |  acceder a esta ruta. Si no tiene permiso: 403.
++-------------------+
+        |
+        v
++-------------------+
+| 8. Validation     |  Pydantic valida body, query params y path params
+|                   |  automaticamente contra los schemas definidos.
+|                   |  Si falla: 422.
 +-------------------+
         |
         v
@@ -112,40 +113,33 @@ Middleware   { status, error, message }
 
 ## Routing y versionado
 
-### Estructura de rutas
+### Estructura de rutas (13 endpoints)
 
 ```
 /api/v1/
   auth/
-    POST   /register            --> Auth.register
-    POST   /login               --> Auth.login
-    POST   /refresh             --> Auth.refresh
-    POST   /logout              --> Auth.logout
-    GET    /me                  --> Auth.me
-    POST   /switch-org          --> Auth.switchOrg
+    POST   /register              --> Auth.register
+    POST   /login                 --> Auth.login
+    POST   /refresh               --> Auth.refresh
+    POST   /logout                --> Auth.logout
+    GET    /me                    --> Auth.getProfile
+    PATCH  /me                    --> Auth.updateProfile
+    POST   /change-password       --> Auth.changePassword
 
   organizations/
-    POST   /                    --> Org.create
-    GET    /                    --> Org.list
-    GET    /:id                 --> Org.get
-    PUT    /:id                 --> Org.update
-    DELETE /:id                 --> Org.delete
-    GET    /:id/members         --> Org.listMembers
-    PUT    /:id/members/:uid    --> Org.updateMember
-    DELETE /:id/members/:uid    --> Org.removeMember
-    POST   /:id/invitations     --> Org.createInvitation
-    GET    /:id/invitations     --> Org.listInvitations
-    DELETE /:id/invitations/:iid --> Org.cancelInvitation
-
-  invitations/
-    POST   /:token/accept       --> Invitation.accept
-    POST   /:token/reject       --> Invitation.reject
+    GET    /me                    --> Org.getCurrent
+    PATCH  /me                    --> Org.updateCurrent
+    GET    /members               --> Org.listMembers
+    POST   /members/invite        --> Org.inviteMember
+    PATCH  /members/{id}/role     --> Org.updateMemberRole
+    DELETE /members/{id}          --> Org.removeMember
+    POST   /invitations/{token}/accept --> Org.acceptInvitation
 
   # Rutas de apps SaaS (futuras)
   pos/
-    ...                         --> Modulo POS
+    ...                           --> Modulo POS
   logistics/
-    ...                         --> Modulo Logistics
+    ...                           --> Modulo Logistics
 ```
 
 ### Versionado de API
@@ -168,31 +162,57 @@ Middleware   { status, error, message }
 
 ### Registro de rutas
 
-Cada modulo exporta sus rutas que el gateway registra:
+Cada modulo exporta su router que el gateway registra en la aplicacion FastAPI:
 
-```typescript
-// src/core/auth/routes.ts
-export const authRoutes = new Hono()
-  .post('/register', registerHandler)
-  .post('/login', loginHandler)
-  .post('/refresh', refreshHandler)
-  .post('/logout', authMiddleware, logoutHandler)
-  .get('/me', authMiddleware, meHandler)
-  .post('/switch-org', authMiddleware, switchOrgHandler)
+```python
+# app/routers/auth.py
+from fastapi import APIRouter
 
-// src/core/gateway/app.ts
-const app = new Hono()
+router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
-// Middlewares globales
-app.use('*', requestIdMiddleware)
-app.use('*', loggingMiddleware)
-app.use('*', rateLimitMiddleware)
-app.use('*', corsMiddleware)
+@router.post("/register")
+async def register(...): ...
 
-// Rutas versionadas
-app.route('/api/v1/auth', authRoutes)
-app.route('/api/v1/organizations', orgRoutes)
-app.route('/api/v1/invitations', invitationRoutes)
+@router.post("/login")
+async def login(...): ...
+
+@router.post("/refresh")
+async def refresh(...): ...
+
+@router.post("/logout")
+async def logout(...): ...
+
+@router.get("/me")
+async def get_profile(...): ...
+
+@router.patch("/me")
+async def update_profile(...): ...
+
+@router.post("/change-password")
+async def change_password(...): ...
+
+
+# app/routers/organizations.py
+router = APIRouter(prefix="/api/v1/organizations", tags=["organizations"])
+
+@router.get("/me")
+async def get_current_org(...): ...
+
+# ... etc.
+
+
+# app/main.py
+from fastapi import FastAPI
+from app.routers import auth, organizations
+
+app = FastAPI()
+
+# Middlewares globales
+app.add_middleware(CORSMiddleware, ...)
+
+# Routers
+app.include_router(auth.router)
+app.include_router(organizations.router)
 ```
 
 ---
@@ -204,7 +224,7 @@ app.route('/api/v1/invitations', invitationRoutes)
 | Ambito | Limite | Ventana | Almacenamiento |
 |--------|--------|---------|----------------|
 | Global por IP | 100 req | 1 minuto | Redis |
-| Por tenant | Segun plan | 1 minuto | Redis |
+| Por organizacion | Segun plan | 1 minuto | Redis |
 | Login | 5 req | 15 minutos | Redis |
 | Register | 3 req | 1 hora | Redis |
 | Refresh | 10 req | 1 minuto | Redis |
@@ -243,13 +263,13 @@ Cada peticion:
   "request_id": "req_abc123",
   "timestamp": "2026-03-28T10:30:00.000Z",
   "method": "POST",
-  "path": "/api/v1/organizations",
+  "path": "/api/v1/organizations/members/invite",
   "status": 201,
   "duration_ms": 45,
   "ip": "192.168.1.1",
   "user_agent": "Mozilla/5.0...",
   "user_id": "550e8400-...",
-  "tenant_id": "660e8400-...",
+  "org_id": "660e8400-...",
   "error": null
 }
 ```
@@ -326,21 +346,14 @@ Si alguno falla (503 Service Unavailable):
 ## Estructura de carpetas del modulo
 
 ```
-src/core/gateway/
+app/
   middleware/
-    request-id.middleware.ts
-    logging.middleware.ts
-    rate-limit.middleware.ts
-    cors.middleware.ts
-    tenant.middleware.ts
-    error-handler.middleware.ts
-    response-formatter.middleware.ts
-  config/
-    cors.config.ts
-    rate-limit.config.ts
-  app.ts                          <-- Punto de entrada, registro de rutas
-  health.ts                       <-- Health check endpoint
-  index.ts                        <-- Export del modulo
+    logging.py                  <-- Middleware de logging y request ID
+    rate_limit.py               <-- Middleware de rate limiting
+  core/
+    config.py                   <-- Configuracion CORS, rate limits, etc.
+    dependencies.py             <-- get_current_user, get_org_id
+  main.py                       <-- Punto de entrada, registro de routers
 ```
 
 ---

@@ -21,7 +21,7 @@ Todas las APIs de SavvyCore siguen estas convenciones para garantizar consistenc
 ## URL Base
 
 ```
-Desarrollo:  http://localhost:3000/api/v1/
+Desarrollo:  http://localhost:8000/api/v1/
 Produccion:  https://api.savvycore.com/api/v1/
 ```
 
@@ -48,8 +48,6 @@ Authorization: Bearer <access_token>
 - `POST /api/v1/auth/register`
 - `POST /api/v1/auth/login`
 - `POST /api/v1/auth/refresh`
-- `POST /api/v1/invitations/:token/accept`
-- `POST /api/v1/invitations/:token/reject`
 - `GET /health`
 
 ### Endpoints protegidos
@@ -109,7 +107,6 @@ Todos los demas endpoints requieren un JWT valido en el header `Authorization`.
 ### Respuesta de creacion
 
 - Status: `201 Created`
-- Header: `Location: /api/v1/organizations/550e8400-...`
 
 ```json
 {
@@ -190,7 +187,7 @@ X-RateLimit-Reset: 1711584900
 ### Ejemplo de peticion paginada
 
 ```
-GET /api/v1/organizations?page=2&per_page=10&sort=name&order=asc
+GET /api/v1/organizations/members?page=2&per_page=10&sort=joined_at&order=asc
 ```
 
 ### Objeto de paginacion en la respuesta
@@ -222,7 +219,7 @@ GET /api/v1/organizations?page=2&per_page=10&sort=name&order=asc
 ### Formato de filtros en query params
 
 ```
-GET /api/v1/products?status=active&min_price=1000&max_price=5000
+GET /api/v1/pos/products?status=active&min_price=1000&max_price=5000
 ```
 
 ### Filtros comunes
@@ -242,7 +239,6 @@ GET /api/v1/products?status=active&min_price=1000&max_price=5000
 |-------|-----|-------------|------|
 | GET | Obtener recurso(s) | Si | No |
 | POST | Crear recurso | No | Si |
-| PUT | Actualizar recurso completo | Si | Si |
 | PATCH | Actualizar parcialmente | Si | Si |
 | DELETE | Eliminar recurso | Si | No |
 
@@ -252,7 +248,7 @@ GET /api/v1/products?status=active&min_price=1000&max_price=5000
 GET    /api/v1/resources            --> Listar recursos (paginado)
 POST   /api/v1/resources            --> Crear recurso
 GET    /api/v1/resources/:id        --> Obtener un recurso
-PUT    /api/v1/resources/:id        --> Actualizar recurso
+PATCH  /api/v1/resources/:id        --> Actualizar recurso
 DELETE /api/v1/resources/:id        --> Eliminar recurso
 
 GET    /api/v1/resources/:id/sub    --> Listar sub-recursos
@@ -267,7 +263,7 @@ POST   /api/v1/resources/:id/sub    --> Crear sub-recurso
 
 | Header | Valor | Obligatorio |
 |--------|-------|-------------|
-| `Content-Type` | `application/json` | Si (en POST/PUT/PATCH) |
+| `Content-Type` | `application/json` | Si (en POST/PATCH) |
 | `Authorization` | `Bearer <token>` | Si (rutas protegidas) |
 | `Accept` | `application/json` | Recomendado |
 

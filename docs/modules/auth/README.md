@@ -9,6 +9,8 @@ El modulo de Auth es responsable de toda la gestion de identidad y acceso en Sav
 - Registro de usuarios
 - Inicio de sesion (login)
 - Gestion de tokens JWT (access + refresh)
+- Perfil de usuario (consulta y actualizacion)
+- Cambio de contrasena
 - Control de acceso basado en roles (RBAC)
 - Cierre de sesion y revocacion de tokens
 
@@ -21,7 +23,7 @@ SavvyCore utiliza un esquema de **doble token**:
 | Token | Tipo | Duracion | Almacenamiento | Uso |
 |-------|------|----------|----------------|-----|
 | Access Token | JWT | 15 minutos | Memoria (frontend) | Autenticar cada peticion API |
-| Refresh Token | Opaco (UUID) | 7 dias | HttpOnly cookie + BD | Obtener nuevo access token |
+| Refresh Token | Opaco (UUID) | 7 dias | HttpOnly cookie + BD (hash SHA-256) | Obtener nuevo access token |
 
 ### Diagrama del flujo de tokens
 
@@ -49,7 +51,9 @@ Cliente                          Servidor                         Base de Datos
   |                                |    - exp: now + 15min             |
   |                                |                                   |
   |                                | 4. Generar Refresh Token (UUID)   |
-  |                                |    - Guardar hash en BD           |
+  |                                |    - Guardar hash SHA-256 en BD   |
+  |                                |    - Registrar family_id,         |
+  |                                |      device_info, ip_address      |
   |                                |---------------------------------->|
   |                                |          Token guardado           |
   |                                |<----------------------------------|
@@ -66,14 +70,14 @@ PETICION AUTENTICADA
 
 Cliente                          Servidor
   |                                |
-  | GET /api/v1/products           |
+  | GET /api/v1/organizations/me   |
   | Authorization: Bearer <access> |
   |------------------------------->|
   |                                |
   |                                | 1. Verificar firma JWT
   |                                | 2. Verificar expiracion
   |                                | 3. Extraer user_id, org_id, role
-  |                                | 4. Establecer contexto tenant
+  |                                | 4. Establecer contexto de organizacion
   |                                | 5. Verificar permisos RBAC
   |                                | 6. Ejecutar handler
   |                                |
@@ -91,21 +95,25 @@ Cliente                          Servidor                         Base de Datos
   | Cookie: refresh_token=<token>  |                                   |
   |------------------------------->|                                   |
   |                                |                                   |
-  |                                | 1. Buscar refresh token en BD     |
+  |                                | 1. Hash SHA-256 del token         |
+  |                                | 2. Buscar token_hash en BD        |
   |                                |---------------------------------->|
   |                                |          Token encontrado         |
   |                                |<----------------------------------|
   |                                |                                   |
-  |                                | 2. Verificar que no este expirado |
-  |                                | 3. Verificar que no este revocado |
+  |                                | 3. Verificar que no este expirado |
+  |                                | 4. Verificar que revoked_at       |
+  |                                |    sea NULL                       |
   |                                |                                   |
-  |                                | 4. ROTACION: Revocar token viejo  |
+  |                                | 5. ROTACION: Revocar token viejo  |
+  |                                |    (SET revoked_at = NOW())       |
   |                                |---------------------------------->|
   |                                |                                   |
-  |                                | 5. Crear nuevo refresh token      |
+  |                                | 6. Crear nuevo refresh token      |
+  |                                |    (mismo family_id)              |
   |                                |---------------------------------->|
   |                                |                                   |
-  |                                | 6. Generar nuevo access token     |
+  |                                | 7. Generar nuevo access token     |
   |                                |                                   |
   |  200 OK                        |                                   |
   |  { access_token }              |                                   |
@@ -117,17 +125,17 @@ Cliente                          Servidor                         Base de Datos
 
 ### Rotacion de refresh tokens
 
-Cada vez que se usa un refresh token, este se **revoca** y se emite uno nuevo. Esto limita la ventana de ataque si un refresh token es robado:
+Cada vez que se usa un refresh token, este se **revoca** (se establece `revoked_at`) y se emite uno nuevo con el mismo `family_id`. Esto limita la ventana de ataque si un refresh token es robado:
 
 ```
 Uso normal:
-  Token A (activo) ---> Refresh ---> Token A (revocado) + Token B (activo)
-  Token B (activo) ---> Refresh ---> Token B (revocado) + Token C (activo)
+  Token A (activo) ---> Refresh ---> Token A (revoked_at = NOW()) + Token B (activo)
+  Token B (activo) ---> Refresh ---> Token B (revoked_at = NOW()) + Token C (activo)
 
 Deteccion de robo:
   Si Token A (revocado) se intenta usar de nuevo:
     --> ALERTA: posible robo de token
-    --> Revocar TODA la familia de tokens del usuario
+    --> Revocar TODA la familia de tokens (por family_id)
     --> Forzar re-login
 ```
 
@@ -172,9 +180,10 @@ Deteccion de robo:
 | POST | `/api/v1/auth/refresh` | Renovar access token | Cookie refresh_token |
 | POST | `/api/v1/auth/logout` | Cerrar sesion | Si |
 | GET | `/api/v1/auth/me` | Obtener usuario actual | Si |
-| POST | `/api/v1/auth/switch-org` | Cambiar organizacion activa | Si |
+| PATCH | `/api/v1/auth/me` | Actualizar perfil del usuario | Si |
+| POST | `/api/v1/auth/change-password` | Cambiar contrasena | Si |
 
-Ver [Endpoints detallados](../../api/auth-endpoints.md) para ejemplos de request/response.
+Ver [Endpoints detallados de Auth](../../api/auth-endpoints.md) para ejemplos de request/response.
 
 ---
 
@@ -193,11 +202,11 @@ Ver [Endpoints detallados](../../api/auth-endpoints.md) para ejemplos de request
    - Password cumple requisitos (min 8 chars, 1 mayuscula, 1 numero)
    - Nombre no vacio
 
-3. Servidor crea:
+3. Servidor crea (en transaccion):
    a) Usuario en tabla `users` (password hasheado con bcrypt, cost 12)
-   b) Organizacion personal en tabla `organizations` (tipo: personal)
-   c) Membresia en tabla `memberships` (rol: owner)
-   d) Refresh token en tabla `refresh_tokens`
+   b) Organizacion personal en tabla `organizations` (type: personal)
+   c) Membresia en tabla `memberships` (role: owner)
+   d) Refresh token en tabla `refresh_tokens` (token_hash SHA-256)
 
 4. Servidor responde:
    - 201 Created
@@ -243,7 +252,7 @@ Ver [Endpoints detallados](../../api/auth-endpoints.md) para ejemplos de request
 
 4. Servidor genera tokens:
    - Access token con org_id y role de la org seleccionada
-   - Refresh token nuevo (revocar tokens anteriores de este dispositivo)
+   - Refresh token nuevo (hash SHA-256, family_id, device_info, ip_address)
 
 5. Servidor responde:
    - 200 OK
@@ -296,7 +305,7 @@ El middleware RBAC verifica el rol del usuario antes de ejecutar el handler:
 Peticion con JWT (role: "member")
           |
           v
-  [RBAC Middleware]
+  [RBAC Dependency]
           |
   Ruta requiere: "admin"
           |
@@ -306,19 +315,16 @@ Peticion con JWT (role: "member")
           |     { "error": "INSUFFICIENT_PERMISSIONS" }
 ```
 
-### Tabla de permisos por endpoint (ejemplo)
+### Tabla de permisos por endpoint
 
 | Endpoint | owner | admin | member |
 |----------|-------|-------|--------|
-| GET /organizations/:id | Si | Si | Si |
-| PUT /organizations/:id | Si | Si | No |
-| DELETE /organizations/:id | Si | No | No |
-| POST /organizations/:id/members | Si | Si | No |
-| DELETE /organizations/:id/members/:uid | Si | Si | No |
-| GET /products | Si | Si | Si |
-| POST /products | Si | Si | Si |
-| PUT /products/:id | Si | Si | Si |
-| DELETE /products/:id | Si | Si | No |
+| GET /organizations/me | Si | Si | Si |
+| PATCH /organizations/me | Si | Si | No |
+| GET /organizations/members | Si | Si | Si |
+| POST /organizations/members/invite | Si | Si | No |
+| PATCH /organizations/members/{id}/role | Si | Si | No |
+| DELETE /organizations/members/{id} | Si | Si | No |
 
 ---
 
@@ -330,13 +336,20 @@ Peticion con JWT (role: "member")
 - Nunca almacenar passwords en texto plano.
 - Nunca loguear passwords ni tokens.
 
+### Almacenamiento de refresh tokens
+
+- Se almacena el **hash SHA-256** del token, nunca el token en texto plano.
+- Cada token tiene un `family_id` para agrupar cadenas de rotacion.
+- Se registra `device_info` (User-Agent) e `ip_address` para auditoria.
+- Revocacion mediante `revoked_at` (timestamp nullable, no booleano).
+
 ### Proteccion contra ataques
 
 | Ataque | Mitigacion |
 |--------|-----------|
 | Brute force | Rate limiting + bloqueo temporal (5 intentos / 15 min) |
 | Token theft (access) | Expiracion corta (15 min), HTTPS obligatorio |
-| Token theft (refresh) | HttpOnly cookie, rotacion, deteccion de reuso |
+| Token theft (refresh) | HttpOnly cookie, rotacion, deteccion de reuso via family_id |
 | XSS | Access token en memoria (no localStorage), CSP headers |
 | CSRF | SameSite=Strict en cookies, validar Origin header |
 | Timing attacks | Comparacion constant-time en bcrypt y JWT |
@@ -356,29 +369,19 @@ Content-Security-Policy: default-src 'self'
 ## Estructura de carpetas del modulo
 
 ```
-src/core/auth/
-  handlers/
-    register.handler.ts      <-- Handler de registro
-    login.handler.ts          <-- Handler de login
-    refresh.handler.ts        <-- Handler de refresh
-    logout.handler.ts         <-- Handler de logout
-    me.handler.ts             <-- Handler de perfil
-    switch-org.handler.ts     <-- Handler de cambio de org
-  services/
-    auth.service.ts           <-- Logica de negocio principal
-    token.service.ts          <-- Generacion y validacion de JWT
-    password.service.ts       <-- Hash y comparacion de passwords
-  repositories/
-    user.repository.ts        <-- Queries de usuarios
-    refresh-token.repository.ts  <-- Queries de refresh tokens
-  middleware/
-    auth.middleware.ts        <-- Verificacion de JWT
-    rbac.middleware.ts         <-- Verificacion de roles
+app/
+  routers/
+    auth.py                    <-- Router FastAPI con endpoints de auth
   schemas/
-    register.schema.ts        <-- Schema Zod para registro
-    login.schema.ts           <-- Schema Zod para login
-  routes.ts                   <-- Definicion de rutas
-  index.ts                    <-- Export del modulo
+    auth.py                    <-- Schemas Pydantic (request/response)
+  services/
+    auth_service.py            <-- Logica de negocio principal
+  models/
+    user.py                    <-- Modelo SQLAlchemy de users
+    refresh_token.py           <-- Modelo SQLAlchemy de refresh_tokens
+  core/
+    security.py                <-- JWT, hashing de passwords
+    dependencies.py            <-- get_current_user, get_org_id
 ```
 
 ---

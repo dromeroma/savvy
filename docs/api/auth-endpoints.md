@@ -160,7 +160,7 @@ Set-Cookie: refresh_token=rt_def456...; HttpOnly; Secure; SameSite=Strict; Path=
 
 ## POST /refresh
 
-Renueva el access token usando el refresh token de la cookie.
+Renueva el access token usando el refresh token de la cookie. El servidor calcula el hash SHA-256 del token recibido y lo busca en la tabla `refresh_tokens` por `token_hash`.
 
 ### Request
 
@@ -185,7 +185,7 @@ Set-Cookie: refresh_token=rt_ghi789...; HttpOnly; Secure; SameSite=Strict; Path=
 }
 ```
 
-**Nota**: El refresh token en la cookie cambia (rotacion). El token anterior queda revocado.
+**Nota**: El refresh token en la cookie cambia (rotacion). El token anterior se revoca (`revoked_at = NOW()`). El nuevo token mantiene el mismo `family_id` para deteccion de reuso.
 
 ### Errores posibles
 
@@ -205,13 +205,13 @@ Set-Cookie: refresh_token=rt_ghi789...; HttpOnly; Secure; SameSite=Strict; Path=
 }
 ```
 
-Cuando se detecta reuso, **todos los refresh tokens de la familia se revocan**, forzando al usuario a hacer login de nuevo.
+Cuando se detecta reuso, **todos los refresh tokens de la familia se revocan** (por `family_id`), forzando al usuario a hacer login de nuevo.
 
 ---
 
 ## POST /logout
 
-Cierra la sesion actual revocando el refresh token.
+Cierra la sesion actual revocando el refresh token (`revoked_at = NOW()`).
 
 ### Request
 
@@ -299,39 +299,35 @@ Authorization: Bearer <access_token>
 
 ---
 
-## POST /switch-org
+## PATCH /me
 
-Cambia la organizacion activa del usuario. Devuelve un nuevo access token con el `org_id` y `role` actualizados.
+Actualiza la informacion del perfil del usuario autenticado.
 
 ### Request
 
 ```http
-POST /api/v1/auth/switch-org
+PATCH /api/v1/auth/me
 Authorization: Bearer <access_token>
 Content-Type: application/json
 
 {
-  "organization_id": "770e8400-e29b-41d4-a716-446655440002"
+  "name": "Juan Carlos Perez"
 }
 ```
 
 | Campo | Tipo | Obligatorio | Validacion |
 |-------|------|-------------|-----------|
-| `organization_id` | UUID | Si | Debe ser una org a la que el usuario pertenece |
+| `name` | string | No | 2-100 caracteres (si se envia) |
 
 ### Response (200 OK)
 
 ```json
 {
   "data": {
-    "access_token": "eyJhbGciOiJIUzI1NiIs...",
-    "organization": {
-      "id": "770e8400-e29b-41d4-a716-446655440002",
-      "name": "Juan Perez",
-      "slug": "juan-perez",
-      "type": "personal",
-      "role": "owner"
-    }
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "Juan Carlos Perez",
+    "email": "juan@ejemplo.com",
+    "updated_at": "2026-03-28T11:00:00.000Z"
   }
 }
 ```
@@ -340,10 +336,47 @@ Content-Type: application/json
 
 | Status | Codigo | Cuando |
 |--------|--------|--------|
-| 400 | `VALIDATION_ERROR` | `organization_id` no es un UUID valido |
+| 400 | `VALIDATION_ERROR` | Datos invalidos |
 | 401 | `UNAUTHORIZED` | Access token invalido |
-| 403 | `FORBIDDEN` | El usuario no es miembro de la organizacion solicitada |
-| 404 | `NOT_FOUND` | La organizacion no existe |
+
+---
+
+## POST /change-password
+
+Cambia la contrasena del usuario autenticado. Requiere la contrasena actual para confirmar.
+
+### Request
+
+```http
+POST /api/v1/auth/change-password
+Authorization: Bearer <access_token>
+Content-Type: application/json
+
+{
+  "current_password": "MiPassword123!",
+  "new_password": "NuevoPassword456!"
+}
+```
+
+| Campo | Tipo | Obligatorio | Validacion |
+|-------|------|-------------|-----------|
+| `current_password` | string | Si | No vacio |
+| `new_password` | string | Si | Min 8 caracteres, 1 mayuscula, 1 minuscula, 1 numero |
+
+### Response (200 OK)
+
+```json
+{
+  "message": "Contrasena actualizada exitosamente"
+}
+```
+
+### Errores posibles
+
+| Status | Codigo | Cuando |
+|--------|--------|--------|
+| 400 | `VALIDATION_ERROR` | Nueva contrasena no cumple requisitos |
+| 401 | `UNAUTHORIZED` | Access token invalido o contrasena actual incorrecta |
 
 ---
 
@@ -362,8 +395,14 @@ USAR LA API:
 CUANDO EL ACCESS TOKEN EXPIRA (cada 15 min):
   POST /refresh (con cookie) --> 200 + nuevo access_token + nueva cookie
 
-CAMBIAR DE ORGANIZACION:
-  POST /switch-org --> 200 + nuevo access_token
+VER PERFIL:
+  GET /me --> 200 + datos del usuario y organizacion activa
+
+ACTUALIZAR PERFIL:
+  PATCH /me --> 200 + datos actualizados
+
+CAMBIAR CONTRASENA:
+  POST /change-password --> 200
 
 CERRAR SESION:
   POST /logout --> 200 + cookie eliminada

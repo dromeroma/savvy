@@ -54,15 +54,11 @@ El prefijo se usa en rutas API y nombres de migracion:
 ## Paso 2: Crear la estructura de carpetas
 
 ```
-src/apps/{prefijo}/
-  handlers/              <-- Handlers HTTP
+app/apps/{prefijo}/
+  models/                <-- Modelos SQLAlchemy
+  routers/               <-- Routers FastAPI
+  schemas/               <-- Schemas Pydantic
   services/              <-- Logica de negocio
-  repositories/          <-- Acceso a BD
-  schemas/               <-- Schemas Zod
-  models/                <-- Modelos Drizzle
-  middleware/             <-- Middlewares especificos de la app (si aplica)
-  routes.ts              <-- Definicion de rutas
-  index.ts               <-- Export publico
 
 migrations/
   {prefijo}_0001_create_{primera_tabla}.sql
@@ -70,30 +66,22 @@ migrations/
 
 ### Crear los archivos base
 
-**index.ts** -- Export de la app:
+**Router principal** -- Rutas de la app:
 
-```typescript
-// src/apps/{prefijo}/index.ts
-export { appRoutes as {prefijo}Routes } from './routes'
-```
+```python
+# app/apps/{prefijo}/routers/{recurso}.py
+from fastapi import APIRouter, Depends
+from app.core.dependencies import get_current_user, get_org_id
 
-**routes.ts** -- Rutas de la app:
+router = APIRouter(prefix="/api/v1/{prefijo}", tags=["{prefijo}"])
 
-```typescript
-// src/apps/{prefijo}/routes.ts
-import { Hono } from 'hono'
-import { authMiddleware } from '../../core/shared/middleware/auth.middleware'
-import { tenantMiddleware } from '../../core/shared/middleware/tenant.middleware'
-
-export const appRoutes = new Hono()
-
-// Aplicar middlewares del core a todas las rutas de la app
-appRoutes.use('*', authMiddleware)
-appRoutes.use('*', tenantMiddleware)
-
-// Rutas de la app
-// appRoutes.route('/products', productRoutes)
-// appRoutes.route('/sales', saleRoutes)
+# Las dependencies del core se aplican automaticamente
+@router.get("/products")
+async def list_products(
+    org_id: uuid.UUID = Depends(get_org_id),
+    user = Depends(get_current_user),
+):
+    ...
 ```
 
 ---
@@ -125,25 +113,25 @@ Toda tabla de la app DEBE incluir:
 
 ```sql
 CREATE TABLE {nombre_tabla} (
-    id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id   UUID        NOT NULL REFERENCES organizations(id),
+    id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID        NOT NULL REFERENCES organizations(id),
     -- ... campos de la app ...
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Indice en tenant_id
-CREATE INDEX idx_{tabla}_tenant_id ON {tabla}(tenant_id);
+-- Indice en organization_id
+CREATE INDEX idx_{tabla}_organization_id ON {tabla}(organization_id);
 
 -- RLS
 ALTER TABLE {tabla} ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY tenant_isolation ON {tabla}
-    USING (tenant_id = current_setting('app.current_tenant')::UUID);
+CREATE POLICY org_isolation ON {tabla}
+    USING (organization_id = current_setting('app.current_org')::UUID);
 
-CREATE POLICY tenant_insert ON {tabla}
+CREATE POLICY org_insert ON {tabla}
     FOR INSERT
-    WITH CHECK (tenant_id = current_setting('app.current_tenant')::UUID);
+    WITH CHECK (organization_id = current_setting('app.current_org')::UUID);
 
 -- Trigger updated_at
 CREATE TRIGGER trg_{tabla}_updated_at
@@ -151,16 +139,35 @@ CREATE TRIGGER trg_{tabla}_updated_at
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 ```
 
-### 3.4 Relaciones con tablas del core
+### 3.4 Crear los modelos SQLAlchemy
+
+```python
+# app/apps/{prefijo}/models/product.py
+import uuid
+from sqlalchemy import String, Numeric, ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column
+from app.models.base import Base, OrgMixin, TimestampMixin
+
+class Product(Base, OrgMixin, TimestampMixin):
+    __tablename__ = "products"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    # organization_id viene de OrgMixin
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    # created_at, updated_at vienen de TimestampMixin
+```
+
+### 3.5 Relaciones con tablas del core
 
 Las tablas de la app pueden referenciar tablas del core:
 
-```sql
--- Referencia a organizations (tenant)
-tenant_id UUID NOT NULL REFERENCES organizations(id)
+```python
+# Referencia a organizations (via OrgMixin)
+# organization_id ya viene incluido
 
--- Referencia a users (creador, asignado, etc.)
-created_by UUID REFERENCES users(id)
+# Referencia a users (creador, asignado, etc.)
+created_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
 ```
 
 **Nunca** crear FK desde tablas del core hacia tablas de la app. La dependencia es unidireccional: app --> core.
@@ -174,40 +181,34 @@ created_by UUID REFERENCES users(id)
 Para cada recurso/entidad de la app, crear:
 
 ```
-handlers/
-  list-{recurso}.handler.ts
-  get-{recurso}.handler.ts
-  create-{recurso}.handler.ts
-  update-{recurso}.handler.ts
-  delete-{recurso}.handler.ts
-
-services/
-  {recurso}.service.ts
-
-repositories/
-  {recurso}.repository.ts
-
-schemas/
-  create-{recurso}.schema.ts
-  update-{recurso}.schema.ts
-
-models/
-  {recurso}.model.ts
+app/apps/{prefijo}/
+  models/
+    {recurso}.py              <-- Modelo SQLAlchemy
+  routers/
+    {recurso}.py              <-- Router FastAPI
+  schemas/
+    {recurso}.py              <-- Schemas Pydantic
+  services/
+    {recurso}_service.py      <-- Logica de negocio
 ```
 
 ### 4.2 Usar los servicios del core
 
-La app puede importar servicios del core:
+La app puede importar dependencies y utilidades del core:
 
-```typescript
-// Usar el servicio de auth para verificar permisos
-import { authMiddleware, rbacMiddleware } from '../../core/auth'
+```python
+# Usar las dependencies del core para auth y organizacion
+from app.core.dependencies import get_current_user, get_org_id, require_role
 
-// Usar el event bus para emitir eventos
-import { eventBus } from '../../core/shared/events'
-
-// Emitir un evento de la app
-eventBus.emit('pos.sale.created', { id: sale.id, tenantId, total: sale.total })
+# Ejemplo de endpoint protegido
+@router.post("/sales", status_code=201)
+async def create_sale(
+    data: CreateSaleRequest,
+    org_id: uuid.UUID = Depends(get_org_id),
+    user = Depends(require_role("member")),
+    db: AsyncSession = Depends(get_db),
+):
+    ...
 ```
 
 ### 4.3 No modificar el core
@@ -217,34 +218,36 @@ Si necesitas funcionalidad nueva en el core:
 1. Proponer un nuevo modulo core (ver [guia de agregar modulo](./adding-a-module.md)).
 2. Discutir con el equipo si realmente es transversal.
 3. Si se aprueba, implementarlo como modulo core separado.
-4. **Nunca** agregar codigo especifico de una app dentro de `src/core/`.
+4. **Nunca** agregar codigo especifico de una app dentro de `app/core/` o `app/models/` del core.
 
 ---
 
-## Paso 5: Registrar la app en el gateway
+## Paso 5: Registrar la app en FastAPI
 
-### 5.1 Agregar las rutas
+### 5.1 Agregar los routers
 
-```typescript
-// src/core/gateway/app.ts
-import { posRoutes } from '../../apps/pos'
+```python
+# app/main.py
+from app.routers import auth, organizations
+from app.apps.pos.routers import products as pos_products, sales as pos_sales
 
-// ... rutas del core ...
-app.route('/api/v1/auth', authRoutes)
-app.route('/api/v1/organizations', orgRoutes)
+app = FastAPI()
 
-// Rutas de apps
-app.route('/api/v1/pos', posRoutes)
-// app.route('/api/v1/logistics', logisticsRoutes)
+# Routers del core
+app.include_router(auth.router)
+app.include_router(organizations.router)
+
+# Routers de apps
+app.include_router(pos_products.router)
+app.include_router(pos_sales.router)
 ```
 
 ### 5.2 Configurar rate limiting especifico (si aplica)
 
-```typescript
-// Si la app tiene endpoints con limites especiales
-rateLimitConfig.endpoints['/api/v1/pos/sales'] = {
-  limit: 200,
-  window: '1m'
+```python
+# Si la app tiene endpoints con limites especiales
+rate_limit_config = {
+    "/api/v1/pos/sales": {"limit": 200, "window": "1m"}
 }
 ```
 
@@ -264,25 +267,25 @@ Cada organizacion puede habilitar/deshabilitar apps via el campo `settings.featu
 }
 ```
 
-Crear un middleware que verifique si la org tiene la app habilitada:
+Crear una dependency que verifique si la org tiene la app habilitada:
 
-```typescript
-// src/apps/{prefijo}/middleware/feature-check.middleware.ts
+```python
+# app/apps/{prefijo}/dependencies.py
+from fastapi import Depends, HTTPException
 
-export async function featureCheckMiddleware(c: Context, next: Next) {
-  const org = c.get('organization')
-
-  if (!org.settings?.features?.['{prefijo}']) {
-    return c.json({
-      error: {
-        code: 'FEATURE_NOT_ENABLED',
-        message: 'Esta funcionalidad no esta habilitada para tu organizacion'
-      }
-    }, 403)
-  }
-
-  await next()
-}
+async def require_feature_enabled(
+    org_id: uuid.UUID = Depends(get_org_id),
+    db: AsyncSession = Depends(get_db),
+):
+    org = await get_organization(db, org_id)
+    if not org.settings.get("features", {}).get("{prefijo}", False):
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "FEATURE_NOT_ENABLED",
+                "message": "Esta funcionalidad no esta habilitada para tu organizacion"
+            }
+        )
 ```
 
 ---
@@ -293,7 +296,7 @@ export async function featureCheckMiddleware(c: Context, next: Next) {
 
 1. **Unitarios**: Logica de negocio en services.
 2. **Integracion**: Cada endpoint responde correctamente.
-3. **Multi-tenant**: Datos aislados entre tenants.
+3. **Multi-tenant**: Datos aislados entre organizaciones.
 4. **Permisos**: RBAC funciona correctamente.
 5. **Feature flag**: App deshabilitada retorna 403.
 
@@ -301,33 +304,34 @@ export async function featureCheckMiddleware(c: Context, next: Next) {
 
 ```
 tests/apps/{prefijo}/
-  services/
-    {recurso}.service.test.ts
-  handlers/
-    {recurso}.handler.test.ts
-  routes.test.ts
-  multi-tenant.test.ts
+  test_{recurso}_service.py
+  test_{recurso}_routes.py
+  test_multi_tenant.py
 ```
 
 ### Test multi-tenant ejemplo
 
-```typescript
-describe('Aislamiento multi-tenant en {App}', () => {
-  it('Tenant A no ve datos de Tenant B', async () => {
-    // 1. Crear producto con Tenant A
-    const productA = await createProduct(tenantAToken, { name: 'Producto A' })
+```python
+class TestOrgIsolation:
+    async def test_org_a_cannot_see_org_b_data(self, client, org_a_headers, org_b_headers):
+        # 1. Crear producto con Org A
+        response = await client.post(
+            "/api/v1/pos/products",
+            json={"name": "Producto A", "price": 10.00},
+            headers=org_a_headers,
+        )
+        product_id = response.json()["data"]["id"]
 
-    // 2. Listar productos con Tenant B
-    const response = await app.request('/api/v1/pos/products', {
-      headers: { Authorization: `Bearer ${tenantBToken}` }
-    })
-    const body = await response.json()
+        # 2. Listar productos con Org B
+        response = await client.get(
+            "/api/v1/pos/products",
+            headers=org_b_headers,
+        )
+        products = response.json()["data"]
 
-    // 3. Verificar que el producto de A no aparece
-    expect(body.data).toHaveLength(0)
-    expect(body.data.find(p => p.id === productA.id)).toBeUndefined()
-  })
-})
+        # 3. Verificar que el producto de A no aparece
+        assert len(products) == 0
+        assert not any(p["id"] == product_id for p in products)
 ```
 
 ---
@@ -371,16 +375,16 @@ logistics_0001_create_shipments.sql <-- App Logistics
 
 ### 9.2 Variables de entorno
 
-Si la app necesita configuracion propia, agregar variables con prefijo:
+Si la app necesita configuracion propia, agregar variables con el prefijo `SAVVY_` seguido del prefijo de la app:
 
 ```env
 # Variables de SavvyPOS
-POS_RECEIPT_PRINTER_ENABLED=true
-POS_DEFAULT_TAX_RATE=0.19
+SAVVY_POS_RECEIPT_PRINTER_ENABLED=true
+SAVVY_POS_DEFAULT_TAX_RATE=0.19
 
 # Variables de SavvyLogistics
-LOGISTICS_GOOGLE_MAPS_API_KEY=xxx
-LOGISTICS_DEFAULT_TRACKING_INTERVAL=30
+SAVVY_LOGISTICS_GOOGLE_MAPS_API_KEY=xxx
+SAVVY_LOGISTICS_DEFAULT_TRACKING_INTERVAL=30
 ```
 
 ---
@@ -392,11 +396,11 @@ Antes de hacer merge de la nueva app:
 - [ ] Prefijo unico definido y registrado
 - [ ] Estructura de carpetas creada
 - [ ] Migraciones de BD creadas y probadas
-- [ ] RLS en todas las tablas con tenant_id
-- [ ] Handlers, services, repositories implementados
-- [ ] Schemas Zod para validacion de input
-- [ ] Rutas registradas en el gateway
-- [ ] Feature flag middleware implementado
+- [ ] RLS en todas las tablas con organization_id
+- [ ] Routers, services, modelos implementados
+- [ ] Schemas Pydantic para validacion de input
+- [ ] Routers registrados en app/main.py
+- [ ] Feature flag dependency implementada
 - [ ] Tests unitarios (> 80% cobertura en services)
 - [ ] Tests de integracion (todos los endpoints)
 - [ ] Test de aislamiento multi-tenant
@@ -415,17 +419,17 @@ Antes de hacer merge de la nueva app:
 | 1. PLANIFICAR     |     | 2. ESTRUCTURA     |     | 3. BASE DE DATOS  |
 |                   |     |                   |     |                   |
 | - Definir alcance |---->| - Crear carpetas  |---->| - Disenar tablas  |
-| - Elegir prefijo  |     | - index.ts        |     | - Migraciones     |
-| - MVP features    |     | - routes.ts       |     | - RLS + indices   |
+| - Elegir prefijo  |     | - Modelos         |     | - Migraciones     |
+| - MVP features    |     | - Routers         |     | - RLS + indices   |
 +-------------------+     +-------------------+     +-------------------+
                                                             |
                                                             v
 +-------------------+     +-------------------+     +-------------------+
 | 6. DOCUMENTAR     |     | 5. TESTING        |     | 4. IMPLEMENTAR    |
 |                   |     |                   |     |                   |
-| - README app      |<----| - Unitarios       |<----| - Handlers        |
+| - README app      |<----| - Unitarios       |<----| - Routers         |
 | - Actualizar core |     | - Integracion     |     | - Services        |
-| - Endpoints       |     | - Multi-tenant    |     | - Repositories    |
+| - Endpoints       |     | - Multi-tenant    |     | - Schemas         |
 +-------------------+     +-------------------+     +-------------------+
         |
         v

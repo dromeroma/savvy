@@ -25,7 +25,7 @@ Este documento establece las convenciones que toda tabla, columna, indice y migr
 |-------|-----------------|-------------------|
 | Singular, snake_case | `organization_id` | `OrganizationId`, `orgId` |
 | Foreign keys: `tabla_singular_id` | `user_id` | `userId`, `fk_user` |
-| Booleanos: prefijo `is_` o `has_` | `is_active`, `has_discount` | `active`, `discount` |
+| Booleanos: prefijo `is_` o `has_` | `is_verified`, `has_discount` | `verified`, `discount` |
 | Fechas: sufijo `_at` | `created_at`, `expires_at` | `creation_date`, `expiry` |
 | Contadores: sufijo `_count` | `login_count` | `logins`, `num_logins` |
 
@@ -33,7 +33,7 @@ Este documento establece las convenciones que toda tabla, columna, indice y migr
 
 | Regla | Formato | Ejemplo |
 |-------|---------|---------|
-| Indice regular | `idx_{tabla}_{columnas}` | `idx_products_tenant_id` |
+| Indice regular | `idx_{tabla}_{columnas}` | `idx_products_organization_id` |
 | Indice unico | `idx_{tabla}_{columnas}` (con UNIQUE) | `idx_users_email` |
 | Indice parcial | `idx_{tabla}_{columnas}` (con WHERE) | `idx_invitations_email_status` |
 | Indice compuesto | `idx_{tabla}_{col1}_{col2}` | `idx_memberships_org_user` |
@@ -72,32 +72,46 @@ id UUID PRIMARY KEY DEFAULT gen_random_uuid()
 
 ---
 
-## tenant_id
+## organization_id
 
-### Regla: Toda tabla de datos de negocio debe incluir tenant_id
+### Regla: Toda tabla de datos de negocio debe incluir organization_id
 
 ```sql
-tenant_id UUID NOT NULL REFERENCES organizations(id)
+organization_id UUID NOT NULL REFERENCES organizations(id)
 ```
 
-**Excepciones** (tablas sin tenant_id):
+**Excepciones** (tablas sin organization_id):
 - `organizations` -- Es la tabla de tenants.
-- `users` -- Un usuario puede pertenecer a multiples orgs.
-- `refresh_tokens` -- Pertenecen al usuario, no al tenant.
+- `users` -- Un usuario puede pertenecer a multiples orgs. Los usuarios son globales.
+- `refresh_tokens` -- Pertenecen al usuario, no a la organizacion.
 
-**Tablas que SI requieren tenant_id** (ejemplos futuros):
+**Tablas que SI requieren organization_id** (ejemplos futuros):
 - `products`, `orders`, `customers` -- Datos de negocio de la app.
 - `settings`, `audit_logs` -- Datos operativos por org.
 
+### OrgMixin en SQLAlchemy
+
+En el codigo Python, se usa `OrgMixin` para agregar automaticamente `organization_id` a los modelos de datos de negocio:
+
+```python
+class OrgMixin:
+    """Mixin para tablas que pertenecen a una organizacion."""
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("organizations.id"),
+        nullable=False,
+        index=True,
+    )
+```
+
 ### Posicion de la columna
 
-`tenant_id` siempre va como la **segunda columna** despues de `id`:
+`organization_id` siempre va como la **segunda columna** despues de `id`:
 
 ```sql
 CREATE TABLE products (
-    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id   UUID NOT NULL REFERENCES organizations(id),  -- Siempre segunda
-    name        VARCHAR(255) NOT NULL,
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL REFERENCES organizations(id),  -- Siempre segunda
+    name            VARCHAR(255) NOT NULL,
     ...
 );
 ```
@@ -170,7 +184,7 @@ deleted_at TIMESTAMPTZ DEFAULT NULL
 ### Reglas generales
 
 1. **Toda FK** debe tener un indice (PostgreSQL no los crea automaticamente).
-2. **tenant_id** debe ser el primer campo en indices compuestos de tablas con datos de negocio.
+2. **organization_id** debe ser el primer campo en indices compuestos de tablas con datos de negocio.
 3. **Preferir indices parciales** cuando sea posible (`WHERE deleted_at IS NULL`).
 4. **No crear indices preventivos** -- Solo crear indices que se necesiten para queries reales.
 
@@ -180,17 +194,17 @@ deleted_at TIMESTAMPTZ DEFAULT NULL
 -- FK simple
 CREATE INDEX idx_{tabla}_{fk_column} ON {tabla}({fk_column});
 
--- Busqueda por tenant + campo frecuente
-CREATE INDEX idx_{tabla}_tenant_{campo} ON {tabla}(tenant_id, {campo});
+-- Busqueda por organizacion + campo frecuente
+CREATE INDEX idx_{tabla}_org_{campo} ON {tabla}(organization_id, {campo});
 
 -- Busqueda con filtro de activos
-CREATE INDEX idx_{tabla}_tenant_{campo}_active
-    ON {tabla}(tenant_id, {campo})
+CREATE INDEX idx_{tabla}_org_{campo}_active
+    ON {tabla}(organization_id, {campo})
     WHERE deleted_at IS NULL;
 
--- Ordenamiento por tenant + fecha
-CREATE INDEX idx_{tabla}_tenant_created
-    ON {tabla}(tenant_id, created_at DESC);
+-- Ordenamiento por organizacion + fecha
+CREATE INDEX idx_{tabla}_org_created
+    ON {tabla}(organization_id, created_at DESC);
 ```
 
 ---
@@ -252,6 +266,7 @@ DROP TABLE IF EXISTS products;
 | Enums cortos | `VARCHAR(20)` con `CHECK` | Preferir CHECK sobre CREATE TYPE |
 | IPs | `VARCHAR(45)` | Soporta IPv4 e IPv6 |
 | URLs | `VARCHAR(2048)` | Longitud maxima de URL |
+| Hashes (SHA-256) | `VARCHAR(255)` | Para token_hash, etc. |
 
 ### Por que VARCHAR + CHECK en lugar de CREATE TYPE (ENUM)
 
@@ -273,17 +288,29 @@ Los `CHECK` constraints son mas faciles de modificar en migraciones que los `ENU
 Al crear una nueva tabla, verificar:
 
 - [ ] `id UUID PRIMARY KEY DEFAULT gen_random_uuid()`
-- [ ] `tenant_id UUID NOT NULL REFERENCES organizations(id)` (si aplica)
+- [ ] `organization_id UUID NOT NULL REFERENCES organizations(id)` (si aplica)
 - [ ] `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
 - [ ] `updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
 - [ ] `deleted_at TIMESTAMPTZ DEFAULT NULL` (si aplica soft delete)
 - [ ] Trigger `trg_{tabla}_updated_at` para `updated_at`
-- [ ] Indice en `tenant_id`
+- [ ] Indice en `organization_id`
 - [ ] Indices en todas las foreign keys
 - [ ] Indices parciales con `WHERE deleted_at IS NULL` si aplica
-- [ ] RLS habilitado con politica de aislamiento por tenant (si tiene tenant_id)
+- [ ] RLS habilitado con politica de aislamiento por organizacion (si tiene organization_id)
 - [ ] Migracion con nombre descriptivo y secuencial
 - [ ] DOWN de la migracion incluido
+
+---
+
+## Variables de entorno
+
+Todas las variables de configuracion del proyecto usan el prefijo `SAVVY_`:
+
+```env
+SAVVY_DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/savvycore
+SAVVY_REDIS_URL=redis://localhost:6379/0
+SAVVY_JWT_SECRET_KEY=your-secret-key
+```
 
 ---
 
