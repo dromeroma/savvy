@@ -43,10 +43,13 @@ export class LoginComponent {
       },
       error: (err) => {
         this.loading.set(false);
+        console.error('Login error:', err);
+        console.error('Error body:', err.error);
+        console.error('Status:', err.status);
         const detail = err.error?.detail;
         const msg = typeof detail === 'string' ? detail
           : Array.isArray(detail) ? detail.map((d: any) => d.msg).join(', ')
-          : 'Error al iniciar sesión. Intenta de nuevo.';
+          : `Error ${err.status || ''}: ${err.message || 'Error al iniciar sesión.'}`;
         this.error.set(msg);
       },
     });
