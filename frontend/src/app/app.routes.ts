@@ -29,6 +29,13 @@ export const routes: Routes = [
         data: { app: 'church' },
         canActivate: [appAccessGuard],
       },
+      {
+        path: 'accounting',
+        loadChildren: () =>
+          import('./apps/accounting/accounting.routes').then((m) => m.ACCOUNTING_ROUTES),
+        data: { app: 'accounting' },
+        canActivate: [appAccessGuard],
+      },
     ],
   },
   { path: '**', redirectTo: 'dashboard' },

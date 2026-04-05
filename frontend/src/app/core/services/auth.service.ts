@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable, tap } from 'rxjs';
+import { Observable, tap, of, catchError, switchMap } from 'rxjs';
 import { ApiService } from './api.service';
 import {
   AuthResponse,
@@ -17,12 +17,15 @@ const REFRESH_TOKEN_KEY = 'savvy_refresh_token';
 export class AuthService {
   private readonly api = inject(ApiService);
   private readonly router = inject(Router);
+  private refreshTimer: any;
+  private isRefreshing = false;
 
   login(data: LoginRequest): Observable<LoginResponse> {
     return this.api.post<LoginResponse>('/auth/login', data).pipe(
       tap((res) => {
         if (res.tokens) {
           this.storeTokens(res.tokens);
+          this.scheduleRefresh();
         }
       }),
     );
@@ -30,11 +33,15 @@ export class AuthService {
 
   register(data: import('../models/user.model').RegisterRequest): Observable<AuthResponse> {
     return this.api.post<AuthResponse>('/auth/register', data).pipe(
-      tap((res) => this.storeTokens(res.tokens)),
+      tap((res) => {
+        this.storeTokens(res.tokens);
+        this.scheduleRefresh();
+      }),
     );
   }
 
   logout(): void {
+    clearTimeout(this.refreshTimer);
     localStorage.removeItem(ACCESS_TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
     this.router.navigate(['/auth/login']);
@@ -42,6 +49,10 @@ export class AuthService {
 
   getToken(): string | null {
     return localStorage.getItem(ACCESS_TOKEN_KEY);
+  }
+
+  getRefreshToken(): string | null {
+    return localStorage.getItem(REFRESH_TOKEN_KEY);
   }
 
   isAuthenticated(): boolean {
@@ -71,8 +82,59 @@ export class AuthService {
     }
   }
 
+  /** Silently refresh the access token using the refresh token */
+  refreshAccessToken(): Observable<TokenResponse | null> {
+    const refreshToken = this.getRefreshToken();
+    if (!refreshToken || this.isRefreshing) {
+      return of(null);
+    }
+
+    this.isRefreshing = true;
+    return this.api.post<TokenResponse>('/auth/refresh', { refresh_token: refreshToken }).pipe(
+      tap((tokens) => {
+        this.isRefreshing = false;
+        this.storeTokens(tokens);
+        this.scheduleRefresh();
+      }),
+      catchError(() => {
+        this.isRefreshing = false;
+        this.logout();
+        return of(null);
+      }),
+    );
+  }
+
+  /** Start refresh timer on app init if user has a valid session */
+  initSession(): void {
+    if (this.isAuthenticated()) {
+      this.scheduleRefresh();
+    }
+  }
+
   private storeTokens(tokens: TokenResponse): void {
     localStorage.setItem(ACCESS_TOKEN_KEY, tokens.access_token);
     localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refresh_token);
+  }
+
+  /** Schedule a silent refresh 5 minutes before the access token expires */
+  private scheduleRefresh(): void {
+    clearTimeout(this.refreshTimer);
+
+    const token = this.getToken();
+    if (!token) return;
+
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const expiresAt = payload.exp * 1000;
+      const now = Date.now();
+      // Refresh 5 minutes before expiration (or immediately if less than 5 min left)
+      const refreshIn = Math.max((expiresAt - now) - 5 * 60 * 1000, 10_000);
+
+      this.refreshTimer = setTimeout(() => {
+        this.refreshAccessToken().subscribe();
+      }, refreshIn);
+    } catch {
+      // Invalid token, do nothing
+    }
   }
 }

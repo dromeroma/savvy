@@ -29,7 +29,6 @@
   <div class="flex flex-col overflow-y-auto duration-300 ease-linear flex-1 min-h-0 custom-scrollbar">
     <nav class="mb-6">
       <div class="flex flex-col gap-4">
-        <!-- Menu section header -->
         <div>
           <h2 class="mb-4 text-xs uppercase flex leading-[20px] text-gray-400"
             [ngClass]="{
@@ -43,9 +42,8 @@
             }
           </h2>
 
-          <!-- Nav items -->
           <ul class="flex flex-col gap-1">
-            <!-- Dashboard -->
+            <!-- Dashboard (always visible) -->
             <li>
               <a routerLink="/dashboard" routerLinkActive="menu-item-active" [routerLinkActiveOptions]="{exact: true}"
                 class="menu-item group" [class.menu-item-inactive]="true"
@@ -62,51 +60,55 @@
               </a>
             </li>
 
-            <!-- SavvyChurch section -->
-            <li>
-              <button (click)="toggleChurchMenu()" class="menu-item group cursor-pointer"
-                [class.menu-item-active]="churchMenuOpen" [class.menu-item-inactive]="!churchMenuOpen"
-                [ngClass]="{
-                  'xl:justify-center': !((isExpanded$ | async) || (isHovered$ | async) || (isMobileOpen$ | async)),
-                  'xl:justify-start': (isExpanded$ | async) || (isHovered$ | async) || (isMobileOpen$ | async)
-                }">
-                <span class="menu-item-icon-size" [class.menu-item-icon-active]="churchMenuOpen" [class.menu-item-icon-inactive]="!churchMenuOpen">
-                  <svg class="size-6" viewBox="0 0 24 24" fill="none"><path d="M18 21V7L12 3L6 7V21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 21H21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M10 21V15H14V21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 3V1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-                </span>
-                @if ((isExpanded$ | async) || (isHovered$ | async) || (isMobileOpen$ | async)) {
-                  <span>SavvyChurch</span>
-                  <svg class="ml-auto w-5 h-5 transition-transform duration-200"
-                    [ngClass]="{
-                      'menu-item-arrow-active': churchMenuOpen,
-                      'menu-item-arrow-inactive': !churchMenuOpen
-                    }"
-                    viewBox="0 0 20 20" fill="none">
-                    <path d="M4.79175 7.396L10.0001 12.6043L15.2084 7.396" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
+            <!-- Dynamic app menus -->
+            @for (app of appMenus(); track app.code) {
+              <li>
+                <button (click)="toggleMenu(app)" class="menu-item group cursor-pointer"
+                  [class.menu-item-active]="app.open" [class.menu-item-inactive]="!app.open"
+                  [ngClass]="{
+                    'xl:justify-center': !((isExpanded$ | async) || (isHovered$ | async) || (isMobileOpen$ | async)),
+                    'xl:justify-start': (isExpanded$ | async) || (isHovered$ | async) || (isMobileOpen$ | async)
+                  }">
+                  <span class="menu-item-icon-size" [class.menu-item-icon-active]="app.open" [class.menu-item-icon-inactive]="!app.open"
+                    [innerHTML]="app.icon">
+                  </span>
+                  @if ((isExpanded$ | async) || (isHovered$ | async) || (isMobileOpen$ | async)) {
+                    <span>{{ app.name }}</span>
+                    <svg class="ml-auto w-5 h-5 transition-transform duration-200"
+                      [ngClass]="{'menu-item-arrow-active': app.open, 'menu-item-arrow-inactive': !app.open}"
+                      viewBox="0 0 20 20" fill="none">
+                      <path d="M4.79175 7.396L10.0001 12.6043L15.2084 7.396" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  }
+                </button>
+                @if (app.open && ((isExpanded$ | async) || (isHovered$ | async) || (isMobileOpen$ | async))) {
+                  <div class="mt-1 ml-4 space-y-1 overflow-hidden">
+                    @for (item of app.items; track item.route) {
+                      <a [routerLink]="item.route" routerLinkActive="menu-dropdown-item-active" class="menu-dropdown-item" [class.menu-dropdown-item-inactive]="true">
+                        <span class="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-600 shrink-0"></span> {{ item.label }}
+                      </a>
+                    }
+                  </div>
                 }
-              </button>
-              @if (churchMenuOpen && ((isExpanded$ | async) || (isHovered$ | async) || (isMobileOpen$ | async))) {
-              <div class="mt-1 ml-4 space-y-1">
-                <a routerLink="/church/members" routerLinkActive="menu-dropdown-item-active" class="menu-dropdown-item" [class.menu-dropdown-item-inactive]="true">
-                  <span class="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-600"></span> Miembros
-                </a>
-                <a routerLink="/church/finance" routerLinkActive="menu-dropdown-item-active" class="menu-dropdown-item" [class.menu-dropdown-item-inactive]="true">
-                  <span class="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-600"></span> Finanzas
-                </a>
-                <a routerLink="/church/reports" routerLinkActive="menu-dropdown-item-active" class="menu-dropdown-item" [class.menu-dropdown-item-inactive]="true">
-                  <span class="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-600"></span> Reportes
-                </a>
-              </div>
-              }
-            </li>
+              </li>
+            }
           </ul>
         </div>
       </div>
     </nav>
   </div>
 
-  <!-- Bottom: Theme toggle -->
-  <div class="py-4 border-t border-gray-200 dark:border-gray-800">
-    <app-theme-toggle />
+  <!-- Bottom: Version label -->
+  <div class="py-3 text-center border-t border-gray-200 dark:border-gray-800 shrink-0">
+    @if ((isExpanded$ | async) || (isHovered$ | async) || (isMobileOpen$ | async)) {
+      <span class="inline-flex items-center gap-1.5 text-[11px] text-gray-400 dark:text-gray-500 select-none tracking-wide">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+        </svg>
+        Versión {{ appVersion }}
+      </span>
+    } @else {
+      <span class="text-[10px] text-gray-400 dark:text-gray-500 select-none cursor-default" [title]="'Versión ' + appVersion">v{{ appVersion }}</span>
+    }
   </div>
 </aside>

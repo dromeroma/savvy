@@ -1,10 +1,10 @@
 <div>
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
     <div>
-      <h2 class="text-xl font-bold text-gray-800">Miembros</h2>
-      <p class="text-sm text-gray-500">Gestión de miembros de la iglesia</p>
+      <h2 class="text-xl font-bold text-gray-800 dark:text-white/90">Miembros</h2>
+      <p class="text-sm text-gray-500 dark:text-gray-400">Gestión de miembros de la iglesia</p>
     </div>
-    <button (click)="openModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition cursor-pointer shrink-0">
+    <button (click)="openModal()" class="px-4 py-2.5 bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium rounded-lg transition shadow-theme-xs shrink-0">
       + Agregar Miembro
     </button>
   </div>
@@ -13,10 +13,10 @@
   <div class="flex flex-col sm:flex-row gap-3 mb-6">
     <div class="flex-1">
       <input type="text" [(ngModel)]="search" (keyup.enter)="onSearch()" placeholder="Buscar por nombre o correo..."
-        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-sm" />
+        class="h-11 w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg focus:ring-3 focus:ring-brand-500/20 focus:border-brand-300 outline-none transition text-sm" />
     </div>
     <select [(ngModel)]="statusFilter" (ngModelChange)="onFilterChange()"
-      class="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-sm bg-white">
+      class="h-11 px-4 py-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white/90 rounded-lg focus:ring-3 focus:ring-brand-500/20 focus:border-brand-300 outline-none transition text-sm appearance-none bg-white dark:bg-gray-800 cursor-pointer">
       <option value="">Todos los estados</option>
       <option value="active">Activo</option>
       <option value="inactive">Inactivo</option>
@@ -26,37 +26,37 @@
 
   @if (loading()) {
     <div class="flex items-center justify-center py-16">
-      <div class="animate-spin rounded-full h-8 w-8 border-4 border-indigo-200 border-t-indigo-600"></div>
+      <div class="animate-spin rounded-full h-8 w-8 border-4 border-brand-200 border-t-brand-600"></div>
     </div>
   } @else {
-    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
-            <tr class="bg-gray-50 border-b border-gray-200">
-              <th class="text-left px-6 py-3 font-semibold text-gray-600">Nombre</th>
-              <th class="text-left px-6 py-3 font-semibold text-gray-600">Correo</th>
-              <th class="text-left px-6 py-3 font-semibold text-gray-600 hidden md:table-cell">Teléfono</th>
-              <th class="text-left px-6 py-3 font-semibold text-gray-600">Estado</th>
+            <tr class="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+              <th class="text-left px-6 py-3 font-semibold text-gray-600 dark:text-gray-300">Nombre</th>
+              <th class="text-left px-6 py-3 font-semibold text-gray-600 dark:text-gray-300">Correo</th>
+              <th class="text-left px-6 py-3 font-semibold text-gray-600 dark:text-gray-300 hidden md:table-cell">Teléfono</th>
+              <th class="text-left px-6 py-3 font-semibold text-gray-600 dark:text-gray-300">Estado</th>
             </tr>
           </thead>
           <tbody>
             @for (member of members(); track member.id) {
-              <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
-                <td class="px-6 py-4 font-medium text-gray-800">{{ member.first_name }} {{ member.last_name }}</td>
-                <td class="px-6 py-4 text-gray-600">{{ member.email || '—' }}</td>
-                <td class="px-6 py-4 text-gray-600 hidden md:table-cell">{{ member.phone || '—' }}</td>
+              <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/5 transition">
+                <td class="px-6 py-4 font-medium text-gray-800 dark:text-white/90">{{ member.first_name }} {{ member.last_name }}</td>
+                <td class="px-6 py-4 text-gray-600 dark:text-gray-400">{{ member.email || '—' }}</td>
+                <td class="px-6 py-4 text-gray-600 dark:text-gray-400 hidden md:table-cell">{{ member.phone || '—' }}</td>
                 <td class="px-6 py-4">
                   @if (member.status === 'active') {
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Activo</span>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success-700 dark:bg-success-500/20 dark:text-success-400">Activo</span>
                   } @else {
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">{{ member.status }}</span>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ member.status }}</span>
                   }
                 </td>
               </tr>
             } @empty {
               <tr>
-                <td colspan="4" class="px-6 py-12 text-center text-gray-400">No se encontraron miembros.</td>
+                <td colspan="4" class="px-6 py-12 text-center text-gray-400 dark:text-gray-500">No se encontraron miembros.</td>
               </tr>
             }
           </tbody>
@@ -64,14 +64,14 @@
       </div>
 
       @if (total() > 0) {
-        <div class="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
-          <p class="text-sm text-gray-600">{{ total() }} miembros</p>
+        <div class="flex items-center justify-between px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+          <p class="text-sm text-gray-600 dark:text-gray-400">{{ total() }} miembros</p>
           <div class="flex gap-2">
             <button (click)="prevPage()" [disabled]="page() <= 1"
-              class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-white disabled:opacity-50 transition cursor-pointer">Anterior</button>
-            <span class="px-3 py-1.5 text-sm text-gray-600">{{ page() }} / {{ totalPages }}</span>
+              class="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 dark:text-gray-300 rounded-lg hover:bg-white dark:hover:bg-gray-700 disabled:opacity-50 transition">Anterior</button>
+            <span class="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400">{{ page() }} / {{ totalPages }}</span>
             <button (click)="nextPage()" [disabled]="page() * pageSize() >= total()"
-              class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-white disabled:opacity-50 transition cursor-pointer">Siguiente</button>
+              class="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 dark:text-gray-300 rounded-lg hover:bg-white dark:hover:bg-gray-700 disabled:opacity-50 transition">Siguiente</button>
           </div>
         </div>
       }
@@ -81,55 +81,96 @@
 
 <!-- Modal Agregar Miembro -->
 @if (showModal()) {
-  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" (click)="closeModal()">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 p-6" (click)="$event.stopPropagation()">
-      <h3 class="text-lg font-bold text-gray-800 mb-4">Agregar Miembro</h3>
-      <div class="space-y-4">
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
-            <input type="text" [(ngModel)]="form.first_name" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Apellido *</label>
-            <input type="text" [(ngModel)]="form.last_name" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
-          </div>
-        </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Correo</label>
-            <input type="email" [(ngModel)]="form.email" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-            <input type="text" [(ngModel)]="form.phone" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
-          </div>
-        </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Género</label>
-            <select [(ngModel)]="form.gender" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
-              <option value="">Seleccionar</option>
-              <option value="male">Masculino</option>
-              <option value="female">Femenino</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de nacimiento</label>
-            <input type="date" [(ngModel)]="form.date_of_birth" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
-          </div>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de membresía</label>
-          <input type="date" [(ngModel)]="form.membership_date" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
-        </div>
-      </div>
-      <div class="flex justify-end gap-3 mt-6">
-        <button (click)="closeModal()" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition cursor-pointer">Cancelar</button>
-        <button (click)="saveMember()" [disabled]="saving() || !form.first_name || !form.last_name"
-          class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 cursor-pointer">
-          @if (saving()) { Guardando... } @else { Guardar }
+  <div class="fixed inset-0 z-[10000] overflow-y-auto">
+    <!-- Backdrop — NO cierra el modal -->
+    <div class="fixed inset-0 h-full w-full bg-gray-400/50 backdrop-blur-[32px]"></div>
+    <div class="flex min-h-full items-center justify-center p-4">
+      <div class="relative w-full max-w-xl rounded-3xl bg-white dark:bg-gray-900 p-6 sm:p-8" (click)="$event.stopPropagation()">
+        <!-- Close button -->
+        <button (click)="closeModal()" class="absolute right-4 top-4 z-10 flex h-9.5 w-9.5 items-center justify-center rounded-full bg-gray-100 text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white sm:right-6 sm:top-6 sm:h-11 sm:w-11">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M6.04289 16.5413C5.65237 16.9318 5.65237 17.565 6.04289 17.9555C6.43342 18.346 7.06658 18.346 7.45711 17.9555L11.9987 13.4139L16.5408 17.956C16.9313 18.3466 17.5645 18.3466 17.955 17.956C18.3455 17.5655 18.3455 16.9323 17.955 16.5418L13.4129 11.9997L17.955 7.4576C18.3455 7.06707 18.3455 6.43391 17.955 6.04338C17.5645 5.65286 16.9313 5.65286 16.5408 6.04338L11.9987 10.5855L7.45711 6.0439C7.06658 5.65338 6.43342 5.65338 6.04289 6.0439C5.65237 6.43442 5.65237 7.06759 6.04289 7.45811L10.5845 11.9997L6.04289 16.5413Z" fill="currentColor" />
+          </svg>
         </button>
+
+        <h3 class="text-lg font-bold text-gray-800 dark:text-white/90 mb-6">Agregar Miembro</h3>
+
+        <div class="max-h-[70vh] overflow-y-auto custom-scrollbar pr-1">
+          <div class="space-y-4">
+            <!-- Nombre y Apellido -->
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre *</label>
+                <input type="text" [(ngModel)]="form.first_name"
+                  class="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-brand-500/20 dark:border-gray-700 dark:focus:border-brand-800"
+                  placeholder="Ej: Juan" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Apellido *</label>
+                <input type="text" [(ngModel)]="form.last_name"
+                  class="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-brand-500/20 dark:border-gray-700 dark:focus:border-brand-800"
+                  placeholder="Ej: Pérez" />
+              </div>
+            </div>
+
+            <!-- Correo y Teléfono -->
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Correo</label>
+                <input type="email" [(ngModel)]="form.email"
+                  class="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-brand-500/20 dark:border-gray-700 dark:focus:border-brand-800"
+                  placeholder="correo@ejemplo.com" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Teléfono</label>
+                <input type="text" [(ngModel)]="form.phone"
+                  class="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-brand-500/20 dark:border-gray-700 dark:focus:border-brand-800"
+                  placeholder="+57 300 000 0000" />
+              </div>
+            </div>
+
+            <!-- Género -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Género</label>
+              <select [(ngModel)]="form.gender"
+                class="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-brand-500/20 dark:border-gray-700 dark:focus:border-brand-800 cursor-pointer">
+                <option value="" class="dark:bg-gray-900">Seleccionar</option>
+                <option value="male" class="dark:bg-gray-900">Masculino</option>
+                <option value="female" class="dark:bg-gray-900">Femenino</option>
+              </select>
+            </div>
+
+            <!-- Fechas -->
+            <div class="grid grid-cols-2 gap-4">
+              <app-date-picker
+                id="date_of_birth"
+                label="Fecha de nacimiento"
+                placeholder="Seleccionar"
+                [defaultDate]="form.date_of_birth"
+                (dateChange)="form.date_of_birth = $event"
+              />
+              <app-date-picker
+                id="membership_date"
+                label="Fecha de membresía"
+                placeholder="Seleccionar"
+                [defaultDate]="form.membership_date"
+                (dateChange)="form.membership_date = $event"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <button (click)="closeModal()"
+            class="px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 ring-1 ring-inset ring-gray-300 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-white/[0.03] rounded-lg transition">
+            Cancelar
+          </button>
+          <button (click)="saveMember()" [disabled]="saving() || !form.first_name || !form.last_name"
+            class="px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium rounded-lg transition disabled:bg-brand-300 shadow-theme-xs">
+            @if (saving()) { Guardando... } @else { Guardar }
+          </button>
+        </div>
       </div>
     </div>
   </div>

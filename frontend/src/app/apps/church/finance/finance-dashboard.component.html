@@ -1,14 +1,14 @@
 <div>
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
     <div>
-      <h2 class="text-xl font-bold text-gray-800">Finanzas</h2>
-      <p class="text-sm text-gray-500">Control de ingresos y egresos</p>
+      <h2 class="text-xl font-bold text-gray-800 dark:text-white/90">Finanzas</h2>
+      <p class="text-sm text-gray-500 dark:text-gray-400">Control de ingresos y egresos</p>
     </div>
     <div class="flex gap-2">
-      <button (click)="openIncomeModal()" class="px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition cursor-pointer">
+      <button (click)="openIncomeModal()" class="px-4 py-2.5 bg-success-500 hover:bg-success-600 text-white text-sm font-medium rounded-lg transition shadow-theme-xs">
         + Registrar Ingreso
       </button>
-      <button (click)="openExpenseModal()" class="px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg transition cursor-pointer">
+      <button (click)="openExpenseModal()" class="px-4 py-2.5 bg-error-500 hover:bg-error-600 text-white text-sm font-medium rounded-lg transition shadow-theme-xs">
         + Registrar Egreso
       </button>
     </div>
@@ -16,52 +16,52 @@
 
   <!-- Tabs -->
   <div class="flex gap-1 mb-6">
-    <button (click)="setTab('income')" class="px-5 py-2.5 text-sm font-medium rounded-lg transition cursor-pointer"
-      [class]="activeTab() === 'income' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'">
+    <button (click)="setTab('income')" class="px-5 py-2.5 text-sm font-medium rounded-lg transition"
+      [class]="activeTab() === 'income' ? 'bg-brand-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'">
       Ingresos
     </button>
-    <button (click)="setTab('expenses')" class="px-5 py-2.5 text-sm font-medium rounded-lg transition cursor-pointer"
-      [class]="activeTab() === 'expenses' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'">
+    <button (click)="setTab('expenses')" class="px-5 py-2.5 text-sm font-medium rounded-lg transition"
+      [class]="activeTab() === 'expenses' ? 'bg-brand-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'">
       Egresos
     </button>
   </div>
 
   @if (loading()) {
     <div class="flex items-center justify-center py-16">
-      <div class="animate-spin rounded-full h-8 w-8 border-4 border-indigo-200 border-t-indigo-600"></div>
+      <div class="animate-spin rounded-full h-8 w-8 border-4 border-brand-200 border-t-brand-600"></div>
     </div>
   } @else {
-    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
-            <tr class="bg-gray-50 border-b border-gray-200">
-              <th class="text-left px-6 py-3 font-semibold text-gray-600">Fecha</th>
-              <th class="text-left px-6 py-3 font-semibold text-gray-600">Categoría</th>
-              <th class="text-left px-6 py-3 font-semibold text-gray-600">Descripción</th>
-              <th class="text-left px-6 py-3 font-semibold text-gray-600">Método</th>
-              <th class="text-right px-6 py-3 font-semibold text-gray-600">Monto</th>
+            <tr class="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+              <th class="text-left px-6 py-3 font-semibold text-gray-600 dark:text-gray-300">Fecha</th>
+              <th class="text-left px-6 py-3 font-semibold text-gray-600 dark:text-gray-300">Categoría</th>
+              <th class="text-left px-6 py-3 font-semibold text-gray-600 dark:text-gray-300">Descripción</th>
+              <th class="text-left px-6 py-3 font-semibold text-gray-600 dark:text-gray-300">Método</th>
+              <th class="text-right px-6 py-3 font-semibold text-gray-600 dark:text-gray-300">Monto</th>
             </tr>
           </thead>
           <tbody>
             @for (tx of transactions(); track tx.id) {
-              <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
-                <td class="px-6 py-4 text-gray-600">{{ tx.date }}</td>
+              <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/5 transition">
+                <td class="px-6 py-4 text-gray-600 dark:text-gray-400">{{ tx.date }}</td>
                 <td class="px-6 py-4">
-                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-50 text-brand-700 dark:bg-brand-500/20 dark:text-brand-400">
                     {{ getCategoryName(tx.category_id) }}
                   </span>
                 </td>
-                <td class="px-6 py-4 text-gray-800">{{ tx.description || '—' }}</td>
-                <td class="px-6 py-4 text-gray-600 capitalize">{{ tx.payment_method }}</td>
+                <td class="px-6 py-4 text-gray-800 dark:text-white/90">{{ tx.description || '—' }}</td>
+                <td class="px-6 py-4 text-gray-600 dark:text-gray-400 capitalize">{{ tx.payment_method }}</td>
                 <td class="px-6 py-4 text-right font-semibold"
-                  [class]="activeTab() === 'income' ? 'text-green-700' : 'text-red-600'">
+                  [class]="activeTab() === 'income' ? 'text-success-600 dark:text-success-400' : 'text-error-600 dark:text-error-400'">
                   {{ activeTab() === 'income' ? '+' : '-' }}${{ tx.amount.toLocaleString() }}
                 </td>
               </tr>
             } @empty {
               <tr>
-                <td colspan="5" class="px-6 py-12 text-center text-gray-400">No hay transacciones registradas.</td>
+                <td colspan="5" class="px-6 py-12 text-center text-gray-400 dark:text-gray-500">No hay transacciones registradas.</td>
               </tr>
             }
           </tbody>
@@ -73,88 +73,37 @@
 
 <!-- Modal Registrar Ingreso -->
 @if (showModal() === 'income') {
-  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" (click)="closeModal()">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 p-6" (click)="$event.stopPropagation()">
-      <h3 class="text-lg font-bold text-gray-800 mb-4">Registrar Ingreso</h3>
-      <div class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Categoría *</label>
-          <select [(ngModel)]="incomeForm.category_code" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
-            <option value="">Seleccionar</option>
-            @for (cat of incomeCategories(); track cat.code) {
-              <option [value]="cat.code">{{ cat.name }}</option>
-            }
-          </select>
-        </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Monto *</label>
-            <input type="number" [(ngModel)]="incomeForm.amount" min="1" step="0.01"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Fecha *</label>
-            <input type="date" [(ngModel)]="incomeForm.date"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
-          </div>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Método de pago *</label>
-          <select [(ngModel)]="incomeForm.payment_method" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
-            <option value="cash">Efectivo</option>
-            <option value="transfer">Transferencia</option>
-            <option value="card">Tarjeta</option>
-            <option value="check">Cheque</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
-          <input type="text" [(ngModel)]="incomeForm.description"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
-        </div>
-      </div>
-      <div class="flex justify-end gap-3 mt-6">
-        <button (click)="closeModal()" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition cursor-pointer">Cancelar</button>
-        <button (click)="saveIncome()" [disabled]="saving() || !incomeForm.category_code || !incomeForm.amount || !incomeForm.date"
-          class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 cursor-pointer">
-          @if (saving()) { Guardando... } @else { Registrar Ingreso }
+  <div class="fixed inset-0 z-[10000] overflow-y-auto">
+    <div class="fixed inset-0 h-full w-full bg-gray-400/50 backdrop-blur-[32px]" (click)="closeModal()"></div>
+    <div class="flex min-h-full items-center justify-center p-4">
+      <div class="relative w-full max-w-lg rounded-3xl bg-white dark:bg-gray-900 p-6 sm:p-8" (click)="$event.stopPropagation()">
+        <button (click)="closeModal()" class="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-white">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M6.04289 16.5413C5.65237 16.9318 5.65237 17.565 6.04289 17.9555C6.43342 18.346 7.06658 18.346 7.45711 17.9555L11.9987 13.4139L16.5408 17.956C16.9313 18.3466 17.5645 18.3466 17.955 17.956C18.3455 17.5655 18.3455 16.9323 17.955 16.5418L13.4129 11.9997L17.955 7.4576C18.3455 7.06707 18.3455 6.43391 17.955 6.04338C17.5645 5.65286 16.9313 5.65286 16.5408 6.04338L11.9987 10.5855L7.45711 6.0439C7.06658 5.65338 6.43342 5.65338 6.04289 6.0439C5.65237 6.43442 5.65237 7.06759 6.04289 7.45811L10.5845 11.9997L6.04289 16.5413Z" fill="currentColor" /></svg>
         </button>
-      </div>
-    </div>
-  </div>
-}
-
-<!-- Modal Registrar Egreso -->
-@if (showModal() === 'expense') {
-  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" (click)="closeModal()">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 p-6" (click)="$event.stopPropagation()">
-      <h3 class="text-lg font-bold text-gray-800 mb-4">Registrar Egreso</h3>
-      <div class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Categoría *</label>
-          <select [(ngModel)]="expenseForm.category_code" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
-            <option value="">Seleccionar</option>
-            @for (cat of expenseCategories(); track cat.code) {
-              <option [value]="cat.code">{{ cat.name }}</option>
-            }
-          </select>
-        </div>
-        <div class="grid grid-cols-2 gap-4">
+        <h3 class="text-lg font-bold text-gray-800 dark:text-white/90 mb-6">Registrar Ingreso</h3>
+        <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Monto *</label>
-            <input type="number" [(ngModel)]="expenseForm.amount" min="1" step="0.01"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoría *</label>
+            <select [(ngModel)]="incomeForm.category_code" class="h-11 w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg text-sm focus:ring-3 focus:ring-brand-500/20 focus:border-brand-300 outline-none">
+              <option value="">Seleccionar</option>
+              @for (cat of incomeCategories(); track cat.code) {
+                <option [value]="cat.code">{{ cat.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Monto *</label>
+              <input type="number" [(ngModel)]="incomeForm.amount" min="1" step="0.01" class="h-11 w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg text-sm focus:ring-3 focus:ring-brand-500/20 focus:border-brand-300 outline-none" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha *</label>
+              <input type="date" [(ngModel)]="incomeForm.date" class="h-11 w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg text-sm focus:ring-3 focus:ring-brand-500/20 focus:border-brand-300 outline-none" />
+            </div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Fecha *</label>
-            <input type="date" [(ngModel)]="expenseForm.date"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
-          </div>
-        </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Método de pago *</label>
-            <select [(ngModel)]="expenseForm.payment_method" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Método de pago *</label>
+            <select [(ngModel)]="incomeForm.payment_method" class="h-11 w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg text-sm focus:ring-3 focus:ring-brand-500/20 focus:border-brand-300 outline-none">
               <option value="cash">Efectivo</option>
               <option value="transfer">Transferencia</option>
               <option value="card">Tarjeta</option>
@@ -162,23 +111,79 @@
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
-            <input type="text" [(ngModel)]="expenseForm.vendor"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción</label>
+            <input type="text" [(ngModel)]="incomeForm.description" class="h-11 w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg text-sm focus:ring-3 focus:ring-brand-500/20 focus:border-brand-300 outline-none" />
           </div>
         </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
-          <input type="text" [(ngModel)]="expenseForm.description"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+        <div class="flex justify-end gap-3 mt-6">
+          <button (click)="closeModal()" class="px-4 py-2.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition">Cancelar</button>
+          <button (click)="saveIncome()" [disabled]="saving() || !incomeForm.category_code || !incomeForm.amount || !incomeForm.date"
+            class="px-5 py-2.5 bg-success-500 hover:bg-success-600 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 shadow-theme-xs">
+            @if (saving()) { Guardando... } @else { Registrar Ingreso }
+          </button>
         </div>
       </div>
-      <div class="flex justify-end gap-3 mt-6">
-        <button (click)="closeModal()" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition cursor-pointer">Cancelar</button>
-        <button (click)="saveExpense()" [disabled]="saving() || !expenseForm.category_code || !expenseForm.amount || !expenseForm.date"
-          class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 cursor-pointer">
-          @if (saving()) { Guardando... } @else { Registrar Egreso }
+    </div>
+  </div>
+}
+
+<!-- Modal Registrar Egreso -->
+@if (showModal() === 'expense') {
+  <div class="fixed inset-0 z-[10000] overflow-y-auto">
+    <div class="fixed inset-0 h-full w-full bg-gray-400/50 backdrop-blur-[32px]" (click)="closeModal()"></div>
+    <div class="flex min-h-full items-center justify-center p-4">
+      <div class="relative w-full max-w-lg rounded-3xl bg-white dark:bg-gray-900 p-6 sm:p-8" (click)="$event.stopPropagation()">
+        <button (click)="closeModal()" class="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-white">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M6.04289 16.5413C5.65237 16.9318 5.65237 17.565 6.04289 17.9555C6.43342 18.346 7.06658 18.346 7.45711 17.9555L11.9987 13.4139L16.5408 17.956C16.9313 18.3466 17.5645 18.3466 17.955 17.956C18.3455 17.5655 18.3455 16.9323 17.955 16.5418L13.4129 11.9997L17.955 7.4576C18.3455 7.06707 18.3455 6.43391 17.955 6.04338C17.5645 5.65286 16.9313 5.65286 16.5408 6.04338L11.9987 10.5855L7.45711 6.0439C7.06658 5.65338 6.43342 5.65338 6.04289 6.0439C5.65237 6.43442 5.65237 7.06759 6.04289 7.45811L10.5845 11.9997L6.04289 16.5413Z" fill="currentColor" /></svg>
         </button>
+        <h3 class="text-lg font-bold text-gray-800 dark:text-white/90 mb-6">Registrar Egreso</h3>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoría *</label>
+            <select [(ngModel)]="expenseForm.category_code" class="h-11 w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg text-sm focus:ring-3 focus:ring-brand-500/20 focus:border-brand-300 outline-none">
+              <option value="">Seleccionar</option>
+              @for (cat of expenseCategories(); track cat.code) {
+                <option [value]="cat.code">{{ cat.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Monto *</label>
+              <input type="number" [(ngModel)]="expenseForm.amount" min="1" step="0.01" class="h-11 w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg text-sm focus:ring-3 focus:ring-brand-500/20 focus:border-brand-300 outline-none" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha *</label>
+              <input type="date" [(ngModel)]="expenseForm.date" class="h-11 w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg text-sm focus:ring-3 focus:ring-brand-500/20 focus:border-brand-300 outline-none" />
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Método de pago *</label>
+              <select [(ngModel)]="expenseForm.payment_method" class="h-11 w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg text-sm focus:ring-3 focus:ring-brand-500/20 focus:border-brand-300 outline-none">
+                <option value="cash">Efectivo</option>
+                <option value="transfer">Transferencia</option>
+                <option value="card">Tarjeta</option>
+                <option value="check">Cheque</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Proveedor</label>
+              <input type="text" [(ngModel)]="expenseForm.vendor" class="h-11 w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg text-sm focus:ring-3 focus:ring-brand-500/20 focus:border-brand-300 outline-none" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción</label>
+            <input type="text" [(ngModel)]="expenseForm.description" class="h-11 w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg text-sm focus:ring-3 focus:ring-brand-500/20 focus:border-brand-300 outline-none" />
+          </div>
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
+          <button (click)="closeModal()" class="px-4 py-2.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition">Cancelar</button>
+          <button (click)="saveExpense()" [disabled]="saving() || !expenseForm.category_code || !expenseForm.amount || !expenseForm.date"
+            class="px-5 py-2.5 bg-error-500 hover:bg-error-600 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 shadow-theme-xs">
+            @if (saving()) { Guardando... } @else { Registrar Egreso }
+          </button>
+        </div>
       </div>
     </div>
   </div>

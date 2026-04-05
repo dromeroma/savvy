@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { LoginRequest, OrgWithRole } from '../../../core/models/user.model';
+import { ThemeService } from '../../../shared/services/theme.service';
 
 @Component({
   selector: 'app-login',
@@ -12,6 +13,9 @@ import { LoginRequest, OrgWithRole } from '../../../core/models/user.model';
 export class LoginComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly themeService = inject(ThemeService);
+
+  showPassword = false;
 
   form: LoginRequest = { email: '', password: '' };
   loading = signal(false);
@@ -46,6 +50,11 @@ export class LoginComponent {
         this.error.set(msg);
       },
     });
+  }
+
+  toggleTheme(): void {
+    const current = this.themeService.currentMode;
+    this.themeService.toggleTheme();
   }
 
   selectOrg(org: OrgWithRole): void {

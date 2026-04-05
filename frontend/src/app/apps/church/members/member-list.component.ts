@@ -1,6 +1,7 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
+import { DatePickerComponent } from '../../../shared/components/form/date-picker/date-picker.component';
 
 interface Member {
   id: string;
@@ -21,7 +22,7 @@ interface PaginatedResponse {
 
 @Component({
   selector: 'app-member-list',
-  imports: [FormsModule],
+  imports: [FormsModule, DatePickerComponent],
   templateUrl: './member-list.component.html',
 })
 export class MemberListComponent implements OnInit {

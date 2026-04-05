@@ -1,8 +1,8 @@
 <div>
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
     <div>
-      <h2 class="text-xl font-bold text-gray-800">Reportes</h2>
-      <p class="text-sm text-gray-500">Resumen financiero mensual</p>
+      <h2 class="text-xl font-bold text-gray-800 dark:text-white/90">Reportes</h2>
+      <p class="text-sm text-gray-500 dark:text-gray-400">Resumen financiero mensual</p>
     </div>
   </div>
 
@@ -11,7 +11,7 @@
     <select
       [ngModel]="selectedYear()"
       (ngModelChange)="selectedYear.set($event); onPeriodChange()"
-      class="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-sm bg-white"
+      class="h-11 px-4 py-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg focus:ring-3 focus:ring-brand-500/20 focus:border-brand-300 outline-none transition text-sm"
     >
       @for (year of years; track year) {
         <option [value]="year">{{ year }}</option>
@@ -21,7 +21,7 @@
     <select
       [ngModel]="selectedMonth()"
       (ngModelChange)="selectedMonth.set($event); onPeriodChange()"
-      class="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-sm bg-white"
+      class="h-11 px-4 py-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg focus:ring-3 focus:ring-brand-500/20 focus:border-brand-300 outline-none transition text-sm"
     >
       @for (month of months; track month.value) {
         <option [value]="month.value">{{ month.label }}</option>
@@ -31,57 +31,55 @@
 
   @if (loading()) {
     <div class="flex items-center justify-center py-16">
-      <div class="animate-spin rounded-full h-8 w-8 border-4 border-indigo-200 border-t-indigo-600"></div>
+      <div class="animate-spin rounded-full h-8 w-8 border-4 border-brand-200 border-t-brand-600"></div>
     </div>
   } @else if (error()) {
-    <div class="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+    <div class="p-4 bg-error-50 border border-error-200 text-error-700 dark:bg-error-500/10 dark:border-error-500/30 dark:text-error-400 rounded-lg">
       {{ error() }}
     </div>
   } @else if (summary()) {
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       <!-- Total Income -->
-      <div class="bg-white rounded-xl border border-gray-200 p-6">
-        <p class="text-sm font-medium text-gray-500 mb-1">Ingresos Totales</p>
-        <p class="text-2xl font-bold text-green-700">${{ summary()!.total_income.toLocaleString() }}</p>
+      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+        <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Ingresos Totales</p>
+        <p class="text-2xl font-bold text-success-600 dark:text-success-400">${{ summary()!.total_income.toLocaleString() }}</p>
       </div>
 
       <!-- Total Expenses -->
-      <div class="bg-white rounded-xl border border-gray-200 p-6">
-        <p class="text-sm font-medium text-gray-500 mb-1">Egresos Totales</p>
-        <p class="text-2xl font-bold text-red-600">${{ summary()!.total_expenses.toLocaleString() }}</p>
+      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+        <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Egresos Totales</p>
+        <p class="text-2xl font-bold text-error-600 dark:text-error-400">${{ summary()!.total_expenses.toLocaleString() }}</p>
       </div>
 
       <!-- Net -->
-      <div class="bg-white rounded-xl border border-gray-200 p-6">
-        <p class="text-sm font-medium text-gray-500 mb-1">Balance Neto</p>
+      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+        <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Balance Neto</p>
         <p class="text-2xl font-bold"
-          [class]="summary()!.net >= 0 ? 'text-green-700' : 'text-red-600'"
-        >
+          [class]="summary()!.net >= 0 ? 'text-success-600 dark:text-success-400' : 'text-error-600 dark:text-error-400'">
           ${{ summary()!.net.toLocaleString() }}
         </p>
       </div>
 
       <!-- Tithe of Tithe -->
-      <div class="bg-white rounded-xl border border-gray-200 p-6 border-l-4 border-l-indigo-500">
-        <p class="text-sm font-medium text-gray-500 mb-1">Diezmo del Diezmo</p>
+      <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 border-l-4 border-l-brand-500">
+        <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Diezmo del Diezmo</p>
         @if (summary()!.tithe_of_tithe) {
-          <p class="text-2xl font-bold text-indigo-700">${{ summary()!.tithe_of_tithe!.tithe_of_tithe.toLocaleString() }}</p>
-          <p class="text-xs text-gray-400 mt-1">
+          <p class="text-2xl font-bold text-brand-600 dark:text-brand-400">${{ summary()!.tithe_of_tithe!.tithe_of_tithe.toLocaleString() }}</p>
+          <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
             10% de diezmos (${{ summary()!.tithe_of_tithe!.total_tithes.toLocaleString() }}) + ofrendas (${{ summary()!.tithe_of_tithe!.total_offerings.toLocaleString() }})
           </p>
         } @else {
-          <p class="text-2xl font-bold text-indigo-700">$0</p>
+          <p class="text-2xl font-bold text-brand-600 dark:text-brand-400">$0</p>
         }
       </div>
     </div>
 
-    <!-- Placeholder for detailed report -->
-    <div class="mt-8 bg-white rounded-xl border border-gray-200 border-dashed p-12 text-center">
-      <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="mt-8 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 border-dashed p-12 text-center">
+      <svg class="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
           d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
       </svg>
-      <p class="text-gray-400 text-sm">Reporte detallado disponible proximamente</p>
+      <p class="text-gray-400 dark:text-gray-500 text-sm">Reporte detallado disponible próximamente</p>
     </div>
   }
 </div>
