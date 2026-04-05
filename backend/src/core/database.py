@@ -19,6 +19,8 @@ engine = create_async_engine(
     pool_size=20,
     max_overflow=10,
     pool_pre_ping=True,
+    # Supabase uses PgBouncer (port 6543) which doesn't support prepared statements
+    connect_args={"statement_cache_size": 0, "prepared_statement_cache_size": 0},
 )
 
 async_session_factory = async_sessionmaker(

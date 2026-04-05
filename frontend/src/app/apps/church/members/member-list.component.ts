@@ -4,7 +4,8 @@ import { ApiService } from '../../../core/services/api.service';
 
 interface Member {
   id: string;
-  name: string;
+  first_name: string;
+  last_name: string;
   email: string;
   phone: string;
   status: string;
@@ -34,6 +35,19 @@ export class MemberListComponent implements OnInit {
   search = '';
   statusFilter = '';
 
+  // Modal
+  showModal = signal(false);
+  saving = signal(false);
+  form = {
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone: '',
+    date_of_birth: '',
+    gender: '',
+    membership_date: '',
+  };
+
   ngOnInit(): void {
     this.loadMembers();
   }
@@ -53,9 +67,7 @@ export class MemberListComponent implements OnInit {
         this.total.set(res.total);
         this.loading.set(false);
       },
-      error: () => {
-        this.loading.set(false);
-      },
+      error: () => this.loading.set(false),
     });
   }
 
@@ -85,5 +97,36 @@ export class MemberListComponent implements OnInit {
 
   get totalPages(): number {
     return Math.ceil(this.total() / this.pageSize());
+  }
+
+  openModal(): void {
+    this.form = { first_name: '', last_name: '', email: '', phone: '', date_of_birth: '', gender: '', membership_date: '' };
+    this.showModal.set(true);
+  }
+
+  closeModal(): void {
+    this.showModal.set(false);
+  }
+
+  saveMember(): void {
+    this.saving.set(true);
+    const body: Record<string, string> = {
+      first_name: this.form.first_name,
+      last_name: this.form.last_name,
+    };
+    if (this.form.email) body['email'] = this.form.email;
+    if (this.form.phone) body['phone'] = this.form.phone;
+    if (this.form.date_of_birth) body['date_of_birth'] = this.form.date_of_birth;
+    if (this.form.gender) body['gender'] = this.form.gender;
+    if (this.form.membership_date) body['membership_date'] = this.form.membership_date;
+
+    this.api.post('/church/members', body).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.closeModal();
+        this.loadMembers();
+      },
+      error: () => this.saving.set(false),
+    });
   }
 }

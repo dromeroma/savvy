@@ -2,11 +2,18 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
 
+interface TitheOfTithe {
+  total_tithes: number;
+  total_offerings: number;
+  base_amount: number;
+  tithe_of_tithe: number;
+}
+
 interface MonthlySummary {
   total_income: number;
   total_expenses: number;
   net: number;
-  tithe_of_tithe: number;
+  tithe_of_tithe: TitheOfTithe | null;
 }
 
 @Component({

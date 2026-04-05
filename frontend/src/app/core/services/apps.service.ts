@@ -16,6 +16,6 @@ export class AppsService {
   }
 
   activateApp(appCode: string): Observable<unknown> {
-    return this.api.post(`/apps/${appCode}/activate`, {});
+    return this.api.post('/apps/activate', { app_code: appCode });
   }
 }

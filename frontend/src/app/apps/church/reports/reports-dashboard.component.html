@@ -64,7 +64,14 @@
       <!-- Tithe of Tithe -->
       <div class="bg-white rounded-xl border border-gray-200 p-6 border-l-4 border-l-indigo-500">
         <p class="text-sm font-medium text-gray-500 mb-1">Diezmo del Diezmo</p>
-        <p class="text-2xl font-bold text-indigo-700">${{ summary()!.tithe_of_tithe.toLocaleString() }}</p>
+        @if (summary()!.tithe_of_tithe) {
+          <p class="text-2xl font-bold text-indigo-700">${{ summary()!.tithe_of_tithe!.tithe_of_tithe.toLocaleString() }}</p>
+          <p class="text-xs text-gray-400 mt-1">
+            10% de diezmos (${{ summary()!.tithe_of_tithe!.total_tithes.toLocaleString() }}) + ofrendas (${{ summary()!.tithe_of_tithe!.total_offerings.toLocaleString() }})
+          </p>
+        } @else {
+          <p class="text-2xl font-bold text-indigo-700">$0</p>
+        }
       </div>
     </div>
 

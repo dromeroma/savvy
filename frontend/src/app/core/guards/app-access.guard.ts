@@ -15,7 +15,7 @@ export const appAccessGuard: CanActivateFn = (route: ActivatedRouteSnapshot) => 
   return appsService.getMyApps().pipe(
     map((apps) => {
       const hasAccess = apps.some(
-        (a) => a.app.code === appCode && a.status === 'active',
+        (a) => a.app.code === appCode && (a.status === 'active' || a.status === 'trial'),
       );
       return hasAccess || router.createUrlTree(['/dashboard']);
     }),

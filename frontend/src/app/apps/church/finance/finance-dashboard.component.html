@@ -5,10 +5,10 @@
       <p class="text-sm text-gray-500">Control de ingresos y egresos</p>
     </div>
     <div class="flex gap-2">
-      <button class="px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition cursor-pointer">
+      <button (click)="openIncomeModal()" class="px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition cursor-pointer">
         + Registrar Ingreso
       </button>
-      <button class="px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg transition cursor-pointer">
+      <button (click)="openExpenseModal()" class="px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg transition cursor-pointer">
         + Registrar Egreso
       </button>
     </div>
@@ -16,22 +16,12 @@
 
   <!-- Tabs -->
   <div class="flex gap-1 mb-6">
-    <button
-      (click)="setTab('income')"
-      class="px-5 py-2.5 text-sm font-medium rounded-lg transition cursor-pointer"
-      [class]="activeTab() === 'income'
-        ? 'bg-indigo-600 text-white'
-        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
-    >
+    <button (click)="setTab('income')" class="px-5 py-2.5 text-sm font-medium rounded-lg transition cursor-pointer"
+      [class]="activeTab() === 'income' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'">
       Ingresos
     </button>
-    <button
-      (click)="setTab('expenses')"
-      class="px-5 py-2.5 text-sm font-medium rounded-lg transition cursor-pointer"
-      [class]="activeTab() === 'expenses'
-        ? 'bg-indigo-600 text-white'
-        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
-    >
+    <button (click)="setTab('expenses')" class="px-5 py-2.5 text-sm font-medium rounded-lg transition cursor-pointer"
+      [class]="activeTab() === 'expenses' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'">
       Egresos
     </button>
   </div>
@@ -49,6 +39,7 @@
               <th class="text-left px-6 py-3 font-semibold text-gray-600">Fecha</th>
               <th class="text-left px-6 py-3 font-semibold text-gray-600">Categoría</th>
               <th class="text-left px-6 py-3 font-semibold text-gray-600">Descripción</th>
+              <th class="text-left px-6 py-3 font-semibold text-gray-600">Método</th>
               <th class="text-right px-6 py-3 font-semibold text-gray-600">Monto</th>
             </tr>
           </thead>
@@ -58,21 +49,19 @@
                 <td class="px-6 py-4 text-gray-600">{{ tx.date }}</td>
                 <td class="px-6 py-4">
                   <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                    {{ tx.category }}
+                    {{ getCategoryName(tx.category_id) }}
                   </span>
                 </td>
-                <td class="px-6 py-4 text-gray-800">{{ tx.description }}</td>
+                <td class="px-6 py-4 text-gray-800">{{ tx.description || '—' }}</td>
+                <td class="px-6 py-4 text-gray-600 capitalize">{{ tx.payment_method }}</td>
                 <td class="px-6 py-4 text-right font-semibold"
-                  [class]="activeTab() === 'income' ? 'text-green-700' : 'text-red-600'"
-                >
+                  [class]="activeTab() === 'income' ? 'text-green-700' : 'text-red-600'">
                   {{ activeTab() === 'income' ? '+' : '-' }}${{ tx.amount.toLocaleString() }}
                 </td>
               </tr>
             } @empty {
               <tr>
-                <td colspan="4" class="px-6 py-12 text-center text-gray-400">
-                  No hay transacciones registradas.
-                </td>
+                <td colspan="5" class="px-6 py-12 text-center text-gray-400">No hay transacciones registradas.</td>
               </tr>
             }
           </tbody>
@@ -81,3 +70,116 @@
     </div>
   }
 </div>
+
+<!-- Modal Registrar Ingreso -->
+@if (showModal() === 'income') {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" (click)="closeModal()">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 p-6" (click)="$event.stopPropagation()">
+      <h3 class="text-lg font-bold text-gray-800 mb-4">Registrar Ingreso</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Categoría *</label>
+          <select [(ngModel)]="incomeForm.category_code" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
+            <option value="">Seleccionar</option>
+            @for (cat of incomeCategories(); track cat.code) {
+              <option [value]="cat.code">{{ cat.name }}</option>
+            }
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Monto *</label>
+            <input type="number" [(ngModel)]="incomeForm.amount" min="1" step="0.01"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Fecha *</label>
+            <input type="date" [(ngModel)]="incomeForm.date"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Método de pago *</label>
+          <select [(ngModel)]="incomeForm.payment_method" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
+            <option value="cash">Efectivo</option>
+            <option value="transfer">Transferencia</option>
+            <option value="card">Tarjeta</option>
+            <option value="check">Cheque</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+          <input type="text" [(ngModel)]="incomeForm.description"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+        </div>
+      </div>
+      <div class="flex justify-end gap-3 mt-6">
+        <button (click)="closeModal()" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition cursor-pointer">Cancelar</button>
+        <button (click)="saveIncome()" [disabled]="saving() || !incomeForm.category_code || !incomeForm.amount || !incomeForm.date"
+          class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 cursor-pointer">
+          @if (saving()) { Guardando... } @else { Registrar Ingreso }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal Registrar Egreso -->
+@if (showModal() === 'expense') {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" (click)="closeModal()">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 p-6" (click)="$event.stopPropagation()">
+      <h3 class="text-lg font-bold text-gray-800 mb-4">Registrar Egreso</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Categoría *</label>
+          <select [(ngModel)]="expenseForm.category_code" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
+            <option value="">Seleccionar</option>
+            @for (cat of expenseCategories(); track cat.code) {
+              <option [value]="cat.code">{{ cat.name }}</option>
+            }
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Monto *</label>
+            <input type="number" [(ngModel)]="expenseForm.amount" min="1" step="0.01"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Fecha *</label>
+            <input type="date" [(ngModel)]="expenseForm.date"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Método de pago *</label>
+            <select [(ngModel)]="expenseForm.payment_method" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
+              <option value="cash">Efectivo</option>
+              <option value="transfer">Transferencia</option>
+              <option value="card">Tarjeta</option>
+              <option value="check">Cheque</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
+            <input type="text" [(ngModel)]="expenseForm.vendor"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+          <input type="text" [(ngModel)]="expenseForm.description"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+        </div>
+      </div>
+      <div class="flex justify-end gap-3 mt-6">
+        <button (click)="closeModal()" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition cursor-pointer">Cancelar</button>
+        <button (click)="saveExpense()" [disabled]="saving() || !expenseForm.category_code || !expenseForm.amount || !expenseForm.date"
+          class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 cursor-pointer">
+          @if (saving()) { Guardando... } @else { Registrar Egreso }
+        </button>
+      </div>
+    </div>
+  </div>
+}

@@ -1,1 +1,423 @@
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap");
 @import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* ── Font ────────────────────────────────────── */
+  --font-outfit: "Outfit", sans-serif;
+
+  /* ── Breakpoints ─────────────────────────────── */
+  --breakpoint-2xsm: 375px;
+  --breakpoint-xsm: 425px;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+  --breakpoint-3xl: 2000px;
+
+  /* ── Typography ──────────────────────────────── */
+  --text-title-2xl: 72px;
+  --text-title-2xl--line-height: 90px;
+
+  --text-title-xl: 60px;
+  --text-title-xl--line-height: 72px;
+
+  --text-title-lg: 48px;
+  --text-title-lg--line-height: 60px;
+
+  --text-title-md: 36px;
+  --text-title-md--line-height: 44px;
+
+  --text-title-sm: 30px;
+  --text-title-sm--line-height: 38px;
+
+  --text-title-xs: 24px;
+  --text-title-xs--line-height: 32px;
+
+  --text-theme-xl: 20px;
+  --text-theme-xl--line-height: 30px;
+
+  --text-theme-lg: 18px;
+  --text-theme-lg--line-height: 28px;
+
+  --text-theme-md: 16px;
+  --text-theme-md--line-height: 24px;
+
+  --text-theme-sm: 14px;
+  --text-theme-sm--line-height: 20px;
+
+  --text-theme-xs: 12px;
+  --text-theme-xs--line-height: 18px;
+
+  /* ── Brand Colors (Emerald) ──────────────────── */
+  --color-brand-25: #f0fdf6;
+  --color-brand-50: #ecfdf3;
+  --color-brand-100: #d1fae5;
+  --color-brand-200: #a7f3d0;
+  --color-brand-300: #6ee7b7;
+  --color-brand-400: #34d399;
+  --color-brand-500: #059669;
+  --color-brand-600: #047857;
+  --color-brand-700: #065f46;
+  --color-brand-800: #064e3b;
+  --color-brand-900: #053f30;
+  --color-brand-950: #022c22;
+
+  /* ── Gray ─────────────────────────────────────── */
+  --color-gray-25: #fcfcfd;
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f2f4f7;
+  --color-gray-200: #e4e7ec;
+  --color-gray-300: #d0d5dd;
+  --color-gray-400: #98a2b3;
+  --color-gray-500: #667085;
+  --color-gray-600: #475467;
+  --color-gray-700: #344054;
+  --color-gray-800: #1d2939;
+  --color-gray-900: #101828;
+  --color-gray-950: #0c111d;
+  --color-gray-dark: #1a2231;
+
+  /* ── Blue Light ──────────────────────────────── */
+  --color-blue-light-25: #f5fbff;
+  --color-blue-light-50: #f0f9ff;
+  --color-blue-light-100: #e0f2fe;
+  --color-blue-light-200: #b9e6fe;
+  --color-blue-light-300: #7cd4fd;
+  --color-blue-light-400: #36bffa;
+  --color-blue-light-500: #0ba5ec;
+  --color-blue-light-600: #0086c9;
+  --color-blue-light-700: #026aa2;
+  --color-blue-light-800: #065986;
+  --color-blue-light-900: #0b4a6f;
+  --color-blue-light-950: #062c41;
+
+  /* ── Orange ──────────────────────────────────── */
+  --color-orange-25: #fffaf5;
+  --color-orange-50: #fff6ed;
+  --color-orange-100: #ffead5;
+  --color-orange-200: #fddcab;
+  --color-orange-300: #feb273;
+  --color-orange-400: #fd853a;
+  --color-orange-500: #fb6514;
+  --color-orange-600: #ec4a0a;
+  --color-orange-700: #c4320a;
+  --color-orange-800: #9c2a10;
+  --color-orange-900: #7e2410;
+  --color-orange-950: #511c10;
+
+  /* ── Success ─────────────────────────────────── */
+  --color-success-25: #f6fef9;
+  --color-success-50: #ecfdf3;
+  --color-success-100: #dcfae6;
+  --color-success-200: #abefc6;
+  --color-success-300: #75e0a7;
+  --color-success-400: #47cd89;
+  --color-success-500: #17b26a;
+  --color-success-600: #079455;
+  --color-success-700: #067647;
+  --color-success-800: #085d3a;
+  --color-success-900: #074d31;
+  --color-success-950: #053321;
+
+  /* ── Error ───────────────────────────────────── */
+  --color-error-25: #fffbfa;
+  --color-error-50: #fef3f2;
+  --color-error-100: #fee4e2;
+  --color-error-200: #fecdca;
+  --color-error-300: #fda29b;
+  --color-error-400: #f97066;
+  --color-error-500: #f04438;
+  --color-error-600: #d92d20;
+  --color-error-700: #b42318;
+  --color-error-800: #912018;
+  --color-error-900: #7a271a;
+  --color-error-950: #55160c;
+
+  /* ── Warning ─────────────────────────────────── */
+  --color-warning-25: #fffcf5;
+  --color-warning-50: #fffaeb;
+  --color-warning-100: #fef0c7;
+  --color-warning-200: #fedf89;
+  --color-warning-300: #fec84b;
+  --color-warning-400: #fdb022;
+  --color-warning-500: #f79009;
+  --color-warning-600: #dc6803;
+  --color-warning-700: #b54708;
+  --color-warning-800: #93370d;
+  --color-warning-900: #7a2e0e;
+  --color-warning-950: #4e1d09;
+
+  /* ── Theme Accent Colors ─────────────────────── */
+  --color-theme-pink-500: #ee46bc;
+  --color-theme-purple-500: #7a5af8;
+
+  /* ── Shadows ─────────────────────────────────── */
+  --shadow-theme-xs: 0px 1px 2px 0px rgba(16, 24, 40, 0.05);
+  --shadow-theme-sm: 0px 1px 2px 0px rgba(16, 24, 40, 0.06),
+    0px 1px 3px 0px rgba(16, 24, 40, 0.1);
+  --shadow-theme-md: 0px 2px 4px -2px rgba(16, 24, 40, 0.06),
+    0px 4px 8px -2px rgba(16, 24, 40, 0.1);
+  --shadow-theme-lg: 0px 4px 6px -2px rgba(16, 24, 40, 0.03),
+    0px 12px 16px -4px rgba(16, 24, 40, 0.08);
+  --shadow-theme-xl: 0px 8px 8px -4px rgba(16, 24, 40, 0.03),
+    0px 20px 24px -4px rgba(16, 24, 40, 0.08);
+  --shadow-focus-ring: 0px 0px 0px 4px rgba(5, 150, 105, 0.24);
+  --shadow-tooltip: 0px 12px 16px -4px rgba(16, 24, 40, 0.08),
+    0px 4px 6px -2px rgba(16, 24, 40, 0.03);
+
+  /* ── Z-Index ─────────────────────────────────── */
+  --z-1: 1;
+  --z-9: 9;
+  --z-99: 99;
+  --z-999: 999;
+  --z-9999: 9999;
+  --z-99999: 99999;
+  --z-999999: 999999;
+}
+
+/* ── Base Layer ──────────────────────────────────── */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    border-color: var(--color-gray-200);
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  body {
+    font-family: var(--font-outfit);
+    background-color: var(--color-gray-50);
+  }
+}
+
+/* ── Fun Mode Transitions ────────────────────────── */
+.fun-mode,
+.fun-mode * {
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+/* ── Utility: Menu Items ─────────────────────────── */
+@utility menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+@utility menu-item-active {
+  background-color: var(--color-brand-50);
+  color: var(--color-brand-600);
+}
+
+@utility menu-item-inactive {
+  color: var(--color-gray-700);
+}
+
+@utility menu-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@utility menu-item-icon-active {
+  color: var(--color-brand-500);
+}
+
+@utility menu-item-icon-size {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+@utility menu-item-icon-inactive {
+  color: var(--color-gray-500);
+}
+
+@utility menu-item-arrow {
+  margin-left: auto;
+  transition: transform 0.2s ease;
+}
+
+@utility menu-item-arrow-active {
+  transform: rotate(180deg);
+}
+
+@utility menu-item-arrow-inactive {
+  transform: rotate(0deg);
+}
+
+/* ── Utility: Menu Dropdown Items ────────────────── */
+@utility menu-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.375rem 0.75rem 0.375rem 2.75rem;
+  border-radius: 0.375rem;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+@utility menu-dropdown-item-active {
+  background-color: var(--color-brand-50);
+  color: var(--color-brand-600);
+}
+
+@utility menu-dropdown-item-inactive {
+  color: var(--color-gray-600);
+}
+
+/* ── Utility: Menu Dropdown Badges ───────────────── */
+@utility menu-dropdown-badge {
+  margin-left: auto;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+}
+
+@utility menu-dropdown-badge-active {
+  background-color: var(--color-brand-100);
+  color: var(--color-brand-700);
+}
+
+@utility menu-dropdown-badge-inactive {
+  background-color: var(--color-gray-100);
+  color: var(--color-gray-600);
+}
+
+@utility menu-dropdown-badge-pro {
+  margin-left: auto;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 10px;
+  line-height: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+@utility menu-dropdown-badge-pro-active {
+  background-color: var(--color-brand-500);
+  color: white;
+}
+
+@utility menu-dropdown-badge-pro-inactive {
+  background-color: var(--color-gray-200);
+  color: var(--color-gray-500);
+}
+
+/* ── Utility: Scrollbar Helpers ──────────────────── */
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility custom-scrollbar {
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--color-gray-300);
+    border-radius: 9999px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-gray-400);
+  }
+}
+
+@utility scrollbar-brand {
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--color-brand-300);
+    border-radius: 9999px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-brand-400);
+  }
+}
+
+/* ── Dark Mode Scrollbar Overrides ───────────────── */
+.dark ::-webkit-scrollbar-thumb {
+  background-color: var(--color-gray-600);
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-gray-500);
+}
+.dark .scrollbar-brand::-webkit-scrollbar-thumb {
+  background-color: var(--color-brand-600);
+}
+.dark .scrollbar-brand::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-brand-500);
+}
+
+/* ── Table Checkbox Styles ───────────────────────── */
+.tableCheckbox input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 1.125rem;
+  height: 1.125rem;
+  border: 1.5px solid var(--color-gray-300);
+  border-radius: 0.25rem;
+  background-color: white;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.15s ease;
+}
+
+.tableCheckbox input[type="checkbox"]:checked {
+  background-color: var(--color-brand-500);
+  border-color: var(--color-brand-500);
+}
+
+.tableCheckbox input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 9px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: translate(-50%, -60%) rotate(45deg);
+}
+
+/* ── Date/Time Input Icon Removal ────────────────── */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
