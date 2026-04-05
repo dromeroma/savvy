@@ -1,0 +1,83 @@
+<div>
+  <h1 class="text-2xl font-bold text-gray-800 mb-1">Mis Aplicaciones</h1>
+  <p class="text-gray-500 mb-8">Gestiona tus aplicaciones y accede a cada módulo.</p>
+
+  @if (loading()) {
+    <div class="flex items-center justify-center py-20">
+      <div class="animate-spin rounded-full h-10 w-10 border-4 border-indigo-200 border-t-indigo-600"></div>
+    </div>
+  } @else if (error()) {
+    <div class="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+      {{ error() }}
+    </div>
+  } @else {
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      @for (item of myApps(); track item.app.code) {
+        <div
+          class="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition duration-200 overflow-hidden"
+        >
+          <!-- Card header with color -->
+          <div
+            class="h-2"
+            [style.background-color]="item.app.color || '#6366f1'"
+          ></div>
+
+          <div class="p-6">
+            <div class="flex items-start gap-4 mb-4">
+              <div
+                class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0"
+                [style.background-color]="(item.app.color || '#6366f1') + '20'"
+              >
+                {{ item.app.icon || '📱' }}
+              </div>
+              <div class="flex-1 min-w-0">
+                <h3 class="text-lg font-semibold text-gray-800">{{ item.app.name }}</h3>
+                <p class="text-sm text-gray-500 mt-0.5">{{ item.app.description }}</p>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between mt-4">
+              <div class="flex items-center gap-2">
+                @if (item.status === 'active') {
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    Activa
+                  </span>
+                } @else {
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                    {{ item.status }}
+                  </span>
+                }
+                <span class="text-xs text-gray-400 capitalize">{{ item.role }}</span>
+              </div>
+
+              @if (item.status === 'active') {
+                <button
+                  (click)="openApp(item)"
+                  class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition cursor-pointer"
+                >
+                  Abrir
+                </button>
+              } @else {
+                <button
+                  (click)="activateApp(item)"
+                  class="px-4 py-2 bg-white border border-indigo-300 text-indigo-600 hover:bg-indigo-50 text-sm font-medium rounded-lg transition cursor-pointer"
+                >
+                  Activar
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+      } @empty {
+        <div class="col-span-full text-center py-16">
+          <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+              d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+          </svg>
+          <p class="text-gray-500 text-lg">No tienes aplicaciones asignadas.</p>
+          <p class="text-gray-400 text-sm mt-1">Contacta al administrador de tu organización.</p>
+        </div>
+      }
+    </div>
+  }
+</div>

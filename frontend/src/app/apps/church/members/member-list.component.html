@@ -1,0 +1,122 @@
+<div>
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div>
+      <h2 class="text-xl font-bold text-gray-800">Miembros</h2>
+      <p class="text-sm text-gray-500">Gestión de miembros de la iglesia</p>
+    </div>
+    <button class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition cursor-pointer shrink-0">
+      + Agregar Miembro
+    </button>
+  </div>
+
+  <!-- Filters -->
+  <div class="flex flex-col sm:flex-row gap-3 mb-6">
+    <div class="flex-1">
+      <input
+        type="text"
+        [(ngModel)]="search"
+        (keyup.enter)="onSearch()"
+        placeholder="Buscar por nombre o correo..."
+        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-sm"
+      />
+    </div>
+    <select
+      [(ngModel)]="statusFilter"
+      (ngModelChange)="onFilterChange()"
+      class="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-sm bg-white"
+    >
+      <option value="">Todos los estados</option>
+      <option value="active">Activo</option>
+      <option value="inactive">Inactivo</option>
+      <option value="visitor">Visitante</option>
+    </select>
+    <button
+      (click)="onSearch()"
+      class="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition cursor-pointer"
+    >
+      Buscar
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="flex items-center justify-center py-16">
+      <div class="animate-spin rounded-full h-8 w-8 border-4 border-indigo-200 border-t-indigo-600"></div>
+    </div>
+  } @else {
+    <!-- Table -->
+    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-gray-50 border-b border-gray-200">
+              <th class="text-left px-6 py-3 font-semibold text-gray-600">Nombre</th>
+              <th class="text-left px-6 py-3 font-semibold text-gray-600">Correo</th>
+              <th class="text-left px-6 py-3 font-semibold text-gray-600 hidden md:table-cell">Teléfono</th>
+              <th class="text-left px-6 py-3 font-semibold text-gray-600">Estado</th>
+              <th class="text-left px-6 py-3 font-semibold text-gray-600 hidden lg:table-cell">Fecha de Membresía</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (member of members(); track member.id) {
+              <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
+                <td class="px-6 py-4 font-medium text-gray-800">{{ member.name }}</td>
+                <td class="px-6 py-4 text-gray-600">{{ member.email }}</td>
+                <td class="px-6 py-4 text-gray-600 hidden md:table-cell">{{ member.phone }}</td>
+                <td class="px-6 py-4">
+                  @if (member.status === 'active') {
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      Activo
+                    </span>
+                  } @else if (member.status === 'inactive') {
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                      Inactivo
+                    </span>
+                  } @else {
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                      Visitante
+                    </span>
+                  }
+                </td>
+                <td class="px-6 py-4 text-gray-600 hidden lg:table-cell">{{ member.membership_date }}</td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="5" class="px-6 py-12 text-center text-gray-400">
+                  No se encontraron miembros.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      @if (total() > 0) {
+        <div class="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
+          <p class="text-sm text-gray-600">
+            Mostrando {{ (page() - 1) * pageSize() + 1 }} - {{ page() * pageSize() > total() ? total() : page() * pageSize() }} de {{ total() }}
+          </p>
+          <div class="flex gap-2">
+            <button
+              (click)="prevPage()"
+              [disabled]="page() <= 1"
+              class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer"
+            >
+              Anterior
+            </button>
+            <span class="px-3 py-1.5 text-sm text-gray-600">
+              {{ page() }} / {{ totalPages }}
+            </span>
+            <button
+              (click)="nextPage()"
+              [disabled]="page() * pageSize() >= total()"
+              class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

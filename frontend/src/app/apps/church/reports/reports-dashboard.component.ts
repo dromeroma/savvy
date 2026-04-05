@@ -1,0 +1,80 @@
+import { Component, inject, signal, OnInit } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { ApiService } from '../../../core/services/api.service';
+
+interface MonthlySummary {
+  total_income: number;
+  total_expenses: number;
+  net: number;
+  tithe_of_tithe: number;
+}
+
+@Component({
+  selector: 'app-reports-dashboard',
+  imports: [FormsModule],
+  templateUrl: './reports-dashboard.component.html',
+})
+export class ReportsDashboardComponent implements OnInit {
+  private readonly api = inject(ApiService);
+
+  currentYear = new Date().getFullYear();
+  currentMonth = new Date().getMonth() + 1;
+
+  selectedYear = signal(this.currentYear);
+  selectedMonth = signal(this.currentMonth);
+  summary = signal<MonthlySummary | null>(null);
+  loading = signal(true);
+  error = signal('');
+
+  years: number[] = [];
+  months = [
+    { value: 1, label: 'Enero' },
+    { value: 2, label: 'Febrero' },
+    { value: 3, label: 'Marzo' },
+    { value: 4, label: 'Abril' },
+    { value: 5, label: 'Mayo' },
+    { value: 6, label: 'Junio' },
+    { value: 7, label: 'Julio' },
+    { value: 8, label: 'Agosto' },
+    { value: 9, label: 'Septiembre' },
+    { value: 10, label: 'Octubre' },
+    { value: 11, label: 'Noviembre' },
+    { value: 12, label: 'Diciembre' },
+  ];
+
+  constructor() {
+    for (let y = this.currentYear; y >= this.currentYear - 5; y--) {
+      this.years.push(y);
+    }
+  }
+
+  ngOnInit(): void {
+    this.loadSummary();
+  }
+
+  loadSummary(): void {
+    this.loading.set(true);
+    this.error.set('');
+
+    this.api
+      .get<MonthlySummary>('/church/reports/monthly-summary', {
+        year: this.selectedYear(),
+        month: this.selectedMonth(),
+      })
+      .subscribe({
+        next: (data) => {
+          this.summary.set(data);
+          this.loading.set(false);
+        },
+        error: () => {
+          this.error.set('Error al cargar el reporte.');
+          this.summary.set(null);
+          this.loading.set(false);
+        },
+      });
+  }
+
+  onPeriodChange(): void {
+    this.loadSummary();
+  }
+}

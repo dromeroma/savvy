@@ -37,11 +37,14 @@ htmlcov/
 .coverage
 coverage.xml
 
-# Node (if frontend co-located)
+# Node / Angular
 node_modules/
 npm-debug.log*
 yarn-error.log*
 .next/
+.angular/
+dist/
+.nx/
 
 # OS
 .DS_Store

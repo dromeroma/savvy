@@ -1,0 +1,80 @@
+<div>
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div>
+      <h2 class="text-xl font-bold text-gray-800">Reportes</h2>
+      <p class="text-sm text-gray-500">Resumen financiero mensual</p>
+    </div>
+  </div>
+
+  <!-- Period selector -->
+  <div class="flex flex-wrap gap-3 mb-8">
+    <select
+      [ngModel]="selectedYear()"
+      (ngModelChange)="selectedYear.set($event); onPeriodChange()"
+      class="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-sm bg-white"
+    >
+      @for (year of years; track year) {
+        <option [value]="year">{{ year }}</option>
+      }
+    </select>
+
+    <select
+      [ngModel]="selectedMonth()"
+      (ngModelChange)="selectedMonth.set($event); onPeriodChange()"
+      class="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-sm bg-white"
+    >
+      @for (month of months; track month.value) {
+        <option [value]="month.value">{{ month.label }}</option>
+      }
+    </select>
+  </div>
+
+  @if (loading()) {
+    <div class="flex items-center justify-center py-16">
+      <div class="animate-spin rounded-full h-8 w-8 border-4 border-indigo-200 border-t-indigo-600"></div>
+    </div>
+  } @else if (error()) {
+    <div class="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+      {{ error() }}
+    </div>
+  } @else if (summary()) {
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <!-- Total Income -->
+      <div class="bg-white rounded-xl border border-gray-200 p-6">
+        <p class="text-sm font-medium text-gray-500 mb-1">Ingresos Totales</p>
+        <p class="text-2xl font-bold text-green-700">${{ summary()!.total_income.toLocaleString() }}</p>
+      </div>
+
+      <!-- Total Expenses -->
+      <div class="bg-white rounded-xl border border-gray-200 p-6">
+        <p class="text-sm font-medium text-gray-500 mb-1">Egresos Totales</p>
+        <p class="text-2xl font-bold text-red-600">${{ summary()!.total_expenses.toLocaleString() }}</p>
+      </div>
+
+      <!-- Net -->
+      <div class="bg-white rounded-xl border border-gray-200 p-6">
+        <p class="text-sm font-medium text-gray-500 mb-1">Balance Neto</p>
+        <p class="text-2xl font-bold"
+          [class]="summary()!.net >= 0 ? 'text-green-700' : 'text-red-600'"
+        >
+          ${{ summary()!.net.toLocaleString() }}
+        </p>
+      </div>
+
+      <!-- Tithe of Tithe -->
+      <div class="bg-white rounded-xl border border-gray-200 p-6 border-l-4 border-l-indigo-500">
+        <p class="text-sm font-medium text-gray-500 mb-1">Diezmo del Diezmo</p>
+        <p class="text-2xl font-bold text-indigo-700">${{ summary()!.tithe_of_tithe.toLocaleString() }}</p>
+      </div>
+    </div>
+
+    <!-- Placeholder for detailed report -->
+    <div class="mt-8 bg-white rounded-xl border border-gray-200 border-dashed p-12 text-center">
+      <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+          d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+      <p class="text-gray-400 text-sm">Reporte detallado disponible proximamente</p>
+    </div>
+  }
+</div>

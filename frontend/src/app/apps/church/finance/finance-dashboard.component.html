@@ -1,0 +1,83 @@
+<div>
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div>
+      <h2 class="text-xl font-bold text-gray-800">Finanzas</h2>
+      <p class="text-sm text-gray-500">Control de ingresos y egresos</p>
+    </div>
+    <div class="flex gap-2">
+      <button class="px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition cursor-pointer">
+        + Registrar Ingreso
+      </button>
+      <button class="px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg transition cursor-pointer">
+        + Registrar Egreso
+      </button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="flex gap-1 mb-6">
+    <button
+      (click)="setTab('income')"
+      class="px-5 py-2.5 text-sm font-medium rounded-lg transition cursor-pointer"
+      [class]="activeTab() === 'income'
+        ? 'bg-indigo-600 text-white'
+        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+    >
+      Ingresos
+    </button>
+    <button
+      (click)="setTab('expenses')"
+      class="px-5 py-2.5 text-sm font-medium rounded-lg transition cursor-pointer"
+      [class]="activeTab() === 'expenses'
+        ? 'bg-indigo-600 text-white'
+        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+    >
+      Egresos
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="flex items-center justify-center py-16">
+      <div class="animate-spin rounded-full h-8 w-8 border-4 border-indigo-200 border-t-indigo-600"></div>
+    </div>
+  } @else {
+    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-gray-50 border-b border-gray-200">
+              <th class="text-left px-6 py-3 font-semibold text-gray-600">Fecha</th>
+              <th class="text-left px-6 py-3 font-semibold text-gray-600">Categoría</th>
+              <th class="text-left px-6 py-3 font-semibold text-gray-600">Descripción</th>
+              <th class="text-right px-6 py-3 font-semibold text-gray-600">Monto</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (tx of transactions(); track tx.id) {
+              <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
+                <td class="px-6 py-4 text-gray-600">{{ tx.date }}</td>
+                <td class="px-6 py-4">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                    {{ tx.category }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 text-gray-800">{{ tx.description }}</td>
+                <td class="px-6 py-4 text-right font-semibold"
+                  [class]="activeTab() === 'income' ? 'text-green-700' : 'text-red-600'"
+                >
+                  {{ activeTab() === 'income' ? '+' : '-' }}${{ tx.amount.toLocaleString() }}
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="4" class="px-6 py-12 text-center text-gray-400">
+                  No hay transacciones registradas.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+</div>
