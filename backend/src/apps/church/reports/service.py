@@ -34,15 +34,27 @@ class ChurchReportService:
         month: int,
     ) -> MonthlySummaryResponse:
         """Generate a consolidated monthly report."""
-        # Find the fiscal period
+        # Find the fiscal period (try church-specific first, then global)
         period_result = await db.execute(
             select(FiscalPeriod).where(
                 FiscalPeriod.organization_id == org_id,
                 FiscalPeriod.year == year,
                 FiscalPeriod.month == month,
+                FiscalPeriod.app_code == APP_CODE,
             )
         )
         period = period_result.scalar_one_or_none()
+        if period is None:
+            # Fallback to unified period
+            period_result = await db.execute(
+                select(FiscalPeriod).where(
+                    FiscalPeriod.organization_id == org_id,
+                    FiscalPeriod.year == year,
+                    FiscalPeriod.month == month,
+                    FiscalPeriod.app_code.is_(None),
+                )
+            )
+            period = period_result.scalar_one_or_none()
 
         # No period = no transactions for this month → return zeros
         if period is None:
@@ -93,9 +105,21 @@ class ChurchReportService:
                 FiscalPeriod.organization_id == org_id,
                 FiscalPeriod.year == year,
                 FiscalPeriod.month == month,
+                FiscalPeriod.app_code == APP_CODE,
             )
         )
         period = period_result.scalar_one_or_none()
+        if period is None:
+            # Fallback to unified
+            period_result = await db.execute(
+                select(FiscalPeriod).where(
+                    FiscalPeriod.organization_id == org_id,
+                    FiscalPeriod.year == year,
+                    FiscalPeriod.month == month,
+                    FiscalPeriod.app_code.is_(None),
+                )
+            )
+            period = period_result.scalar_one_or_none()
 
         if period is None:
             return TitheOfTitheResponse(

@@ -52,7 +52,7 @@ class FiscalPeriod(Base):
 
     __tablename__ = "fiscal_periods"
     __table_args__ = (
-        UniqueConstraint("organization_id", "year", "month", name="uq_fiscal_periods_org_year_month"),
+        UniqueConstraint("organization_id", "year", "month", "app_code", name="uq_fiscal_periods_org_year_month_app"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -66,6 +66,7 @@ class FiscalPeriod(Base):
     )
     year: Mapped[int] = mapped_column(Integer, nullable=False)
     month: Mapped[int] = mapped_column(Integer, nullable=False)
+    app_code: Mapped[str | None] = mapped_column(String(50), nullable=True)
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
     end_date: Mapped[date] = mapped_column(Date, nullable=False)
     status: Mapped[str] = mapped_column(String(20), default="open", nullable=False)

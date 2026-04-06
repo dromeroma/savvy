@@ -171,8 +171,8 @@ class FinanceService:
             db, org_id, data.app_code, data.category_code,
         )
 
-        # 2. Get or create fiscal period
-        period = await AccountingEngine.get_or_create_period(db, org_id, data.date)
+        # 2. Get or create fiscal period (per-app if configured)
+        period = await AccountingEngine.get_or_create_period(db, org_id, data.date, data.app_code)
 
         # 3. Check period is open
         if period.status == "closed":

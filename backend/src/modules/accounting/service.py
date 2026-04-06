@@ -100,18 +100,39 @@ class AccountingEngine:
     @staticmethod
     async def get_or_create_period(
         db: AsyncSession, org_id: uuid.UUID, target_date: date,
+        app_code: str | None = None,
     ) -> FiscalPeriod:
-        """Find or create the fiscal period for the given date."""
+        """Find or create the fiscal period for the given date and app.
+
+        Respects the org's fiscal_period_mode setting:
+        - 'per_app' (default): separate periods per app_code
+        - 'unified': one period for all apps (app_code ignored)
+        """
+        from src.modules.organization.models import Organization
+
+        # Check org setting
+        org_result = await db.execute(
+            select(Organization).where(Organization.id == org_id)
+        )
+        org = org_result.scalar_one_or_none()
+        mode = (org.settings or {}).get("fiscal_period_mode", "per_app") if org else "per_app"
+
+        effective_app_code = app_code if mode == "per_app" else None
+
         year = target_date.year
         month = target_date.month
 
-        result = await db.execute(
-            select(FiscalPeriod).where(
-                FiscalPeriod.organization_id == org_id,
-                FiscalPeriod.year == year,
-                FiscalPeriod.month == month,
-            )
+        stmt = select(FiscalPeriod).where(
+            FiscalPeriod.organization_id == org_id,
+            FiscalPeriod.year == year,
+            FiscalPeriod.month == month,
         )
+        if effective_app_code:
+            stmt = stmt.where(FiscalPeriod.app_code == effective_app_code)
+        else:
+            stmt = stmt.where(FiscalPeriod.app_code.is_(None))
+
+        result = await db.execute(stmt)
         period = result.scalar_one_or_none()
         if period is not None:
             return period
@@ -121,6 +142,7 @@ class AccountingEngine:
             organization_id=org_id,
             year=year,
             month=month,
+            app_code=effective_app_code,
             start_date=date(year, month, 1),
             end_date=date(year, month, last_day),
         )
@@ -219,7 +241,7 @@ class AccountingEngine:
                 )
 
         # Find or create fiscal period
-        period = await AccountingEngine.get_or_create_period(db, org_id, entry_date)
+        period = await AccountingEngine.get_or_create_period(db, org_id, entry_date, source_app)
         if period.status == "closed":
             raise ValidationError("Cannot create entries in a closed fiscal period.")
 

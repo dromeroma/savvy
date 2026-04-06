@@ -8,6 +8,7 @@ interface FiscalPeriod {
   id: string;
   year: number;
   month: number;
+  app_code: string | null;
   start_date: string;
   end_date: string;
   status: string;
@@ -39,8 +40,9 @@ interface FiscalPeriod {
               <table class="w-full text-sm">
                 <thead>
                   <tr class="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                    <th class="text-left px-6 py-3 font-semibold text-gray-600 dark:text-gray-300">Ano</th>
+                    <th class="text-left px-6 py-3 font-semibold text-gray-600 dark:text-gray-300">Año</th>
                     <th class="text-left px-6 py-3 font-semibold text-gray-600 dark:text-gray-300">Mes</th>
+                    <th class="text-left px-6 py-3 font-semibold text-gray-600 dark:text-gray-300">App</th>
                     <th class="text-left px-6 py-3 font-semibold text-gray-600 dark:text-gray-300">Estado</th>
                     <th class="text-left px-6 py-3 font-semibold text-gray-600 dark:text-gray-300 hidden sm:table-cell">Fecha cierre</th>
                     <th class="text-right px-6 py-3 font-semibold text-gray-600 dark:text-gray-300">Acciones</th>
@@ -51,6 +53,16 @@ interface FiscalPeriod {
                     <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/5 transition">
                       <td class="px-6 py-4 font-mono text-gray-800 dark:text-white/90 font-medium">{{ period.year }}</td>
                       <td class="px-6 py-4 text-gray-800 dark:text-white/90">{{ getMonthName(period.month) }}</td>
+                      <td class="px-6 py-4">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                          [ngClass]="{
+                            'bg-purple-50 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400': period.app_code === 'church',
+                            'bg-blue-50 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400': period.app_code === 'pos',
+                            'bg-gray-100 text-gray-600 dark:bg-gray-500/20 dark:text-gray-400': !period.app_code
+                          }">
+                          {{ period.app_code || 'Global' }}
+                        </span>
+                      </td>
                       <td class="px-6 py-4">
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
                           [ngClass]="period.status === 'open'

@@ -62,6 +62,7 @@ class FiscalPeriodResponse(BaseModel):
     id: uuid.UUID
     year: int
     month: int
+    app_code: str | None = None
     start_date: date
     end_date: date
     status: str
