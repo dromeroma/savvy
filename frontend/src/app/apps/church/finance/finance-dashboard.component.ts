@@ -209,6 +209,10 @@ export class FinanceDashboardComponent implements OnInit, OnDestroy {
     });
   }
 
+  deleteTransaction(tx: Transaction): void {
+    this.notify.show({ type: 'info', title: 'Info', message: 'La eliminación de transacciones estará disponible próximamente' });
+  }
+
   getCategoryName(catId: string): string {
     const all = [...this.incomeCategories(), ...this.expenseCategories()];
     return all.find(c => c.id === catId)?.name ?? catId;

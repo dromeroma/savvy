@@ -2,6 +2,7 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
 import { NotificationService } from '../../../shared/services/notification.service';
+import { ConfirmDialogService } from '../../../shared/services/confirm-dialog.service';
 import { DatePickerComponent } from '../../../shared/components/form/date-picker/date-picker.component';
 import { LocationSelectorComponent, LocationSelection } from '../../../shared/components/form/location-selector/location-selector.component';
 
@@ -30,6 +31,7 @@ interface PaginatedResponse {
 export class MemberListComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly notify = inject(NotificationService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   members = signal<Member[]>([]);
   loading = signal(true);
@@ -155,6 +157,26 @@ export class MemberListComponent implements OnInit {
 
   onLocationChange(loc: LocationSelection): void {
     this.location = loc;
+  }
+
+  async deleteMember(member: Member): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Eliminar congregante',
+      message: `¿Estás seguro de que deseas eliminar a ${member.first_name} ${member.last_name}? Esta acción no se puede deshacer.`,
+      type: 'danger',
+      confirmText: 'Eliminar',
+    });
+    if (!confirmed) return;
+
+    this.api.delete(`/church/congregants/${member.id}`).subscribe({
+      next: () => {
+        this.notify.show({ type: 'success', title: 'Eliminado', message: 'Congregante eliminado correctamente' });
+        this.loadMembers();
+      },
+      error: () => {
+        this.notify.show({ type: 'error', title: 'Error', message: 'No se pudo eliminar el congregante' });
+      },
+    });
   }
 
   saveMember(): void {

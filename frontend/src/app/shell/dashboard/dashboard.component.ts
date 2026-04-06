@@ -2,6 +2,7 @@ import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { AppsService } from '../../core/services/apps.service';
 import { MyApp, SavvyApp } from '../../core/models/app.model';
+import { NotificationService } from '../../shared/services/notification.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -11,6 +12,7 @@ import { MyApp, SavvyApp } from '../../core/models/app.model';
 export class DashboardComponent implements OnInit {
   private readonly appsService = inject(AppsService);
   private readonly router = inject(Router);
+  private readonly notify = inject(NotificationService);
 
   myApps = signal<MyApp[]>([]);
   catalog = signal<SavvyApp[]>([]);
@@ -73,10 +75,13 @@ export class DashboardComponent implements OnInit {
   activateApp(appCode: string): void {
     this.appsService.activateApp(appCode).subscribe({
       next: () => {
+        this.notify.show({ type: 'success', title: 'App activada', message: 'La aplicación se activó correctamente' });
         this.loadData();
       },
       error: (err) => {
-        this.error.set(err.error?.detail ?? 'Error al activar la aplicación.');
+        const msg = err.error?.detail ?? 'Error al activar la aplicación.';
+        this.error.set(msg);
+        this.notify.show({ type: 'error', title: 'Error', message: msg });
       },
     });
   }

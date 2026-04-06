@@ -5,6 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { RegisterRequest } from '../../../core/models/user.model';
 import { ThemeService } from '../../../shared/services/theme.service';
+import { NotificationService } from '../../../shared/services/notification.service';
 
 @Component({
   selector: 'app-register',
@@ -15,6 +16,7 @@ export class RegisterComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly themeService = inject(ThemeService);
+  private readonly notify = inject(NotificationService);
 
   step = signal(1);
   showPassword = false;
@@ -74,6 +76,7 @@ export class RegisterComponent {
 
     this.auth.register(data).subscribe({
       next: () => {
+        this.notify.show({ type: 'success', title: 'Cuenta creada', message: 'Tu cuenta se creó exitosamente' });
         this.router.navigate(['/dashboard']);
       },
       error: (err) => {

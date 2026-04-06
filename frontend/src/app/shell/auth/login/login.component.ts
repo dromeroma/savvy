@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { LoginRequest, OrgWithRole } from '../../../core/models/user.model';
 import { ThemeService } from '../../../shared/services/theme.service';
+import { NotificationService } from '../../../shared/services/notification.service';
 
 @Component({
   selector: 'app-login',
@@ -14,6 +15,7 @@ export class LoginComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly themeService = inject(ThemeService);
+  private readonly notify = inject(NotificationService);
 
   showPassword = false;
 
@@ -38,6 +40,7 @@ export class LoginComponent {
           this.showOrgSelector.set(true);
         } else {
           // Single org → go to dashboard
+          this.notify.show({ type: 'success', title: 'Bienvenido', message: 'Has iniciado sesión correctamente' });
           this.router.navigate(['/dashboard']);
         }
       },
@@ -67,6 +70,7 @@ export class LoginComponent {
     this.auth.login({ ...this.form, org_id: org.id } as any).subscribe({
       next: () => {
         this.loading.set(false);
+        this.notify.show({ type: 'success', title: 'Bienvenido', message: 'Has iniciado sesión correctamente' });
         this.router.navigate(['/dashboard']);
       },
       error: (err) => {
