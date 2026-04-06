@@ -24,11 +24,16 @@ export interface TokenResponse {
   token_type: string;
 }
 
+export interface OrganizationSettings {
+  fiscal_period_mode?: 'per_app' | 'unified';
+}
+
 export interface Organization {
   id: string;
   name: string;
   slug: string;
   type: string;
+  settings?: OrganizationSettings;
 }
 
 export interface OrgWithRole extends Organization {

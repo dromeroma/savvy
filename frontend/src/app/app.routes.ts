@@ -23,6 +23,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'settings',
+        loadComponent: () =>
+          import('./shell/settings/organization-settings.component').then(
+            (m) => m.OrganizationSettingsComponent,
+          ),
+      },
+      {
         path: 'church',
         loadChildren: () =>
           import('./apps/church/church.routes').then((m) => m.CHURCH_ROUTES),

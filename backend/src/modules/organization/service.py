@@ -51,7 +51,12 @@ class OrganizationService:
 
         update_data = data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
-            setattr(org, field, value)
+            if field == "settings" and isinstance(value, dict):
+                # Merge settings instead of replacing them
+                merged = {**(org.settings or {}), **value}
+                setattr(org, field, merged)
+            else:
+                setattr(org, field, value)
 
         await db.flush()
         await db.refresh(org)
