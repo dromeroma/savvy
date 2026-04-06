@@ -289,13 +289,16 @@
     @apply rounded-full;
   }
   &::-webkit-scrollbar-thumb {
-    @apply bg-gray-200 rounded-full dark:bg-gray-700;
+    @apply bg-brand-300 rounded-full;
+    &:hover {
+      @apply bg-brand-500;
+    }
   }
 }
 
 @utility scrollbar-brand {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-brand-500) transparent;
+  scrollbar-color: var(--color-brand-300) transparent;
   &::-webkit-scrollbar {
     width: 5px;
     height: 5px;
@@ -305,18 +308,48 @@
     border-radius: 9999px;
   }
   &::-webkit-scrollbar-thumb {
-    background-color: var(--color-brand-500);
+    background-color: var(--color-brand-300);
     border-radius: 9999px;
+    &:hover {
+      background-color: var(--color-brand-500);
+    }
   }
 }
 
 /* ── Dark Mode Overrides ───────────────────────────── */
 .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: #344054;
+  background-color: var(--color-brand-700);
+  &:hover {
+    background-color: var(--color-brand-500);
+  }
 }
 
 .dark .scrollbar-brand::-webkit-scrollbar-track {
   background: var(--color-gray-800);
+}
+
+.dark .scrollbar-brand::-webkit-scrollbar-thumb {
+  background-color: var(--color-brand-700);
+  &:hover {
+    background-color: var(--color-brand-500);
+  }
+}
+
+/* ── Select Option Hover (Chromium) ──────────────────── */
+select option:hover,
+select option:checked {
+  background-color: var(--color-brand-50);
+  color: var(--color-brand-700);
+}
+
+.dark select option:hover,
+.dark select option:checked {
+  background-color: var(--color-brand-900);
+  color: var(--color-brand-300);
+}
+
+select option {
+  padding: 8px 12px;
 }
 
 .dark svg {
