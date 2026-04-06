@@ -1,0 +1,196 @@
+<div>
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+    <div>
+      <h2 class="text-xl font-bold text-gray-800 dark:text-white/90">Catálogo de Cuentas</h2>
+      <p class="text-sm text-gray-500 dark:text-gray-400">Plan contable de la organización</p>
+    </div>
+    <button (click)="openCreateModal()"
+      class="inline-flex items-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium rounded-lg transition shrink-0">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+      </svg>
+      Nueva cuenta
+    </button>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+      <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total</p>
+      <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ totalAccounts() }}</p>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+      <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Activos</p>
+      <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{{ activeCount() }}</p>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+      <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Ingresos</p>
+      <p class="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{{ revenueCount() }}</p>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+      <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Gastos</p>
+      <p class="text-2xl font-bold text-orange-600 dark:text-orange-400 mt-1">{{ expenseCount() }}</p>
+    </div>
+  </div>
+
+  <!-- Search & Filter Bar -->
+  <div class="flex flex-col sm:flex-row gap-3 mb-4">
+    <div class="relative flex-1">
+      <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+      </svg>
+      <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="onSearchChange()" placeholder="Buscar por código o nombre..."
+        class="w-full pl-10 pr-4 py-2.5 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-white/90 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition" />
+    </div>
+    <select [(ngModel)]="filterType" (ngModelChange)="onTypeFilterChange()"
+      class="px-4 py-2.5 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-white/90 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition">
+      <option value="">Todos los tipos</option>
+      @for (t of accountTypes; track t.value) {
+        <option [value]="t.value">{{ t.label }}</option>
+      }
+    </select>
+  </div>
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="flex items-center justify-center py-16">
+      <div class="animate-spin rounded-full h-8 w-8 border-4 border-brand-200 border-t-brand-600"></div>
+    </div>
+  } @else {
+    <!-- Tree -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+      @if (filteredTree().length > 0) {
+        <div class="divide-y divide-gray-100 dark:divide-gray-700/50">
+          @for (node of filteredTree(); track node.account.id) {
+            <ng-container *ngTemplateOutlet="treeNodeTpl; context: { $implicit: node }"></ng-container>
+          }
+        </div>
+      } @else {
+        <div class="px-6 py-12 text-center">
+          <svg class="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+          </svg>
+          <p class="text-gray-400 dark:text-gray-500 text-sm">No hay cuentas registradas. Se crearán al activar una app.</p>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<!-- Recursive tree node template (must use ng-template for recursion) -->
+<ng-template #treeNodeTpl let-node>
+  <div class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-white/5 transition cursor-default"
+    [style.padding-left]="'calc(16px + ' + getIndentPx(node.level) + ')'">
+    <!-- Expand arrow -->
+    @if (node.children.length > 0) {
+      <button (click)="toggleExpand(node)"
+        class="w-5 h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition shrink-0">
+        <svg class="w-4 h-4 transition-transform duration-200" [class.rotate-90]="node.expanded" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      </button>
+    } @else {
+      <span class="w-5 h-5 shrink-0"></span>
+    }
+
+    <!-- Code -->
+    <span class="font-mono text-xs text-gray-500 dark:text-gray-400 shrink-0 w-16">{{ node.account.code }}</span>
+
+    <!-- Name -->
+    <span [class]="getLevelClasses(node.level)" class="flex-1 truncate">{{ node.account.name }}</span>
+
+    <!-- Type badge -->
+    <span [class]="getTypeBadgeClasses(node.account.type)"
+      class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium shrink-0">
+      {{ getTypeLabel(node.account.type) }}
+    </span>
+
+    <!-- Active indicator -->
+    <span class="w-2 h-2 rounded-full shrink-0"
+      [ngClass]="node.account.is_active ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'"></span>
+  </div>
+
+  <!-- Children (recursive) -->
+  @if (node.expanded && node.children.length > 0) {
+    @for (child of node.children; track child.account.id) {
+      <ng-container *ngTemplateOutlet="treeNodeTpl; context: { $implicit: child }"></ng-container>
+    }
+  }
+</ng-template>
+
+<!-- Create Account Modal -->
+@if (showCreateModal()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" (click)="closeCreateModal()"></div>
+
+    <!-- Modal -->
+    <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-lg">
+      <!-- Header -->
+      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Nueva Cuenta</h3>
+        <button (click)="closeCreateModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Body -->
+      <div class="px-6 py-5 space-y-4">
+        <!-- Code -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Código</label>
+          <input type="text" [(ngModel)]="createForm.code" placeholder="Ej: 1101"
+            class="w-full px-3 py-2.5 text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-white/90 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 font-mono" />
+        </div>
+
+        <!-- Name -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre</label>
+          <input type="text" [(ngModel)]="createForm.name" placeholder="Ej: Caja General"
+            class="w-full px-3 py-2.5 text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-white/90 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500" />
+        </div>
+
+        <!-- Type -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo</label>
+          <select [(ngModel)]="createForm.type"
+            class="w-full px-3 py-2.5 text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-white/90 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500">
+            @for (t of accountTypes; track t.value) {
+              <option [value]="t.value">{{ t.label }}</option>
+            }
+          </select>
+        </div>
+
+        <!-- Parent Account -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cuenta padre (opcional)</label>
+          <select [(ngModel)]="createForm.parent_id"
+            class="w-full px-3 py-2.5 text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-white/90 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500">
+            <option value="">-- Sin cuenta padre --</option>
+            @for (acct of accounts(); track acct.id) {
+              <option [value]="acct.id">{{ acct.code }} - {{ acct.name }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+        <button (click)="closeCreateModal()"
+          class="px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition">
+          Cancelar
+        </button>
+        <button (click)="saveAccount()" [disabled]="saving()"
+          class="px-4 py-2.5 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition inline-flex items-center gap-2">
+          @if (saving()) {
+            <div class="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white"></div>
+          }
+          {{ saving() ? 'Guardando...' : 'Crear cuenta' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
