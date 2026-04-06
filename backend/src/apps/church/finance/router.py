@@ -117,6 +117,29 @@ async def get_expense(
 # ---------------------------------------------------------------------------
 
 
+@router.get("/person/{person_id}/history")
+async def get_person_financial_history(
+    person_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    """Get full financial history for a specific person."""
+    return await ChurchFinanceService.get_person_history(db, org_id, person_id)
+
+
+@router.post("/transactions/{transaction_id}/void", response_model=IncomeResponse)
+async def void_transaction(
+    transaction_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+    current_user: dict = Depends(get_current_user),
+) -> Any:
+    """Void (anular) a transaction. Creates a reversal journal entry."""
+    return await ChurchFinanceService.void_transaction(
+        db, org_id, uuid.UUID(current_user["sub"]), transaction_id,
+    )
+
+
 @router.get("/categories/income", response_model=list[IncomeCategoryResponse])
 async def list_income_categories(
     db: AsyncSession = Depends(get_db),

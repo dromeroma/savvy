@@ -6,7 +6,14 @@ export const CHURCH_ROUTES: Routes = [
     path: '',
     component: ChurchLayoutComponent,
     children: [
-      { path: '', redirectTo: 'congregants', pathMatch: 'full' },
+      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+      {
+        path: 'dashboard',
+        loadComponent: () =>
+          import('./dashboard/church-dashboard.component').then(
+            (m) => m.ChurchDashboardComponent,
+          ),
+      },
       {
         path: 'congregants',
         loadComponent: () =>
@@ -31,6 +38,34 @@ export const CHURCH_ROUTES: Routes = [
         loadComponent: () =>
           import('./reports/reports-dashboard.component').then(
             (m) => m.ReportsDashboardComponent,
+          ),
+      },
+      {
+        path: 'groups',
+        loadComponent: () =>
+          import('./groups/groups.component').then(
+            (m) => m.GroupsComponent,
+          ),
+      },
+      {
+        path: 'visitors',
+        loadComponent: () =>
+          import('./visitors/visitors.component').then(
+            (m) => m.VisitorsComponent,
+          ),
+      },
+      {
+        path: 'events',
+        loadComponent: () =>
+          import('./events/events.component').then(
+            (m) => m.EventsComponent,
+          ),
+      },
+      {
+        path: 'attendance',
+        loadComponent: () =>
+          import('./attendance/attendance.component').then(
+            (m) => m.AttendanceComponent,
           ),
       },
     ],

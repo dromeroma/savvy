@@ -90,4 +90,33 @@ export class ReportsDashboardComponent implements OnInit {
     if (value == null) return '$0';
     return '$' + Number(value).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   }
+
+  exportCSV(): void {
+    const s = this.summary();
+    if (!s) return;
+    const monthLabel = this.months.find(m => m.value === this.selectedMonth())?.label || '';
+    const lines: string[] = [];
+    lines.push(`Reporte Financiero - ${monthLabel} ${this.selectedYear()}`);
+    lines.push('');
+    lines.push('Concepto,Monto');
+    lines.push(`Ingresos Totales,${s.total_income}`);
+    lines.push(`Egresos Totales,${s.total_expenses}`);
+    lines.push(`Balance Neto,${s.net}`);
+    if (s.tithe_of_tithe) {
+      lines.push('');
+      lines.push('Diezmo del Diezmo');
+      lines.push(`Total Diezmos,${s.tithe_of_tithe.total_tithes}`);
+      lines.push(`Total Ofrendas,${s.tithe_of_tithe.total_offerings}`);
+      lines.push(`Base,${s.tithe_of_tithe.base_amount}`);
+      lines.push(`Diezmo del Diezmo (10%),${s.tithe_of_tithe.tithe_of_tithe}`);
+    }
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `reporte_${this.selectedYear()}_${this.selectedMonth()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 }

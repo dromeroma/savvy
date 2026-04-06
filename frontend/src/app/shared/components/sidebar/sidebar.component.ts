@@ -19,7 +19,12 @@ const APP_MENUS: Record<string, { icon: string; items: { label: string; route: s
   church: {
     icon: `<svg class="size-6" viewBox="0 0 24 24" fill="none"><path d="M18 21V7L12 3L6 7V21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 21H21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M10 21V15H14V21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 3V1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
     items: [
+      { label: 'Dashboard', route: '/church/dashboard' },
       { label: 'Congregantes', route: '/church/congregants' },
+      { label: 'Visitantes', route: '/church/visitors' },
+      { label: 'Grupos', route: '/church/groups' },
+      { label: 'Eventos', route: '/church/events' },
+      { label: 'Asistencia', route: '/church/attendance' },
       { label: 'Finanzas', route: '/church/finance' },
       { label: 'Reportes', route: '/church/reports' },
     ],

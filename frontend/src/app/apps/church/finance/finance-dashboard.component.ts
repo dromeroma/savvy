@@ -209,8 +209,21 @@ export class FinanceDashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  deleteTransaction(tx: Transaction): void {
-    this.notify.show({ type: 'info', title: 'Info', message: 'La eliminación de transacciones estará disponible próximamente' });
+  voidTransaction(tx: Transaction): void {
+    if (tx.amount === 0) {
+      this.notify.show({ type: 'info', title: 'Info', message: 'Esta transacción ya está anulada' });
+      return;
+    }
+    this.api.post<Transaction>(`/church/finance/transactions/${tx.id}/void`, {}).subscribe({
+      next: () => {
+        this.notify.show({ type: 'success', title: 'Anulada', message: 'Transacción anulada correctamente' });
+        this.loadTransactions();
+      },
+      error: (err) => {
+        const msg = err.error?.detail || 'Error al anular la transacción';
+        this.notify.show({ type: 'error', title: 'Error', message: msg });
+      },
+    });
   }
 
   getCategoryName(catId: string): string {

@@ -10,7 +10,15 @@ import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from decimal import Decimal
+
+from sqlalchemy import select
+
 from src.apps.church.finance.schemas import ExpenseCreate, IncomeCreate
+from src.core.exceptions import NotFoundError, ValidationError
+from src.modules.accounting.models import ChartOfAccounts
+from src.modules.accounting.schemas import JournalEntryLineCreate
+from src.modules.accounting.service import AccountingEngine
 from src.modules.finance.models import FinanceCategory, FinanceTransaction
 from src.modules.finance.schemas import TransactionCreate, TransactionListParams
 from src.modules.finance.service import FinanceService
@@ -122,6 +130,151 @@ class ChurchFinanceService:
     # ------------------------------------------------------------------
     # Categories (read-only)
     # ------------------------------------------------------------------
+
+    # ------------------------------------------------------------------
+    # Person Financial History
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    async def get_person_history(
+        db: AsyncSession,
+        org_id: uuid.UUID,
+        person_id: uuid.UUID,
+    ) -> dict:
+        """Get all church transactions for a specific person."""
+        from sqlalchemy import func
+
+        stmt = (
+            select(FinanceTransaction)
+            .where(
+                FinanceTransaction.organization_id == org_id,
+                FinanceTransaction.app_code == APP_CODE,
+                FinanceTransaction.person_id == person_id,
+            )
+            .order_by(FinanceTransaction.date.desc())
+        )
+        result = await db.execute(stmt)
+        transactions = list(result.scalars().all())
+
+        # Totals
+        total_income = sum(
+            t.amount for t in transactions if t.type == "income"
+        )
+        total_expenses = sum(
+            t.amount for t in transactions if t.type == "expense"
+        )
+
+        # Map category names
+        cat_ids = {t.category_id for t in transactions}
+        cat_map: dict[uuid.UUID, str] = {}
+        if cat_ids:
+            cat_result = await db.execute(
+                select(FinanceCategory.id, FinanceCategory.name).where(
+                    FinanceCategory.id.in_(cat_ids)
+                )
+            )
+            cat_map = {row.id: row.name for row in cat_result.all()}
+
+        items = [
+            {
+                "id": str(t.id),
+                "type": t.type,
+                "amount": float(t.amount),
+                "date": str(t.date),
+                "category": cat_map.get(t.category_id, ""),
+                "description": t.description,
+                "payment_method": t.payment_method,
+            }
+            for t in transactions
+        ]
+
+        return {
+            "person_id": str(person_id),
+            "total_income": float(total_income),
+            "total_expenses": float(total_expenses),
+            "net": float(total_income - total_expenses),
+            "count": len(items),
+            "transactions": items,
+        }
+
+    # ------------------------------------------------------------------
+    # Void Transaction
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    async def void_transaction(
+        db: AsyncSession,
+        org_id: uuid.UUID,
+        user_id: uuid.UUID,
+        transaction_id: uuid.UUID,
+    ) -> FinanceTransaction:
+        """Void a transaction by setting amount to 0 and creating reversal entry."""
+        txn = await FinanceService.get_transaction(db, org_id, transaction_id)
+
+        if txn.app_code != APP_CODE:
+            raise ValidationError("Transaction does not belong to the church app.")
+
+        if txn.amount == 0:
+            raise ValidationError("Transaction is already voided.")
+
+        original_amount = txn.amount
+        txn.amount = Decimal("0")
+        txn.description = f"[ANULADA] {txn.description or ''}"
+
+        # If there was a journal entry, create a reversal
+        if txn.journal_entry_id:
+            from src.modules.accounting.models import JournalEntry, JournalEntryLine
+
+            je_result = await db.execute(
+                select(JournalEntry).where(JournalEntry.id == txn.journal_entry_id)
+            )
+            original_je = je_result.scalar_one_or_none()
+
+            if original_je:
+                lines_result = await db.execute(
+                    select(JournalEntryLine).where(
+                        JournalEntryLine.journal_entry_id == original_je.id
+                    )
+                )
+                original_lines = list(lines_result.scalars().all())
+
+                # Resolve account codes
+                acct_ids = [line.account_id for line in original_lines]
+                acct_result = await db.execute(
+                    select(ChartOfAccounts).where(
+                        ChartOfAccounts.id.in_(acct_ids),
+                        ChartOfAccounts.organization_id == org_id,
+                    )
+                )
+                acct_map = {a.id: a.code for a in acct_result.scalars().all()}
+
+                # Reverse: swap debit/credit
+                reversal_lines = [
+                    JournalEntryLineCreate(
+                        account_code=acct_map[line.account_id],
+                        debit=Decimal(str(line.credit)),
+                        credit=Decimal(str(line.debit)),
+                    )
+                    for line in original_lines
+                    if line.account_id in acct_map
+                ]
+
+                if reversal_lines:
+                    await AccountingEngine.create_entry(
+                        db=db,
+                        org_id=org_id,
+                        entry_date=txn.date,
+                        description=f"Anulación: {original_je.description}",
+                        created_by=user_id,
+                        lines=reversal_lines,
+                        source_app=APP_CODE,
+                        reference_type="void_finance_transaction",
+                        reference_id=txn.id,
+                    )
+
+        await db.flush()
+        await db.refresh(txn)
+        return txn
 
     @staticmethod
     async def list_income_categories(

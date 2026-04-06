@@ -77,6 +77,7 @@ export class MemberListComponent implements OnInit {
     membership_date: '',
     baptism_date: '',
     holy_spirit_baptism: false,
+    pastoral_notes: '',
   };
 
   ngOnInit(): void {
@@ -145,6 +146,7 @@ export class MemberListComponent implements OnInit {
       membership_date: '',
       baptism_date: '',
       holy_spirit_baptism: false,
+      pastoral_notes: '',
     };
     this.showModal.set(true);
   }
@@ -164,6 +166,7 @@ export class MemberListComponent implements OnInit {
       membership_date: (member as any).membership_date || '',
       baptism_date: (member as any).baptism_date || '',
       holy_spirit_baptism: (member as any).holy_spirit_baptism || false,
+      pastoral_notes: (member as any).pastoral_notes || '',
     };
     this.showModal.set(true);
   }
@@ -196,6 +199,7 @@ export class MemberListComponent implements OnInit {
     if (this.form.membership_date) body['membership_date'] = this.form.membership_date;
     if (this.form.baptism_date) body['baptism_date'] = this.form.baptism_date;
     body['holy_spirit_baptism'] = this.form.holy_spirit_baptism;
+    if (this.form.pastoral_notes) body['pastoral_notes'] = this.form.pastoral_notes;
 
     const id = this.editingId();
     const request$ = id
