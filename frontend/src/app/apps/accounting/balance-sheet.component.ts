@@ -5,9 +5,9 @@ import { ApiService } from '../../core/services/api.service';
 import { NotificationService } from '../../shared/services/notification.service';
 
 interface AccountLine {
-  account_code: string;
-  account_name: string;
-  total: number;
+  code: string;
+  name: string;
+  amount: number;
 }
 
 interface BalanceSheetData {
@@ -85,13 +85,13 @@ interface BalanceSheetData {
               <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
                 Activos
               </h4>
-              @for (item of data()!.assets; track item.account_code) {
+              @for (item of data()!.assets; track item.code) {
                 <div class="flex items-center justify-between py-2 px-2 hover:bg-gray-50 dark:hover:bg-white/5 rounded transition">
                   <div class="flex items-center gap-3">
-                    <span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ item.account_code }}</span>
-                    <span class="text-sm text-gray-700 dark:text-gray-300">{{ item.account_name }}</span>
+                    <span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ item.code }}</span>
+                    <span class="text-sm text-gray-700 dark:text-gray-300">{{ item.name }}</span>
                   </div>
-                  <span class="font-mono text-sm text-gray-800 dark:text-white/90">{{ formatAmount(item.total) }}</span>
+                  <span class="font-mono text-sm text-gray-800 dark:text-white/90">{{ formatAmount(item.amount) }}</span>
                 </div>
               }
               @if (data()!.assets.length === 0) {
@@ -108,13 +108,13 @@ interface BalanceSheetData {
               <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
                 Pasivos
               </h4>
-              @for (item of data()!.liabilities; track item.account_code) {
+              @for (item of data()!.liabilities; track item.code) {
                 <div class="flex items-center justify-between py-2 px-2 hover:bg-gray-50 dark:hover:bg-white/5 rounded transition">
                   <div class="flex items-center gap-3">
-                    <span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ item.account_code }}</span>
-                    <span class="text-sm text-gray-700 dark:text-gray-300">{{ item.account_name }}</span>
+                    <span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ item.code }}</span>
+                    <span class="text-sm text-gray-700 dark:text-gray-300">{{ item.name }}</span>
                   </div>
-                  <span class="font-mono text-sm text-gray-800 dark:text-white/90">{{ formatAmount(item.total) }}</span>
+                  <span class="font-mono text-sm text-gray-800 dark:text-white/90">{{ formatAmount(item.amount) }}</span>
                 </div>
               }
               @if (data()!.liabilities.length === 0) {
@@ -131,13 +131,13 @@ interface BalanceSheetData {
               <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
                 Patrimonio
               </h4>
-              @for (item of data()!.equity; track item.account_code) {
+              @for (item of data()!.equity; track item.code) {
                 <div class="flex items-center justify-between py-2 px-2 hover:bg-gray-50 dark:hover:bg-white/5 rounded transition">
                   <div class="flex items-center gap-3">
-                    <span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ item.account_code }}</span>
-                    <span class="text-sm text-gray-700 dark:text-gray-300">{{ item.account_name }}</span>
+                    <span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ item.code }}</span>
+                    <span class="text-sm text-gray-700 dark:text-gray-300">{{ item.name }}</span>
                   </div>
-                  <span class="font-mono text-sm text-gray-800 dark:text-white/90">{{ formatAmount(item.total) }}</span>
+                  <span class="font-mono text-sm text-gray-800 dark:text-white/90">{{ formatAmount(item.amount) }}</span>
                 </div>
               }
               @if (data()!.equity.length === 0) {
@@ -190,9 +190,9 @@ export class BalanceSheetComponent implements OnInit {
     }).subscribe({
       next: (raw) => {
         const parsed: BalanceSheetData = {
-          assets: (raw.assets || []).map((a: any) => ({ ...a, total: Number(a.total) || 0 })),
-          liabilities: (raw.liabilities || []).map((l: any) => ({ ...l, total: Number(l.total) || 0 })),
-          equity: (raw.equity || []).map((e: any) => ({ ...e, total: Number(e.total) || 0 })),
+          assets: (raw.assets || []).map((a: any) => ({ ...a, amount: Number(a.amount) || 0 })),
+          liabilities: (raw.liabilities || []).map((l: any) => ({ ...l, amount: Number(l.amount) || 0 })),
+          equity: (raw.equity || []).map((e: any) => ({ ...e, amount: Number(e.amount) || 0 })),
           total_assets: Number(raw.total_assets) || 0,
           total_liabilities: Number(raw.total_liabilities) || 0,
           total_equity: Number(raw.total_equity) || 0,
