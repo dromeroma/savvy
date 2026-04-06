@@ -1,8 +1,9 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
 import { NotificationService } from '../../../shared/services/notification.service';
-import { ConfirmDialogService } from '../../../shared/services/confirm-dialog.service';
+// ConfirmDialogService removed — using inactivation modal instead
 import { DatePickerComponent } from '../../../shared/components/form/date-picker/date-picker.component';
 import { LocationSelectorComponent, LocationSelection } from '../../../shared/components/form/location-selector/location-selector.component';
 
@@ -25,14 +26,29 @@ interface PaginatedResponse {
 
 @Component({
   selector: 'app-member-list',
-  imports: [FormsModule, DatePickerComponent, LocationSelectorComponent],
+  imports: [CommonModule, FormsModule, DatePickerComponent, LocationSelectorComponent],
   templateUrl: './member-list.component.html',
 })
 export class MemberListComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly notify = inject(NotificationService);
-  private readonly confirmDialog = inject(ConfirmDialogService);
 
+  // Active/Inactive tabs
+  activeTab = signal<'active' | 'inactive'>('active');
+
+  // Inactivation modal
+  showInactivateModal = signal(false);
+  inactivatingId = signal<string | null>(null);
+  inactivationReason = '';
+
+  readonly inactivationReasons = [
+    { value: 'deceased', label: 'Fallecimiento' },
+    { value: 'church_change', label: 'Cambio de iglesia' },
+    { value: 'voluntary_leave', label: 'No desea continuar' },
+    { value: 'disciplinary', label: 'Disciplinario' },
+    { value: 'relocation', label: 'Cambio de ciudad' },
+    { value: 'other', label: 'Otro motivo' },
+  ];
   members = signal<Member[]>([]);
   loading = signal(true);
   total = signal(0);
@@ -72,7 +88,7 @@ export class MemberListComponent implements OnInit {
       page_size: this.pageSize(),
     };
     if (this.search) params['search'] = this.search;
-    if (this.statusFilter) params['status'] = this.statusFilter;
+    params['status'] = this.activeTab();
 
     this.api.get<PaginatedResponse>('/church/congregants', params).subscribe({
       next: (res) => {
@@ -159,26 +175,6 @@ export class MemberListComponent implements OnInit {
     this.location = loc;
   }
 
-  async deleteMember(member: Member): Promise<void> {
-    const confirmed = await this.confirmDialog.confirm({
-      title: 'Eliminar congregante',
-      message: `¿Estás seguro de que deseas eliminar a ${member.first_name} ${member.last_name}? Esta acción no se puede deshacer.`,
-      type: 'danger',
-      confirmText: 'Eliminar',
-    });
-    if (!confirmed) return;
-
-    this.api.delete(`/church/congregants/${member.id}`).subscribe({
-      next: () => {
-        this.notify.show({ type: 'success', title: 'Eliminado', message: 'Congregante eliminado correctamente' });
-        this.loadMembers();
-      },
-      error: () => {
-        this.notify.show({ type: 'error', title: 'Error', message: 'No se pudo eliminar el congregante' });
-      },
-    });
-  }
-
   saveMember(): void {
     this.saving.set(true);
     const body: Record<string, any> = {
@@ -215,6 +211,54 @@ export class MemberListComponent implements OnInit {
         this.saving.set(false);
         this.notify.show({ type: 'error', title: 'Error', message: 'No se pudo guardar el congregante' });
         console.error('Save error:', err);
+      },
+    });
+  }
+
+  // Tabs
+  setTab(tab: 'active' | 'inactive'): void {
+    this.activeTab.set(tab);
+    this.page.set(1);
+    this.loadMembers();
+  }
+
+  // Inactivation
+  openInactivateModal(member: Member): void {
+    this.inactivatingId.set(member.id);
+    this.inactivationReason = '';
+    this.showInactivateModal.set(true);
+  }
+
+  closeInactivateModal(): void {
+    this.showInactivateModal.set(false);
+    this.inactivatingId.set(null);
+    this.inactivationReason = '';
+  }
+
+  confirmInactivate(): void {
+    const id = this.inactivatingId();
+    if (!id || !this.inactivationReason) return;
+
+    this.api.post(`/church/congregants/${id}/inactivate`, { reason: this.inactivationReason }).subscribe({
+      next: () => {
+        this.notify.show({ type: 'success', title: 'Inactivado', message: 'El congregante fue marcado como inactivo' });
+        this.closeInactivateModal();
+        this.loadMembers();
+      },
+      error: () => {
+        this.notify.show({ type: 'error', title: 'Error', message: 'No se pudo inactivar el congregante' });
+      },
+    });
+  }
+
+  reactivate(member: Member): void {
+    this.api.post(`/church/congregants/${member.id}/reactivate`, {}).subscribe({
+      next: () => {
+        this.notify.show({ type: 'success', title: 'Reactivado', message: 'El congregante fue reactivado correctamente' });
+        this.loadMembers();
+      },
+      error: () => {
+        this.notify.show({ type: 'error', title: 'Error', message: 'No se pudo reactivar el congregante' });
       },
     });
   }

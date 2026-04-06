@@ -133,9 +133,32 @@ class CongregantResponse(BaseModel):
     spiritual_status: str | None = None
     referred_by: uuid.UUID | None = None
     pastoral_notes: str | None = None
+    inactivation_reason: str | None = None
+    inactivated_at: datetime | None = None
 
     created_at: datetime
     updated_at: datetime
+
+
+# ---------------------------------------------------------------------------
+# Inactivation
+# ---------------------------------------------------------------------------
+
+
+INACTIVATION_REASONS = Literal[
+    "deceased",
+    "church_change",
+    "voluntary_leave",
+    "disciplinary",
+    "relocation",
+    "other",
+]
+
+
+class InactivateRequest(BaseModel):
+    """Payload for inactivating a congregant."""
+
+    reason: INACTIVATION_REASONS
 
 
 # ---------------------------------------------------------------------------

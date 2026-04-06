@@ -12,6 +12,7 @@ from src.apps.church.congregants.schemas import (
     CongregantListParams,
     CongregantResponse,
     CongregantUpdate,
+    InactivateRequest,
 )
 from src.apps.church.congregants.service import CongregantService
 
@@ -82,15 +83,22 @@ async def update_congregant(
     return await CongregantService.update_congregant(db, org_id, congregant_id, data)
 
 
-@router.delete(
-    "/{congregant_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    response_model=None,
-)
-async def delete_congregant(
+@router.post("/{congregant_id}/inactivate", response_model=CongregantResponse)
+async def inactivate_congregant(
+    congregant_id: uuid.UUID,
+    data: InactivateRequest,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    """Inactivate a congregant with a reason."""
+    return await CongregantService.inactivate_congregant(db, org_id, congregant_id, data.reason)
+
+
+@router.post("/{congregant_id}/reactivate", response_model=CongregantResponse)
+async def reactivate_congregant(
     congregant_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     org_id: uuid.UUID = Depends(get_org_id),
-) -> None:
-    """Soft delete a church congregant."""
-    await CongregantService.delete_congregant(db, org_id, congregant_id)
+) -> Any:
+    """Reactivate an inactive congregant."""
+    return await CongregantService.reactivate_congregant(db, org_id, congregant_id)

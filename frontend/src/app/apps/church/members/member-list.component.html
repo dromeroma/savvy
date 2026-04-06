@@ -9,6 +9,18 @@
     </button>
   </div>
 
+  <!-- Tabs: Activos / Inactivos -->
+  <div class="flex gap-1 mb-6">
+    <button (click)="setTab('active')" class="px-5 py-2.5 text-sm font-medium rounded-lg transition"
+      [class]="activeTab() === 'active' ? 'bg-brand-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'">
+      Activos
+    </button>
+    <button (click)="setTab('inactive')" class="px-5 py-2.5 text-sm font-medium rounded-lg transition"
+      [class]="activeTab() === 'inactive' ? 'bg-gray-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'">
+      Inactivos
+    </button>
+  </div>
+
   <!-- Filters -->
   <div class="flex flex-col sm:flex-row gap-3 mb-6">
     <div class="flex-1">
@@ -56,12 +68,19 @@
                 </td>
                 <td class="px-6 py-4 text-right">
                   <div class="flex items-center justify-end gap-1">
-                    <button (click)="openEditModal(member)" class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition" title="Editar">
-                      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                    </button>
-                    <button (click)="deleteMember(member)" class="p-1.5 rounded-lg hover:bg-error-50 dark:hover:bg-error-500/10 text-gray-400 hover:text-error-600 dark:hover:text-error-400 transition" title="Eliminar">
-                      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                    </button>
+                    @if (activeTab() === 'active') {
+                      <button (click)="openEditModal(member)" class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition" title="Editar">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                      </button>
+                      <button (click)="openInactivateModal(member)" class="p-1.5 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-500/10 text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 transition" title="Inactivar">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                      </button>
+                    } @else {
+                      <button (click)="reactivate(member)" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-brand-50 text-brand-600 hover:bg-brand-100 dark:bg-brand-500/20 dark:text-brand-400 dark:hover:bg-brand-500/30 transition">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        Reactivar
+                      </button>
+                    }
                   </div>
                 </td>
               </tr>
@@ -235,6 +254,46 @@
             @if (saving()) { Guardando... } @else { {{ editingId() ? 'Actualizar' : 'Guardar' }} }
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Inactivation Modal -->
+@if (showInactivateModal()) {
+  <div class="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+    <div class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px]"></div>
+    <div class="relative bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 w-full max-w-md p-6">
+      <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-2">Inactivar congregante</h3>
+      <p class="text-sm text-gray-600 dark:text-gray-400 mb-5">Selecciona el motivo por el cual se inactiva este miembro.</p>
+
+      <div class="space-y-3">
+        @for (reason of inactivationReasons; track reason.value) {
+          <label class="flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition"
+            [ngClass]="inactivationReason === reason.value
+              ? 'border-brand-500 bg-brand-50 dark:bg-brand-500/10 dark:border-brand-500'
+              : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/5'">
+            <input type="radio" name="reason" [value]="reason.value" [(ngModel)]="inactivationReason" class="sr-only" />
+            <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0"
+              [ngClass]="inactivationReason === reason.value ? 'border-brand-500' : 'border-gray-300 dark:border-gray-600'">
+              @if (inactivationReason === reason.value) {
+                <div class="w-2 h-2 rounded-full bg-brand-500"></div>
+              }
+            </div>
+            <span class="text-sm text-gray-700 dark:text-gray-300">{{ reason.label }}</span>
+          </label>
+        }
+      </div>
+
+      <div class="flex justify-end gap-3 mt-6">
+        <button (click)="closeInactivateModal()"
+          class="px-4 py-2.5 text-sm font-medium rounded-lg border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition">
+          Cancelar
+        </button>
+        <button (click)="confirmInactivate()" [disabled]="!inactivationReason"
+          class="px-4 py-2.5 text-sm font-medium rounded-lg bg-amber-600 text-white hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 transition disabled:opacity-50">
+          Confirmar inactivación
+        </button>
       </div>
     </div>
   </div>

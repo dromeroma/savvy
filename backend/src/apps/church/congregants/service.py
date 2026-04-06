@@ -67,6 +67,8 @@ def _build_response(congregant: ChurchCongregant, person: Person) -> CongregantR
         spiritual_status=congregant.spiritual_status,
         referred_by=congregant.referred_by,
         pastoral_notes=congregant.pastoral_notes,
+        inactivation_reason=congregant.inactivation_reason,
+        inactivated_at=congregant.inactivated_at,
         created_at=congregant.created_at,
         updated_at=congregant.updated_at,
     )
@@ -255,24 +257,64 @@ class CongregantService:
         return _build_response(congregant, person)
 
     # ------------------------------------------------------------------
-    # Delete (soft)
+    # Inactivate / Reactivate
     # ------------------------------------------------------------------
 
     @staticmethod
-    async def delete_congregant(
+    async def inactivate_congregant(
         db: AsyncSession,
         org_id: uuid.UUID,
         congregant_id: uuid.UUID,
-    ) -> None:
-        """Soft delete the underlying person (sets deleted_at)."""
+        reason: str,
+    ) -> CongregantResponse:
+        """Inactivate a congregant with a reason."""
+        from datetime import UTC, datetime as dt
+
         result = await db.execute(
-            select(ChurchCongregant).where(
+            select(ChurchCongregant, Person)
+            .join(Person, Person.id == ChurchCongregant.person_id)
+            .where(
                 ChurchCongregant.id == congregant_id,
                 ChurchCongregant.organization_id == org_id,
             )
         )
-        congregant = result.scalar_one_or_none()
-        if congregant is None:
+        row = result.one_or_none()
+        if row is None:
             raise NotFoundError("Congregant not found.")
 
-        await PeopleService.delete_person(db, org_id, congregant.person_id)
+        congregant, person = row
+        person.status = "inactive"
+        congregant.inactivation_reason = reason
+        congregant.inactivated_at = dt.now(UTC)
+        await db.flush()
+        await db.refresh(congregant)
+        await db.refresh(person)
+        return _build_response(congregant, person)
+
+    @staticmethod
+    async def reactivate_congregant(
+        db: AsyncSession,
+        org_id: uuid.UUID,
+        congregant_id: uuid.UUID,
+    ) -> CongregantResponse:
+        """Reactivate an inactive congregant."""
+        result = await db.execute(
+            select(ChurchCongregant, Person)
+            .join(Person, Person.id == ChurchCongregant.person_id)
+            .where(
+                ChurchCongregant.id == congregant_id,
+                ChurchCongregant.organization_id == org_id,
+            )
+        )
+        row = result.one_or_none()
+        if row is None:
+            raise NotFoundError("Congregant not found.")
+
+        congregant, person = row
+        person.status = "active"
+        congregant.inactivation_reason = None
+        congregant.inactivated_at = None
+        await db.flush()
+        await db.refresh(congregant)
+        await db.refresh(person)
+        return _build_response(congregant, person)

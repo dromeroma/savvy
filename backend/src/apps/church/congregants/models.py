@@ -8,7 +8,9 @@ to the person record via `person_id`.
 import uuid
 from datetime import date
 
-from sqlalchemy import Boolean, Date, ForeignKey, String, Text, UniqueConstraint, Uuid
+from datetime import datetime
+
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, String, Text, UniqueConstraint, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.core.database import Base
@@ -41,3 +43,5 @@ class ChurchCongregant(BaseMixin, OrgMixin, Base):
         Uuid, ForeignKey("people.id", ondelete="SET NULL"), nullable=True,
     )
     pastoral_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    inactivation_reason: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    inactivated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
