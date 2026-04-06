@@ -45,6 +45,12 @@ export class DashboardComponent implements OnInit {
       color: '#8B5CF6',
       icon: `<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/></svg>`,
     },
+    {
+      name: 'SavvyParking',
+      description: 'Automatización de parqueaderos: control vehicular, cámaras, vigilancia, lavado y disponibilidad en tiempo real',
+      color: '#0EA5E9',
+      icon: `<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9"/></svg>`,
+    },
   ];
 
   // Computed: separate internal from external
