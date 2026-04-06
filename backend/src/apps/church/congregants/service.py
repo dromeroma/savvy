@@ -27,6 +27,8 @@ from src.modules.people.service import PeopleService
 _PERSON_FIELDS = {
     "first_name", "last_name", "email", "phone", "date_of_birth",
     "gender", "document_type", "document_number", "occupation", "status",
+    "country", "state", "city", "address", "mobile", "second_last_name",
+    "marital_status",
 }
 
 # Fields that belong to the ChurchCongregant model.
@@ -50,11 +52,17 @@ def _build_response(congregant: ChurchCongregant, person: Person) -> CongregantR
         gender=person.gender,
         document_type=person.document_type,
         document_number=person.document_number,
+        occupation=person.occupation,
+        country=person.country,
+        state=person.state,
+        city=person.city,
+        address=person.address,
         photo_url=person.photo_url,
         status=person.status,
         scope_id=congregant.scope_id,
         membership_date=congregant.membership_date,
         baptism_date=congregant.baptism_date,
+        holy_spirit_baptism=congregant.holy_spirit_baptism,
         conversion_date=congregant.conversion_date,
         spiritual_status=congregant.spiritual_status,
         referred_by=congregant.referred_by,

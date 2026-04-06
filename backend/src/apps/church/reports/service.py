@@ -43,7 +43,20 @@ class ChurchReportService:
             )
         )
         period = period_result.scalar_one_or_none()
-        period_id = period.id if period else None
+
+        # No period = no transactions for this month → return zeros
+        if period is None:
+            tithe = TitheOfTitheResponse(
+                total_tithes=Decimal(0), total_offerings=Decimal(0),
+                base_amount=Decimal(0), tithe_of_tithe=Decimal(0),
+            )
+            return MonthlySummaryResponse(
+                year=year, month=month,
+                total_income=Decimal(0), total_expenses=Decimal(0), net=Decimal(0),
+                income_by_category=[], expenses_by_category=[], tithe_of_tithe=tithe,
+            )
+
+        period_id = period.id
 
         # Income by category
         income_cats = await _transactions_by_category(db, org_id, period_id, "income")
@@ -83,7 +96,14 @@ class ChurchReportService:
             )
         )
         period = period_result.scalar_one_or_none()
-        period_id = period.id if period else None
+
+        if period is None:
+            return TitheOfTitheResponse(
+                total_tithes=Decimal(0), total_offerings=Decimal(0),
+                base_amount=Decimal(0), tithe_of_tithe=Decimal(0),
+            )
+
+        period_id = period.id
 
         total_tithes = await _sum_by_category_code(db, org_id, period_id, "TITHE")
         total_offerings = await _sum_by_category_code(db, org_id, period_id, "OFFERING")

@@ -39,6 +39,10 @@ class CongregantCreate(BaseModel):
     document_type: str | None = Field(None, max_length=20)
     document_number: str | None = Field(None, max_length=50)
     occupation: str | None = Field(None, max_length=100)
+    country: str | None = Field(None, max_length=10)
+    state: str | None = Field(None, max_length=100)
+    city: str | None = Field(None, max_length=100)
+    address: str | None = None
 
     # Church-specific fields
     scope_id: uuid.UUID | None = None
@@ -69,6 +73,10 @@ class CongregantUpdate(BaseModel):
     document_type: str | None = Field(None, max_length=20)
     document_number: str | None = Field(None, max_length=50)
     occupation: str | None = Field(None, max_length=100)
+    country: str | None = Field(None, max_length=10)
+    state: str | None = Field(None, max_length=100)
+    city: str | None = Field(None, max_length=100)
+    address: str | None = None
     status: Literal["active", "inactive", "transferred"] | None = None
 
     # Church-specific fields
@@ -106,6 +114,11 @@ class CongregantResponse(BaseModel):
     gender: str | None = None
     document_type: str | None = None
     document_number: str | None = None
+    occupation: str | None = None
+    country: str | None = None
+    state: str | None = None
+    city: str | None = None
+    address: str | None = None
     photo_url: str | None = None
     status: str
 
