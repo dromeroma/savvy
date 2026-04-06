@@ -93,7 +93,7 @@ export class FinanceDashboardComponent implements OnInit, OnDestroy {
 
   selectPerson(person: any): void {
     this.selectedPerson.set(person);
-    this.incomeForm.person_id = person.id;
+    this.incomeForm.person_id = person.person_id || person.id;
     this.personSearch = '';
     this.searchResults.set([]);
     this.showSearchDropdown.set(false);
