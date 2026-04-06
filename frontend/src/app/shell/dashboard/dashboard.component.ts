@@ -1,4 +1,5 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AppsService } from '../../core/services/apps.service';
 import { MyApp, SavvyApp } from '../../core/models/app.model';
@@ -6,7 +7,7 @@ import { NotificationService } from '../../shared/services/notification.service'
 
 @Component({
   selector: 'app-dashboard',
-  imports: [],
+  imports: [CommonModule],
   templateUrl: './dashboard.component.html',
 })
 export class DashboardComponent implements OnInit {
@@ -18,6 +19,33 @@ export class DashboardComponent implements OnInit {
   catalog = signal<SavvyApp[]>([]);
   loading = signal(true);
   error = signal('');
+
+  comingSoonApps = [
+    {
+      name: 'SavvyFamily',
+      description: 'Familiograma y relaciones familiares: árbol genealógico, vínculos y diagnóstico familiar',
+      color: '#EC4899',
+      icon: `<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+    },
+    {
+      name: 'SavvyHealth',
+      description: 'Gestión de clínicas y consultorios: pacientes, citas, historia clínica y facturación',
+      color: '#EF4444',
+      icon: `<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>`,
+    },
+    {
+      name: 'SavvyCondo',
+      description: 'Administración de propiedades horizontales: copropietarios, cuotas, áreas comunes y asambleas',
+      color: '#F59E0B',
+      icon: `<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>`,
+    },
+    {
+      name: 'SavvyEdu',
+      description: 'Gestión educativa: estudiantes, docentes, calificaciones, informes académicos y coordinación',
+      color: '#8B5CF6',
+      icon: `<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/></svg>`,
+    },
+  ];
 
   // Computed: separate internal from external
   myInternalApps = computed(() => this.myApps().filter(a => !a.app.is_external));

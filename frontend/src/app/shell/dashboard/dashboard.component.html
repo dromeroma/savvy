@@ -140,6 +140,42 @@
       </div>
     }
 
+    <!-- ═══ COMING SOON ═══ -->
+    <div class="mt-2 mb-4 flex items-center gap-3">
+      <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Próximamente</h2>
+      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">
+        En desarrollo
+      </span>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+      @for (app of comingSoonApps; track app.name) {
+        <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden opacity-75">
+          <div class="h-2" [style.background-color]="app.color"></div>
+          <div class="p-6">
+            <div class="flex items-start gap-4 mb-4">
+              <div class="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+                [style.background-color]="app.color + '15'"
+                [style.color]="app.color">
+                <span [innerHTML]="app.icon"></span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">{{ app.name }}</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ app.description }}</p>
+              </div>
+            </div>
+            <div class="flex items-center justify-end mt-4">
+              <span class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 text-sm font-medium rounded-lg cursor-default">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+                Próximamente
+              </span>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
     <!-- Empty state -->
     @if (myApps().length === 0 && catalog().length === 0) {
       <div class="text-center py-16">
