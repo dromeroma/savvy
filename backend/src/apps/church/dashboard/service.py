@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
 from sqlalchemy import func, select
@@ -93,7 +93,7 @@ class ChurchDashboardService:
             lm_end = date(today.year - 1, 12, 31)
         else:
             lm_start = date(today.year, today.month - 1, 1)
-            lm_end = first_of_month.replace(day=1) - __import__("datetime").timedelta(days=1)
+            lm_end = first_of_month - timedelta(days=1)
 
         income_last_month = (
             await db.execute(

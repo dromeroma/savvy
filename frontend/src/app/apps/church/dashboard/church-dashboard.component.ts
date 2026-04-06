@@ -27,6 +27,10 @@ interface DashboardKPIs {
         <div class="flex items-center justify-center py-16">
           <div class="animate-spin rounded-full h-8 w-8 border-4 border-brand-200 border-t-brand-600"></div>
         </div>
+      } @else if (error()) {
+        <div class="p-4 bg-error-50 border border-error-200 text-error-700 dark:bg-error-500/10 dark:border-error-500/30 dark:text-error-400 rounded-lg">
+          {{ error() }}
+        </div>
       } @else if (kpis(); as k) {
         <!-- KPI Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -161,6 +165,7 @@ export class ChurchDashboardComponent implements OnInit {
   private readonly api = inject(ApiService);
 
   loading = signal(true);
+  error = signal('');
   kpis = signal<DashboardKPIs | null>(null);
 
   ngOnInit(): void {
@@ -169,7 +174,10 @@ export class ChurchDashboardComponent implements OnInit {
         this.kpis.set(data);
         this.loading.set(false);
       },
-      error: () => this.loading.set(false),
+      error: () => {
+        this.error.set('No se pudo cargar el dashboard. Verifica que el backend esté corriendo.');
+        this.loading.set(false);
+      },
     });
   }
 
