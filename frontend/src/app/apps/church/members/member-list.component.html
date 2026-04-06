@@ -285,12 +285,22 @@
         }
       </div>
 
+      <!-- Other reason text field -->
+      @if (inactivationReason === 'other') {
+        <div class="mt-4">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Describe el motivo</label>
+          <input type="text" [(ngModel)]="otherReasonText" placeholder="Escribe el motivo..."
+            class="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-brand-500/20 dark:border-gray-700 dark:focus:border-brand-800" />
+        </div>
+      }
+
       <div class="flex justify-end gap-3 mt-6">
         <button (click)="closeInactivateModal()"
           class="px-4 py-2.5 text-sm font-medium rounded-lg border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition">
           Cancelar
         </button>
-        <button (click)="confirmInactivate()" [disabled]="!inactivationReason"
+        <button (click)="confirmInactivate()"
+          [disabled]="!inactivationReason || (inactivationReason === 'other' && !otherReasonText.trim())"
           class="px-4 py-2.5 text-sm font-medium rounded-lg bg-amber-600 text-white hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 transition disabled:opacity-50">
           Confirmar inactivación
         </button>

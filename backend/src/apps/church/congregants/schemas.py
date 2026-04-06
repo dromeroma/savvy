@@ -151,6 +151,7 @@ INACTIVATION_REASONS = Literal[
     "voluntary_leave",
     "disciplinary",
     "relocation",
+    "country_change",
     "other",
 ]
 
@@ -159,6 +160,7 @@ class InactivateRequest(BaseModel):
     """Payload for inactivating a congregant."""
 
     reason: INACTIVATION_REASONS
+    other_reason: str | None = Field(None, max_length=255)
 
 
 # ---------------------------------------------------------------------------

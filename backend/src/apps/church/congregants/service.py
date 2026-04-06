@@ -266,6 +266,7 @@ class CongregantService:
         org_id: uuid.UUID,
         congregant_id: uuid.UUID,
         reason: str,
+        other_reason: str | None = None,
     ) -> CongregantResponse:
         """Inactivate a congregant with a reason."""
         from datetime import UTC, datetime as dt
@@ -284,7 +285,7 @@ class CongregantService:
 
         congregant, person = row
         person.status = "inactive"
-        congregant.inactivation_reason = reason
+        congregant.inactivation_reason = f"{reason}: {other_reason}" if reason == "other" and other_reason else reason
         congregant.inactivated_at = dt.now(UTC)
         await db.flush()
         await db.refresh(congregant)

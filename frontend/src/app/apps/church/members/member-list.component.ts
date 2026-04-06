@@ -40,6 +40,7 @@ export class MemberListComponent implements OnInit {
   showInactivateModal = signal(false);
   inactivatingId = signal<string | null>(null);
   inactivationReason = '';
+  otherReasonText = '';
 
   readonly inactivationReasons = [
     { value: 'deceased', label: 'Fallecimiento' },
@@ -47,6 +48,7 @@ export class MemberListComponent implements OnInit {
     { value: 'voluntary_leave', label: 'No desea continuar' },
     { value: 'disciplinary', label: 'Disciplinario' },
     { value: 'relocation', label: 'Cambio de ciudad' },
+    { value: 'country_change', label: 'Cambio de país' },
     { value: 'other', label: 'Otro motivo' },
   ];
   members = signal<Member[]>([]);
@@ -233,13 +235,20 @@ export class MemberListComponent implements OnInit {
     this.showInactivateModal.set(false);
     this.inactivatingId.set(null);
     this.inactivationReason = '';
+    this.otherReasonText = '';
   }
 
   confirmInactivate(): void {
     const id = this.inactivatingId();
     if (!id || !this.inactivationReason) return;
+    if (this.inactivationReason === 'other' && !this.otherReasonText.trim()) return;
 
-    this.api.post(`/church/congregants/${id}/inactivate`, { reason: this.inactivationReason }).subscribe({
+    const body: any = { reason: this.inactivationReason };
+    if (this.inactivationReason === 'other') {
+      body.other_reason = this.otherReasonText.trim();
+    }
+
+    this.api.post(`/church/congregants/${id}/inactivate`, body).subscribe({
       next: () => {
         this.notify.show({ type: 'success', title: 'Inactivado', message: 'El congregante fue marcado como inactivo' });
         this.closeInactivateModal();

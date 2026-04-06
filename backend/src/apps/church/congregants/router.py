@@ -91,7 +91,7 @@ async def inactivate_congregant(
     org_id: uuid.UUID = Depends(get_org_id),
 ) -> Any:
     """Inactivate a congregant with a reason."""
-    return await CongregantService.inactivate_congregant(db, org_id, congregant_id, data.reason)
+    return await CongregantService.inactivate_congregant(db, org_id, congregant_id, data.reason, data.other_reason)
 
 
 @router.post("/{congregant_id}/reactivate", response_model=CongregantResponse)
