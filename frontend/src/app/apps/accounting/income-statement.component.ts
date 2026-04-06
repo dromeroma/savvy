@@ -57,7 +57,7 @@ interface IncomeStatementData {
           <div class="animate-spin rounded-full h-8 w-8 border-4 border-brand-200 border-t-brand-600"></div>
         </div>
       } @else if (data()) {
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
           <div class="p-6 sm:p-8">
             <!-- Report Title -->
             <div class="text-center mb-8">
