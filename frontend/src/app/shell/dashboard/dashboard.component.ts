@@ -51,6 +51,18 @@ export class DashboardComponent implements OnInit {
       color: '#0EA5E9',
       icon: `<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9"/></svg>`,
     },
+    {
+      name: 'SavvyCRM',
+      description: 'Gestión de relaciones con clientes: contactos, oportunidades, pipeline de ventas y seguimiento comercial',
+      color: '#14B8A6',
+      icon: `<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.87"/></svg>`,
+    },
+    {
+      name: 'SavvyCredit',
+      description: 'Gestión de créditos y préstamos: solicitudes, aprobaciones, cobros, cartera e intereses',
+      color: '#D946EF',
+      icon: `<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>`,
+    },
   ];
 
   // Computed: separate internal from external
