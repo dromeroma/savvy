@@ -6,13 +6,18 @@ export const CHURCH_ROUTES: Routes = [
     path: '',
     component: ChurchLayoutComponent,
     children: [
-      { path: '', redirectTo: 'members', pathMatch: 'full' },
+      { path: '', redirectTo: 'congregants', pathMatch: 'full' },
       {
-        path: 'members',
+        path: 'congregants',
         loadComponent: () =>
           import('./members/member-list.component').then(
             (m) => m.MemberListComponent,
           ),
+      },
+      {
+        path: 'members',
+        redirectTo: 'congregants',
+        pathMatch: 'full',
       },
       {
         path: 'finance',

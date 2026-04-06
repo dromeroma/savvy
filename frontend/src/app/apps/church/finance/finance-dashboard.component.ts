@@ -62,9 +62,11 @@ export class FinanceDashboardComponent implements OnInit {
     this.loading.set(true);
     const endpoint = this.activeTab() === 'income' ? '/church/finance/income' : '/church/finance/expenses';
 
-    this.api.get<Transaction[]>(endpoint).subscribe({
+    this.api.get<any>(endpoint).subscribe({
       next: (data) => {
-        this.transactions.set(data);
+        // Backend returns {items, total} or flat array depending on endpoint
+        const items = Array.isArray(data) ? data : (data.items ?? []);
+        this.transactions.set(items);
         this.loading.set(false);
       },
       error: () => {

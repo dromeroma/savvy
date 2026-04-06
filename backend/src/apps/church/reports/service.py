@@ -1,4 +1,8 @@
-"""Church report generation service."""
+"""Church report generation service.
+
+Uses the shared SavvyFinance tables (finance_transactions + finance_categories)
+instead of the legacy church-specific income/expense tables.
+"""
 
 from __future__ import annotations
 
@@ -8,22 +12,19 @@ from decimal import Decimal
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.apps.church.finance.models import (
-    ChurchExpense,
-    ChurchExpenseCategory,
-    ChurchIncome,
-    ChurchIncomeCategory,
-)
 from src.apps.church.reports.schemas import (
     CategoryTotal,
     MonthlySummaryResponse,
     TitheOfTitheResponse,
 )
 from src.modules.accounting.models import FiscalPeriod
+from src.modules.finance.models import FinanceCategory, FinanceTransaction
+
+APP_CODE = "church"
 
 
 class ChurchReportService:
-    """Generates church-specific financial reports."""
+    """Generates church-specific financial reports from SavvyFinance data."""
 
     @staticmethod
     async def monthly_summary(
@@ -45,11 +46,11 @@ class ChurchReportService:
         period_id = period.id if period else None
 
         # Income by category
-        income_cats = await _income_by_category(db, org_id, period_id)
+        income_cats = await _transactions_by_category(db, org_id, period_id, "income")
         total_income = sum(c.total for c in income_cats)
 
         # Expenses by category
-        expense_cats = await _expenses_by_category(db, org_id, period_id)
+        expense_cats = await _transactions_by_category(db, org_id, period_id, "expense")
         total_expenses = sum(c.total for c in expense_cats)
 
         # Tithe of tithe
@@ -73,7 +74,7 @@ class ChurchReportService:
         year: int,
         month: int,
     ) -> TitheOfTitheResponse:
-        """Calculate the tithe of tithe: 10% of (tithes + offerings)."""
+        """Calculate the tithe of tithe: 10 % of (tithes + offerings)."""
         period_result = await db.execute(
             select(FiscalPeriod).where(
                 FiscalPeriod.organization_id == org_id,
@@ -84,8 +85,8 @@ class ChurchReportService:
         period = period_result.scalar_one_or_none()
         period_id = period.id if period else None
 
-        total_tithes = await _sum_income_by_code(db, org_id, period_id, "TITHE")
-        total_offerings = await _sum_income_by_code(db, org_id, period_id, "OFFERING")
+        total_tithes = await _sum_by_category_code(db, org_id, period_id, "TITHE")
+        total_offerings = await _sum_by_category_code(db, org_id, period_id, "OFFERING")
 
         base = total_tithes + total_offerings
         tithe_of_tithe = (base * Decimal("0.10")).quantize(Decimal("0.01"))
@@ -103,67 +104,61 @@ class ChurchReportService:
 # ---------------------------------------------------------------------------
 
 
-async def _income_by_category(
-    db: AsyncSession, org_id: uuid.UUID, period_id: uuid.UUID | None,
+async def _transactions_by_category(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    period_id: uuid.UUID | None,
+    txn_type: str,
 ) -> list[CategoryTotal]:
+    """Aggregate transaction amounts by category for a given type."""
     stmt = (
         select(
-            ChurchIncomeCategory.name,
-            ChurchIncomeCategory.code,
-            func.coalesce(func.sum(ChurchIncome.amount), 0).label("total"),
+            FinanceCategory.name,
+            FinanceCategory.code,
+            func.coalesce(func.sum(FinanceTransaction.amount), 0).label("total"),
         )
-        .join(ChurchIncome, ChurchIncome.category_id == ChurchIncomeCategory.id, isouter=True)
-        .where(ChurchIncomeCategory.organization_id == org_id)
-    )
-    if period_id:
-        stmt = stmt.where(ChurchIncome.fiscal_period_id == period_id)
-    stmt = stmt.group_by(ChurchIncomeCategory.name, ChurchIncomeCategory.code)
-    stmt = stmt.order_by(ChurchIncomeCategory.code)
-
-    result = await db.execute(stmt)
-    return [
-        CategoryTotal(category_name=row.name, category_code=row.code, total=row.total)
-        for row in result.all()
-    ]
-
-
-async def _expenses_by_category(
-    db: AsyncSession, org_id: uuid.UUID, period_id: uuid.UUID | None,
-) -> list[CategoryTotal]:
-    stmt = (
-        select(
-            ChurchExpenseCategory.name,
-            ChurchExpenseCategory.code,
-            func.coalesce(func.sum(ChurchExpense.amount), 0).label("total"),
+        .join(
+            FinanceTransaction,
+            FinanceTransaction.category_id == FinanceCategory.id,
+            isouter=True,
         )
-        .join(ChurchExpense, ChurchExpense.category_id == ChurchExpenseCategory.id, isouter=True)
-        .where(ChurchExpenseCategory.organization_id == org_id)
-    )
-    if period_id:
-        stmt = stmt.where(ChurchExpense.fiscal_period_id == period_id)
-    stmt = stmt.group_by(ChurchExpenseCategory.name, ChurchExpenseCategory.code)
-    stmt = stmt.order_by(ChurchExpenseCategory.code)
-
-    result = await db.execute(stmt)
-    return [
-        CategoryTotal(category_name=row.name, category_code=row.code, total=row.total)
-        for row in result.all()
-    ]
-
-
-async def _sum_income_by_code(
-    db: AsyncSession, org_id: uuid.UUID, period_id: uuid.UUID | None, code: str,
-) -> Decimal:
-    stmt = (
-        select(func.coalesce(func.sum(ChurchIncome.amount), 0))
-        .join(ChurchIncomeCategory, ChurchIncome.category_id == ChurchIncomeCategory.id)
         .where(
-            ChurchIncome.organization_id == org_id,
-            ChurchIncomeCategory.code == code,
+            FinanceCategory.organization_id == org_id,
+            FinanceCategory.app_code == APP_CODE,
+            FinanceCategory.type == txn_type,
         )
     )
     if period_id:
-        stmt = stmt.where(ChurchIncome.fiscal_period_id == period_id)
+        stmt = stmt.where(FinanceTransaction.fiscal_period_id == period_id)
+
+    stmt = stmt.group_by(FinanceCategory.name, FinanceCategory.code)
+    stmt = stmt.order_by(FinanceCategory.code)
+
+    result = await db.execute(stmt)
+    return [
+        CategoryTotal(category_name=row.name, category_code=row.code, total=row.total)
+        for row in result.all()
+    ]
+
+
+async def _sum_by_category_code(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    period_id: uuid.UUID | None,
+    code: str,
+) -> Decimal:
+    """Sum transaction amounts for a specific category code within the church app."""
+    stmt = (
+        select(func.coalesce(func.sum(FinanceTransaction.amount), 0))
+        .join(FinanceCategory, FinanceTransaction.category_id == FinanceCategory.id)
+        .where(
+            FinanceTransaction.organization_id == org_id,
+            FinanceTransaction.app_code == APP_CODE,
+            FinanceCategory.code == code,
+        )
+    )
+    if period_id:
+        stmt = stmt.where(FinanceTransaction.fiscal_period_id == period_id)
 
     result = await db.execute(stmt)
     return Decimal(str(result.scalar() or 0))

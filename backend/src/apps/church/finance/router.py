@@ -3,7 +3,7 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.dependencies import get_current_user, get_db, get_org_id
@@ -25,14 +25,18 @@ router = APIRouter(prefix="/finance", tags=["Church Finance"])
 # ---------------------------------------------------------------------------
 
 
-@router.get("/income", response_model=list[IncomeResponse])
+@router.get("/income", response_model=dict)
 async def list_incomes(
     db: AsyncSession = Depends(get_db),
     org_id: uuid.UUID = Depends(get_org_id),
     period_id: uuid.UUID | None = Query(None),
 ) -> Any:
-    """List church incomes, optionally filtered by fiscal period."""
-    return await ChurchFinanceService.list_incomes(db, org_id, period_id)
+    """List church incomes."""
+    items, total = await ChurchFinanceService.list_incomes(db, org_id, period_id)
+    return {
+        "items": [IncomeResponse.model_validate(t) for t in items],
+        "total": total,
+    }
 
 
 @router.post(
@@ -67,14 +71,18 @@ async def get_income(
 # ---------------------------------------------------------------------------
 
 
-@router.get("/expenses", response_model=list[ExpenseResponse])
+@router.get("/expenses", response_model=dict)
 async def list_expenses(
     db: AsyncSession = Depends(get_db),
     org_id: uuid.UUID = Depends(get_org_id),
     period_id: uuid.UUID | None = Query(None),
 ) -> Any:
-    """List church expenses, optionally filtered by fiscal period."""
-    return await ChurchFinanceService.list_expenses(db, org_id, period_id)
+    """List church expenses."""
+    items, total = await ChurchFinanceService.list_expenses(db, org_id, period_id)
+    return {
+        "items": [ExpenseResponse.model_validate(t) for t in items],
+        "total": total,
+    }
 
 
 @router.post(

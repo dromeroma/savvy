@@ -62,7 +62,7 @@ export class MemberListComponent implements OnInit {
     if (this.search) params['search'] = this.search;
     if (this.statusFilter) params['status'] = this.statusFilter;
 
-    this.api.get<PaginatedResponse>('/church/members', params).subscribe({
+    this.api.get<PaginatedResponse>('/church/congregants', params).subscribe({
       next: (res) => {
         this.members.set(res.items);
         this.total.set(res.total);
@@ -121,7 +121,7 @@ export class MemberListComponent implements OnInit {
     if (this.form.gender) body['gender'] = this.form.gender;
     if (this.form.membership_date) body['membership_date'] = this.form.membership_date;
 
-    this.api.post('/church/members', body).subscribe({
+    this.api.post('/church/congregants', body).subscribe({
       next: () => {
         this.saving.set(false);
         this.closeModal();
