@@ -7,10 +7,11 @@ import { SidebarService } from '../../shared/services/sidebar.service';
 import { SidebarComponent } from '../../shared/components/sidebar/sidebar.component';
 import { AlertComponent } from '../../shared/components/ui/alert/alert.component';
 import { ThemeToggleComponent } from '../../shared/components/common/theme-toggle/theme-toggle.component';
+import { NotificationContainerComponent } from '../../shared/components/notifications/notification-container.component';
 
 @Component({
   selector: 'app-layout',
-  imports: [CommonModule, RouterOutlet, SidebarComponent, AlertComponent, ThemeToggleComponent],
+  imports: [CommonModule, RouterOutlet, SidebarComponent, AlertComponent, ThemeToggleComponent, NotificationContainerComponent],
   templateUrl: './layout.component.html',
 })
 export class LayoutComponent implements OnInit {

@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { ApiService } from '../../../core/services/api.service';
+import { NotificationService } from '../../../shared/services/notification.service';
 import { DatePickerComponent } from '../../../shared/components/form/date-picker/date-picker.component';
 
 interface Transaction {
@@ -28,6 +29,7 @@ interface Category {
 })
 export class FinanceDashboardComponent implements OnInit, OnDestroy {
   private readonly api = inject(ApiService);
+  private readonly notify = inject(NotificationService);
 
   activeTab = signal<'income' | 'expenses'>('income');
   transactions = signal<Transaction[]>([]);
@@ -168,12 +170,14 @@ export class FinanceDashboardComponent implements OnInit, OnDestroy {
     this.api.post('/church/finance/income', body).subscribe({
       next: () => {
         this.saving.set(false);
+        this.notify.show({ type: 'success', title: 'Ingreso registrado', message: 'El ingreso se registró correctamente' });
         this.closeModal();
         this.activeTab.set('income');
         this.loadTransactions();
       },
       error: (err) => {
         this.saving.set(false);
+        this.notify.show({ type: 'error', title: 'Error', message: 'No se pudo registrar el ingreso' });
         console.error('Income creation error:', err);
         console.error('Body sent:', body);
       },
@@ -193,11 +197,15 @@ export class FinanceDashboardComponent implements OnInit, OnDestroy {
     }).subscribe({
       next: () => {
         this.saving.set(false);
+        this.notify.show({ type: 'success', title: 'Egreso registrado', message: 'El egreso se registró correctamente' });
         this.closeModal();
         this.activeTab.set('expenses');
         this.loadTransactions();
       },
-      error: () => this.saving.set(false),
+      error: () => {
+        this.saving.set(false);
+        this.notify.show({ type: 'error', title: 'Error', message: 'No se pudo registrar el egreso' });
+      },
     });
   }
 

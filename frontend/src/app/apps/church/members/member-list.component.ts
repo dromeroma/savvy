@@ -1,6 +1,7 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
+import { NotificationService } from '../../../shared/services/notification.service';
 import { DatePickerComponent } from '../../../shared/components/form/date-picker/date-picker.component';
 import { LocationSelectorComponent, LocationSelection } from '../../../shared/components/form/location-selector/location-selector.component';
 
@@ -28,6 +29,7 @@ interface PaginatedResponse {
 })
 export class MemberListComponent implements OnInit {
   private readonly api = inject(ApiService);
+  private readonly notify = inject(NotificationService);
 
   members = signal<Member[]>([]);
   loading = signal(true);
@@ -183,11 +185,13 @@ export class MemberListComponent implements OnInit {
     request$.subscribe({
       next: () => {
         this.saving.set(false);
+        this.notify.show({ type: 'success', title: id ? 'Actualizado' : 'Creado', message: id ? 'Congregante actualizado correctamente' : 'Congregante creado correctamente' });
         this.closeModal();
         this.loadMembers();
       },
       error: (err) => {
         this.saving.set(false);
+        this.notify.show({ type: 'error', title: 'Error', message: 'No se pudo guardar el congregante' });
         console.error('Save error:', err);
       },
     });
