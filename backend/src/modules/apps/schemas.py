@@ -23,6 +23,8 @@ class AppCatalogResponse(BaseModel):
     icon: str | None = None
     color: str | None = None
     is_active: bool
+    is_external: bool = False
+    external_url: str | None = None
 
 
 # ---------------------------------------------------------------------------

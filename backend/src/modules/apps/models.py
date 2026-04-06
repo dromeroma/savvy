@@ -28,6 +28,8 @@ class AppRegistry(Base):
     icon: Mapped[str | None] = mapped_column(String(100), nullable=True)
     color: Mapped[str | None] = mapped_column(String(7), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_external: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    external_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     requires: Mapped[dict] = mapped_column(JSONB, default=list)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False,

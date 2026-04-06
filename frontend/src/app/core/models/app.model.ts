@@ -5,6 +5,8 @@ export interface SavvyApp {
   icon: string;
   color: string;
   is_active: boolean;
+  is_external: boolean;
+  external_url: string | null;
 }
 
 export interface MyApp {

@@ -12,10 +12,10 @@
     </div>
   } @else {
 
-    <!-- Active Apps -->
-    @if (myApps().length > 0) {
+    <!-- ═══ ACTIVE INTERNAL APPS ═══ -->
+    @if (myInternalApps().length > 0) {
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-        @for (item of myApps(); track item.app.code) {
+        @for (item of myInternalApps(); track item.app.code) {
           <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-theme-xs hover:shadow-theme-md transition duration-200 overflow-hidden">
             <div class="h-2" [style.background-color]="item.app.color || '#059669'"></div>
             <div class="p-6">
@@ -46,13 +46,13 @@
       </div>
     }
 
-    <!-- Available Apps -->
-    @if (catalog().length > 0) {
+    <!-- ═══ AVAILABLE INTERNAL APPS ═══ -->
+    @if (catalogInternal().length > 0) {
       <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">
-        @if (myApps().length > 0) { Más aplicaciones disponibles } @else { Activa tu primera aplicación }
+        @if (myInternalApps().length > 0) { Más aplicaciones disponibles } @else { Activa tu primera aplicación }
       </h2>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        @for (app of catalog(); track app.code) {
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+        @for (app of catalogInternal(); track app.code) {
           <div class="bg-white dark:bg-gray-800 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-brand-400 dark:hover:border-brand-500 transition duration-200 overflow-hidden">
             <div class="p-6">
               <div class="flex items-start gap-4 mb-4">
@@ -77,6 +77,70 @@
       </div>
     }
 
+    <!-- ═══ EXTERNAL APPS ═══ -->
+    @if (myExternalApps().length > 0 || catalogExternal().length > 0) {
+      <div class="mt-2 mb-4 flex items-center gap-3">
+        <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Apps Externas</h2>
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-light-50 text-blue-light-700 dark:bg-blue-light-500/20 dark:text-blue-light-400">
+          Se abren en nueva pestaña
+        </span>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        <!-- Active external apps -->
+        @for (item of myExternalApps(); track item.app.code) {
+          <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-theme-xs hover:shadow-theme-md transition duration-200 overflow-hidden">
+            <div class="h-2" [style.background-color]="item.app.color || '#059669'"></div>
+            <div class="p-6">
+              <div class="flex items-start gap-4 mb-4">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-gray-100 dark:bg-gray-700">
+                  <svg class="w-6 h-6 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">{{ item.app.name }}</h3>
+                  <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ item.app.description }}</p>
+                </div>
+              </div>
+              <div class="flex items-center justify-between mt-4">
+                <span class="text-xs text-gray-400 dark:text-gray-500">App externa</span>
+                <button (click)="openApp(item)"
+                  class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-lg transition">
+                  Ir a la app
+                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Available external apps -->
+        @for (app of catalogExternal(); track app.code) {
+          <div class="bg-white dark:bg-gray-800 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-blue-light-400 dark:hover:border-blue-light-500 transition duration-200 overflow-hidden">
+            <div class="p-6">
+              <div class="flex items-start gap-4 mb-4">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-gray-100 dark:bg-gray-700">
+                  <svg class="w-6 h-6 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">{{ app.name }}</h3>
+                  <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ app.description }}</p>
+                </div>
+              </div>
+              <div class="flex items-center justify-between mt-4">
+                <span class="text-xs text-gray-400 dark:text-gray-500">App externa</span>
+                <button (click)="openExternalApp(app)"
+                  class="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 text-sm font-medium rounded-lg transition">
+                  Ir a la app
+                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Empty state -->
     @if (myApps().length === 0 && catalog().length === 0) {
       <div class="text-center py-16">
         <p class="text-gray-500 dark:text-gray-400 text-lg">No hay aplicaciones disponibles.</p>
