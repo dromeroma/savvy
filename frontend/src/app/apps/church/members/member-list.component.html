@@ -35,7 +35,7 @@
           <thead>
             <tr class="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
               <th class="text-left px-6 py-3 font-semibold text-gray-600 dark:text-gray-300">Nombre</th>
-              <th class="text-left px-6 py-3 font-semibold text-gray-600 dark:text-gray-300">Correo</th>
+              <th class="text-left px-6 py-3 font-semibold text-gray-600 dark:text-gray-300 hidden sm:table-cell">Correo</th>
               <th class="text-left px-6 py-3 font-semibold text-gray-600 dark:text-gray-300 hidden md:table-cell">Teléfono</th>
               <th class="text-left px-6 py-3 font-semibold text-gray-600 dark:text-gray-300">Estado</th>
             </tr>
@@ -44,7 +44,7 @@
             @for (member of members(); track member.id) {
               <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/5 transition">
                 <td class="px-6 py-4 font-medium text-gray-800 dark:text-white/90">{{ member.first_name }} {{ member.last_name }}</td>
-                <td class="px-6 py-4 text-gray-600 dark:text-gray-400">{{ member.email || '—' }}</td>
+                <td class="px-6 py-4 text-gray-600 dark:text-gray-400 hidden sm:table-cell">{{ member.email || '—' }}</td>
                 <td class="px-6 py-4 text-gray-600 dark:text-gray-400 hidden md:table-cell">{{ member.phone || '—' }}</td>
                 <td class="px-6 py-4">
                   @if (member.status === 'active') {
@@ -98,7 +98,7 @@
         <div class="max-h-[70vh] overflow-y-auto custom-scrollbar pr-1">
           <div class="space-y-4">
             <!-- Nombre y Apellido -->
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre *</label>
                 <input type="text" [(ngModel)]="form.first_name"
@@ -114,7 +114,7 @@
             </div>
 
             <!-- Correo y Teléfono -->
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Correo</label>
                 <input type="email" [(ngModel)]="form.email"
@@ -141,7 +141,7 @@
             </div>
 
             <!-- Fechas -->
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <app-date-picker
                 id="date_of_birth"
                 label="Fecha de nacimiento"

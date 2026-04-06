@@ -29,13 +29,14 @@ interface Account {
         </div>
       } @else {
         <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
               <tr class="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                 <th class="text-left px-6 py-3 font-semibold text-gray-600 dark:text-gray-300">Código</th>
                 <th class="text-left px-6 py-3 font-semibold text-gray-600 dark:text-gray-300">Nombre</th>
-                <th class="text-left px-6 py-3 font-semibold text-gray-600 dark:text-gray-300">Tipo</th>
-                <th class="text-left px-6 py-3 font-semibold text-gray-600 dark:text-gray-300">Estado</th>
+                <th class="text-left px-6 py-3 font-semibold text-gray-600 dark:text-gray-300 hidden sm:table-cell">Tipo</th>
+                <th class="text-left px-6 py-3 font-semibold text-gray-600 dark:text-gray-300 hidden md:table-cell">Estado</th>
               </tr>
             </thead>
             <tbody>
@@ -43,7 +44,7 @@ interface Account {
                 <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/5 transition">
                   <td class="px-6 py-4 font-mono text-gray-800 dark:text-white/90 font-medium">{{ acct.code }}</td>
                   <td class="px-6 py-4 text-gray-800 dark:text-white/90" [class.font-semibold]="acct.code.length <= 2" [class.pl-10]="acct.code.length > 3">{{ acct.name }}</td>
-                  <td class="px-6 py-4">
+                  <td class="px-6 py-4 hidden sm:table-cell">
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
                       [ngClass]="{
                         'bg-blue-light-50 text-blue-light-700 dark:bg-blue-light-500/20 dark:text-blue-light-400': acct.type === 'asset',
@@ -53,7 +54,7 @@ interface Account {
                         'bg-warning-50 text-warning-700 dark:bg-warning-500/20 dark:text-warning-400': acct.type === 'expense'
                       }">{{ acct.type }}</span>
                   </td>
-                  <td class="px-6 py-4">
+                  <td class="px-6 py-4 hidden md:table-cell">
                     @if (acct.is_active) {
                       <span class="w-2 h-2 rounded-full bg-success-500 inline-block"></span>
                     } @else {
@@ -70,6 +71,7 @@ interface Account {
               }
             </tbody>
           </table>
+          </div>
         </div>
       }
     </div>

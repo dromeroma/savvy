@@ -1,6 +1,7 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
+import { DatePickerComponent } from '../../../shared/components/form/date-picker/date-picker.component';
 
 interface Transaction {
   id: string;
@@ -20,7 +21,7 @@ interface Category {
 
 @Component({
   selector: 'app-finance-dashboard',
-  imports: [FormsModule],
+  imports: [FormsModule, DatePickerComponent],
   templateUrl: './finance-dashboard.component.html',
 })
 export class FinanceDashboardComponent implements OnInit {
