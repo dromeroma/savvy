@@ -8,7 +8,7 @@ to the person record via `person_id`.
 import uuid
 from datetime import date
 
-from sqlalchemy import Date, ForeignKey, String, Text, UniqueConstraint, Uuid
+from sqlalchemy import Boolean, Date, ForeignKey, String, Text, UniqueConstraint, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.core.database import Base
@@ -34,6 +34,7 @@ class ChurchCongregant(BaseMixin, OrgMixin, Base):
     )
     membership_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     baptism_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    holy_spirit_baptism: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     conversion_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     spiritual_status: Mapped[str | None] = mapped_column(String(30), nullable=True)
     referred_by: Mapped[uuid.UUID | None] = mapped_column(

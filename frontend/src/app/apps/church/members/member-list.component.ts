@@ -42,11 +42,16 @@ export class MemberListComponent implements OnInit {
   form = {
     first_name: '',
     last_name: '',
+    document_type: '',
+    document_number: '',
     email: '',
     phone: '',
-    date_of_birth: '',
     gender: '',
+    occupation: '',
+    date_of_birth: '',
     membership_date: '',
+    baptism_date: '',
+    holy_spirit_baptism: false,
   };
 
   ngOnInit(): void {
@@ -101,7 +106,20 @@ export class MemberListComponent implements OnInit {
   }
 
   openModal(): void {
-    this.form = { first_name: '', last_name: '', email: '', phone: '', date_of_birth: '', gender: '', membership_date: '' };
+    this.form = {
+      first_name: '',
+      last_name: '',
+      document_type: '',
+      document_number: '',
+      email: '',
+      phone: '',
+      gender: '',
+      occupation: '',
+      date_of_birth: '',
+      membership_date: '',
+      baptism_date: '',
+      holy_spirit_baptism: false,
+    };
     this.showModal.set(true);
   }
 
@@ -111,15 +129,20 @@ export class MemberListComponent implements OnInit {
 
   saveMember(): void {
     this.saving.set(true);
-    const body: Record<string, string> = {
+    const body: Record<string, string | boolean> = {
       first_name: this.form.first_name,
       last_name: this.form.last_name,
     };
+    if (this.form.document_type) body['document_type'] = this.form.document_type;
+    if (this.form.document_number) body['document_number'] = this.form.document_number;
     if (this.form.email) body['email'] = this.form.email;
     if (this.form.phone) body['phone'] = this.form.phone;
-    if (this.form.date_of_birth) body['date_of_birth'] = this.form.date_of_birth;
     if (this.form.gender) body['gender'] = this.form.gender;
+    if (this.form.occupation) body['occupation'] = this.form.occupation;
+    if (this.form.date_of_birth) body['date_of_birth'] = this.form.date_of_birth;
     if (this.form.membership_date) body['membership_date'] = this.form.membership_date;
+    if (this.form.baptism_date) body['baptism_date'] = this.form.baptism_date;
+    body['holy_spirit_baptism'] = this.form.holy_spirit_baptism;
 
     this.api.post('/church/congregants', body).subscribe({
       next: () => {

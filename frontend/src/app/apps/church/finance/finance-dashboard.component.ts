@@ -1,5 +1,7 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Subject, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { ApiService } from '../../../core/services/api.service';
 import { DatePickerComponent } from '../../../shared/components/form/date-picker/date-picker.component';
 
@@ -24,7 +26,7 @@ interface Category {
   imports: [FormsModule, DatePickerComponent],
   templateUrl: './finance-dashboard.component.html',
 })
-export class FinanceDashboardComponent implements OnInit {
+export class FinanceDashboardComponent implements OnInit, OnDestroy {
   private readonly api = inject(ApiService);
 
   activeTab = signal<'income' | 'expenses'>('income');
@@ -36,12 +38,71 @@ export class FinanceDashboardComponent implements OnInit {
   // Modal
   showModal = signal<'income' | 'expense' | null>(null);
   saving = signal(false);
-  incomeForm = { category_code: '', amount: '', date: '', payment_method: 'cash', description: '' };
+  incomeForm = { category_code: '', amount: '', date: '', payment_method: 'cash', description: '', person_id: '' };
   expenseForm = { category_code: '', amount: '', date: '', payment_method: 'cash', description: '', vendor: '' };
+
+  // Person search
+  personSearch = '';
+  searchResults = signal<any[]>([]);
+  selectedPerson = signal<any>(null);
+  showSearchDropdown = signal(false);
+  searchingPeople = signal(false);
+  private searchSubject = new Subject<string>();
+  private searchSubscription?: Subscription;
 
   ngOnInit(): void {
     this.loadCategories();
     this.loadTransactions();
+
+    this.searchSubscription = this.searchSubject.pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      switchMap((query) => {
+        if (!query || query.length < 2) {
+          this.searchResults.set([]);
+          this.showSearchDropdown.set(false);
+          this.searchingPeople.set(false);
+          return [];
+        }
+        this.searchingPeople.set(true);
+        return this.api.get<any>('/church/congregants', { search: query, page_size: 5 });
+      }),
+    ).subscribe({
+      next: (res) => {
+        const items = Array.isArray(res) ? res : (res?.items ?? []);
+        this.searchResults.set(items);
+        this.showSearchDropdown.set(true);
+        this.searchingPeople.set(false);
+      },
+      error: () => {
+        this.searchResults.set([]);
+        this.searchingPeople.set(false);
+      },
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.searchSubscription?.unsubscribe();
+  }
+
+  onPersonSearchInput(): void {
+    this.searchSubject.next(this.personSearch);
+  }
+
+  selectPerson(person: any): void {
+    this.selectedPerson.set(person);
+    this.incomeForm.person_id = person.id;
+    this.personSearch = '';
+    this.searchResults.set([]);
+    this.showSearchDropdown.set(false);
+  }
+
+  clearPerson(): void {
+    this.selectedPerson.set(null);
+    this.incomeForm.person_id = '';
+    this.personSearch = '';
+    this.searchResults.set([]);
+    this.showSearchDropdown.set(false);
   }
 
   loadCategories(): void {
@@ -77,7 +138,8 @@ export class FinanceDashboardComponent implements OnInit {
   }
 
   openIncomeModal(): void {
-    this.incomeForm = { category_code: '', amount: '', date: new Date().toISOString().slice(0, 10), payment_method: 'cash', description: '' };
+    this.incomeForm = { category_code: '', amount: '', date: new Date().toISOString().slice(0, 10), payment_method: 'cash', description: '', person_id: '' };
+    this.clearPerson();
     this.showModal.set('income');
   }
 
@@ -88,17 +150,22 @@ export class FinanceDashboardComponent implements OnInit {
 
   closeModal(): void {
     this.showModal.set(null);
+    this.clearPerson();
   }
 
   saveIncome(): void {
     this.saving.set(true);
-    this.api.post('/church/finance/income', {
+    const body: Record<string, any> = {
       category_code: this.incomeForm.category_code,
       amount: parseFloat(this.incomeForm.amount),
       date: this.incomeForm.date,
       payment_method: this.incomeForm.payment_method,
       description: this.incomeForm.description || null,
-    }).subscribe({
+    };
+    if (this.incomeForm.person_id) {
+      body['person_id'] = this.incomeForm.person_id;
+    }
+    this.api.post('/church/finance/income', body).subscribe({
       next: () => {
         this.saving.set(false);
         this.closeModal();

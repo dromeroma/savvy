@@ -82,6 +82,7 @@
         </button>
         <h3 class="text-lg font-bold text-gray-800 dark:text-white/90 mb-6">Registrar Ingreso</h3>
         <div class="space-y-4">
+          <!-- Categoría -->
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoría *</label>
             <select [(ngModel)]="incomeForm.category_code" class="h-11 w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg text-sm focus:ring-3 focus:ring-brand-500/20 focus:border-brand-300 outline-none">
@@ -91,6 +92,53 @@
               }
             </select>
           </div>
+
+          <!-- Persona asociada -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Persona asociada</label>
+            @if (selectedPerson()) {
+              <div class="flex items-center gap-3 h-11 w-full rounded-lg border px-4 py-2 border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                <div class="w-7 h-7 rounded-full bg-brand-50 dark:bg-brand-500/20 flex items-center justify-center text-brand-500 text-xs font-bold shrink-0">
+                  {{ selectedPerson().first_name.charAt(0) }}{{ selectedPerson().last_name.charAt(0) }}
+                </div>
+                <span class="text-sm text-gray-800 dark:text-white/90 truncate flex-1">{{ selectedPerson().first_name }} {{ selectedPerson().last_name }}</span>
+                <button (click)="clearPerson()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 shrink-0" title="Quitar persona">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M6.04289 16.5413C5.65237 16.9318 5.65237 17.565 6.04289 17.9555C6.43342 18.346 7.06658 18.346 7.45711 17.9555L11.9987 13.4139L16.5408 17.956C16.9313 18.3466 17.5645 18.3466 17.955 17.956C18.3455 17.5655 18.3455 16.9323 17.955 16.5418L13.4129 11.9997L17.955 7.4576C18.3455 7.06707 18.3455 6.43391 17.955 6.04338C17.5645 5.65286 16.9313 5.65286 16.5408 6.04338L11.9987 10.5855L7.45711 6.0439C7.06658 5.65338 6.43342 5.65338 6.04289 6.0439C5.65237 6.43442 5.65237 7.06759 6.04289 7.45811L10.5845 11.9997L6.04289 16.5413Z" fill="currentColor" /></svg>
+                </button>
+              </div>
+            } @else {
+              <div class="relative">
+                <input type="text" [(ngModel)]="personSearch" (input)="onPersonSearchInput()" (focus)="personSearch.length >= 2 && showSearchDropdown.set(true)"
+                  placeholder="Buscar por cédula, nombre o teléfono..."
+                  class="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-brand-500/20 dark:border-gray-700 dark:focus:border-brand-800" />
+
+                @if (searchingPeople()) {
+                  <div class="absolute right-3 top-1/2 -translate-y-1/2">
+                    <div class="animate-spin rounded-full h-4 w-4 border-2 border-brand-200 border-t-brand-600"></div>
+                  </div>
+                }
+
+                <!-- Search results dropdown -->
+                @if (showSearchDropdown()) {
+                  <div class="absolute z-50 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-theme-lg max-h-48 overflow-y-auto">
+                    @for (p of searchResults(); track p.id) {
+                      <button (click)="selectPerson(p)" class="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-white/5 flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-brand-50 dark:bg-brand-500/20 flex items-center justify-center text-brand-500 text-xs font-bold">{{ p.first_name.charAt(0) }}{{ p.last_name.charAt(0) }}</div>
+                        <div>
+                          <p class="text-sm font-medium text-gray-800 dark:text-white/90">{{ p.first_name }} {{ p.last_name }}</p>
+                          <p class="text-xs text-gray-400">{{ p.document_number || p.phone || '' }}</p>
+                        </div>
+                      </button>
+                    } @empty {
+                      <div class="px-4 py-3 text-sm text-gray-400 dark:text-gray-500">No encontrado</div>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Monto + Fecha -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Monto *</label>
@@ -104,6 +152,7 @@
               (dateChange)="incomeForm.date = $event"
             />
           </div>
+          <!-- Método de pago -->
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Método de pago *</label>
             <select [(ngModel)]="incomeForm.payment_method" class="h-11 w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg text-sm focus:ring-3 focus:ring-brand-500/20 focus:border-brand-300 outline-none">
@@ -113,6 +162,7 @@
               <option value="check">Cheque</option>
             </select>
           </div>
+          <!-- Descripción -->
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción</label>
             <input type="text" [(ngModel)]="incomeForm.description" class="h-11 w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg text-sm focus:ring-3 focus:ring-brand-500/20 focus:border-brand-300 outline-none" />

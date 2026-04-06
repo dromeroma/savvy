@@ -16,6 +16,8 @@ CHURCH_INCOME_CATEGORIES = [
     {"code": "TITHE", "name": "Diezmo", "type": "income", "app_code": "church", "is_system": True},
     {"code": "OFFERING", "name": "Ofrenda", "type": "income", "app_code": "church", "is_system": True},
     {"code": "DONATION", "name": "Donación", "type": "income", "app_code": "church", "is_system": True},
+    {"code": "COVENANT", "name": "Pacto", "type": "income", "app_code": "church", "is_system": True},
+    {"code": "FIRSTFRUITS", "name": "Primicias", "type": "income", "app_code": "church", "is_system": True},
     {"code": "OTHER_INCOME", "name": "Otros Ingresos", "type": "income", "app_code": "church", "is_system": True},
 ]
 
@@ -23,12 +25,16 @@ CHURCH_EXPENSE_CATEGORIES = [
     {"code": "RENT", "name": "Arriendo", "type": "expense", "app_code": "church", "is_system": True},
     {"code": "UTILITIES", "name": "Servicios Públicos", "type": "expense", "app_code": "church", "is_system": True},
     {"code": "SALARIES", "name": "Salarios y Honorarios", "type": "expense", "app_code": "church", "is_system": True},
-    {"code": "MINISTRY", "name": "Gastos Ministeriales", "type": "expense", "app_code": "church", "is_system": True},
-    {"code": "MAINTENANCE", "name": "Mantenimiento", "type": "expense", "app_code": "church", "is_system": True},
     {"code": "TITHE_OF_TITHE", "name": "Diezmo del Diezmo", "type": "expense", "app_code": "church", "is_system": True},
+    {"code": "AID", "name": "Ayudas y Benevolencia", "type": "expense", "app_code": "church", "is_system": True},
+    {"code": "TRANSPORT", "name": "Pasajes y Transporte", "type": "expense", "app_code": "church", "is_system": True},
+    {"code": "MAINTENANCE", "name": "Mantenimiento", "type": "expense", "app_code": "church", "is_system": True},
     {"code": "SUPPLIES", "name": "Insumos y Materiales", "type": "expense", "app_code": "church", "is_system": True},
+    {"code": "MINISTRY", "name": "Gastos Ministeriales", "type": "expense", "app_code": "church", "is_system": True},
     {"code": "INSURANCE", "name": "Seguros", "type": "expense", "app_code": "church", "is_system": True},
-    {"code": "TRANSPORT", "name": "Transporte", "type": "expense", "app_code": "church", "is_system": True},
+    {"code": "EQUIPMENT", "name": "Equipos y Tecnología", "type": "expense", "app_code": "church", "is_system": True},
+    {"code": "FOOD", "name": "Alimentación", "type": "expense", "app_code": "church", "is_system": True},
+    {"code": "EVENTS", "name": "Eventos y Actividades", "type": "expense", "app_code": "church", "is_system": True},
     {"code": "OTHER_EXPENSE", "name": "Otros Gastos", "type": "expense", "app_code": "church", "is_system": True},
 ]
 

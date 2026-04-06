@@ -26,13 +26,13 @@ from src.modules.people.service import PeopleService
 # Fields that belong to the Person model (forwarded to PeopleService).
 _PERSON_FIELDS = {
     "first_name", "last_name", "email", "phone", "date_of_birth",
-    "gender", "document_type", "document_number", "status",
+    "gender", "document_type", "document_number", "occupation", "status",
 }
 
 # Fields that belong to the ChurchCongregant model.
 _CHURCH_FIELDS = {
-    "scope_id", "membership_date", "baptism_date", "conversion_date",
-    "spiritual_status", "referred_by", "pastoral_notes",
+    "scope_id", "membership_date", "baptism_date", "holy_spirit_baptism",
+    "conversion_date", "spiritual_status", "referred_by", "pastoral_notes",
 }
 
 

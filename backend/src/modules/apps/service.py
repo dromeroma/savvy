@@ -123,8 +123,22 @@ class AppsService:
         )
         db.add(app_user_role)
         await db.flush()
+
+        # Seed app-specific data
+        await AppsService._seed_app_data(db, org_id, app_code)
+
         await db.refresh(org_app)
         return org_app
+
+    @staticmethod
+    async def _seed_app_data(db: AsyncSession, org_id: uuid.UUID, app_code: str) -> None:
+        """Seed default data when an app is activated."""
+        if app_code == "church":
+            from src.modules.accounting.seed import seed_chart_of_accounts
+            await seed_chart_of_accounts(db, org_id, "church")
+            from src.modules.finance.seed import seed_finance_categories, seed_payment_accounts
+            await seed_finance_categories(db, org_id)
+            await seed_payment_accounts(db, org_id)
 
     @staticmethod
     async def deactivate_app(

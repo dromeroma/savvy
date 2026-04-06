@@ -38,11 +38,13 @@ class CongregantCreate(BaseModel):
     gender: Literal["male", "female"] | None = None
     document_type: str | None = Field(None, max_length=20)
     document_number: str | None = Field(None, max_length=50)
+    occupation: str | None = Field(None, max_length=100)
 
     # Church-specific fields
     scope_id: uuid.UUID | None = None
     membership_date: date | None = None
     baptism_date: date | None = None
+    holy_spirit_baptism: bool = False
     conversion_date: date | None = None
     spiritual_status: SPIRITUAL_STATUS | None = None
     referred_by: uuid.UUID | None = None
@@ -66,12 +68,14 @@ class CongregantUpdate(BaseModel):
     gender: Literal["male", "female"] | None = None
     document_type: str | None = Field(None, max_length=20)
     document_number: str | None = Field(None, max_length=50)
+    occupation: str | None = Field(None, max_length=100)
     status: Literal["active", "inactive", "transferred"] | None = None
 
     # Church-specific fields
     scope_id: uuid.UUID | None = None
     membership_date: date | None = None
     baptism_date: date | None = None
+    holy_spirit_baptism: bool | None = None
     conversion_date: date | None = None
     spiritual_status: SPIRITUAL_STATUS | None = None
     referred_by: uuid.UUID | None = None
@@ -105,10 +109,13 @@ class CongregantResponse(BaseModel):
     photo_url: str | None = None
     status: str
 
+    occupation: str | None = None
+
     # Church-specific fields
     scope_id: uuid.UUID | None = None
     membership_date: date | None = None
     baptism_date: date | None = None
+    holy_spirit_baptism: bool = False
     conversion_date: date | None = None
     spiritual_status: str | None = None
     referred_by: uuid.UUID | None = None
