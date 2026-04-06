@@ -260,10 +260,27 @@ export class MemberListComponent implements OnInit {
     });
   }
 
-  reactivate(member: Member): void {
+  // Reactivation
+  showReactivateConfirm = signal(false);
+  reactivatingMember = signal<Member | null>(null);
+
+  openReactivateConfirm(member: Member): void {
+    this.reactivatingMember.set(member);
+    this.showReactivateConfirm.set(true);
+  }
+
+  closeReactivateConfirm(): void {
+    this.showReactivateConfirm.set(false);
+    this.reactivatingMember.set(null);
+  }
+
+  confirmReactivate(): void {
+    const member = this.reactivatingMember();
+    if (!member) return;
     this.api.post(`/church/congregants/${member.id}/reactivate`, {}).subscribe({
       next: () => {
-        this.notify.show({ type: 'success', title: 'Reactivado', message: 'El congregante fue reactivado correctamente' });
+        this.notify.show({ type: 'success', title: 'Reactivado', message: `${member.first_name} ${member.last_name} fue reactivado` });
+        this.closeReactivateConfirm();
         this.loadMembers();
       },
       error: () => {

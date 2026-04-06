@@ -76,7 +76,7 @@
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
                       </button>
                     } @else {
-                      <button (click)="reactivate(member)" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-brand-50 text-brand-600 hover:bg-brand-100 dark:bg-brand-500/20 dark:text-brand-400 dark:hover:bg-brand-500/30 transition">
+                      <button (click)="openReactivateConfirm(member)" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-brand-50 text-brand-600 hover:bg-brand-100 dark:bg-brand-500/20 dark:text-brand-400 dark:hover:bg-brand-500/30 transition">
                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                         Reactivar
                       </button>
@@ -303,6 +303,32 @@
           [disabled]="!inactivationReason || (inactivationReason === 'other' && !otherReasonText.trim())"
           class="px-4 py-2.5 text-sm font-medium rounded-lg bg-amber-600 text-white hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 transition disabled:opacity-50">
           Confirmar inactivación
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Reactivate Confirmation Modal -->
+@if (showReactivateConfirm()) {
+  <div class="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+    <div class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px]"></div>
+    <div class="relative bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 w-full max-w-sm p-6">
+      <div class="flex items-center justify-center w-12 h-12 rounded-full bg-brand-50 dark:bg-brand-500/20 mx-auto mb-4">
+        <svg class="w-6 h-6 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+      </div>
+      <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 text-center mb-2">Reactivar congregante</h3>
+      <p class="text-sm text-gray-600 dark:text-gray-400 text-center mb-6">
+        ¿Deseas reactivar a <span class="font-semibold text-gray-800 dark:text-white/90">{{ reactivatingMember()?.first_name }} {{ reactivatingMember()?.last_name }}</span>?
+      </p>
+      <div class="flex gap-3">
+        <button (click)="closeReactivateConfirm()"
+          class="flex-1 px-4 py-2.5 text-sm font-medium rounded-lg border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition">
+          Cancelar
+        </button>
+        <button (click)="confirmReactivate()"
+          class="flex-1 px-4 py-2.5 text-sm font-medium rounded-lg bg-brand-500 text-white hover:bg-brand-600 transition">
+          Reactivar
         </button>
       </div>
     </div>

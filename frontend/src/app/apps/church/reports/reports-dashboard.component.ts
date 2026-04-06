@@ -1,4 +1,5 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
 
@@ -18,7 +19,7 @@ interface MonthlySummary {
 
 @Component({
   selector: 'app-reports-dashboard',
-  imports: [FormsModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './reports-dashboard.component.html',
 })
 export class ReportsDashboardComponent implements OnInit {
@@ -83,5 +84,10 @@ export class ReportsDashboardComponent implements OnInit {
 
   onPeriodChange(): void {
     this.loadSummary();
+  }
+
+  fmt(value: number | undefined | null): string {
+    if (value == null) return '$0';
+    return '$' + Number(value).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   }
 }
