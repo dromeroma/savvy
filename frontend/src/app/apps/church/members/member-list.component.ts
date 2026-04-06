@@ -40,6 +40,7 @@ export class MemberListComponent implements OnInit {
   // Modal
   showModal = signal(false);
   saving = signal(false);
+  editingId = signal<string | null>(null);  // null = creating, string = editing
   location: LocationSelection = { country_id: null, country_name: '', state_id: null, state_name: '', city_id: null, city_name: '' };
   form = {
     first_name: '',
@@ -108,6 +109,7 @@ export class MemberListComponent implements OnInit {
   }
 
   openModal(): void {
+    this.editingId.set(null);
     this.form = {
       first_name: '',
       last_name: '',
@@ -125,8 +127,28 @@ export class MemberListComponent implements OnInit {
     this.showModal.set(true);
   }
 
+  openEditModal(member: Member): void {
+    this.editingId.set(member.id);
+    this.form = {
+      first_name: member.first_name || '',
+      last_name: member.last_name || '',
+      document_type: (member as any).document_type || '',
+      document_number: (member as any).document_number || '',
+      email: member.email || '',
+      phone: member.phone || '',
+      gender: (member as any).gender || '',
+      occupation: (member as any).occupation || '',
+      date_of_birth: (member as any).date_of_birth || '',
+      membership_date: (member as any).membership_date || '',
+      baptism_date: (member as any).baptism_date || '',
+      holy_spirit_baptism: (member as any).holy_spirit_baptism || false,
+    };
+    this.showModal.set(true);
+  }
+
   closeModal(): void {
     this.showModal.set(false);
+    this.editingId.set(null);
   }
 
   onLocationChange(loc: LocationSelection): void {
@@ -153,13 +175,21 @@ export class MemberListComponent implements OnInit {
     if (this.form.baptism_date) body['baptism_date'] = this.form.baptism_date;
     body['holy_spirit_baptism'] = this.form.holy_spirit_baptism;
 
-    this.api.post('/church/congregants', body).subscribe({
+    const id = this.editingId();
+    const request$ = id
+      ? this.api.patch(`/church/congregants/${id}`, body)
+      : this.api.post('/church/congregants', body);
+
+    request$.subscribe({
       next: () => {
         this.saving.set(false);
         this.closeModal();
         this.loadMembers();
       },
-      error: () => this.saving.set(false),
+      error: (err) => {
+        this.saving.set(false);
+        console.error('Save error:', err);
+      },
     });
   }
 }

@@ -172,9 +172,14 @@ export class FinanceDashboardComponent implements OnInit, OnDestroy {
         this.activeTab.set('income');
         this.loadTransactions();
       },
-      error: () => this.saving.set(false),
+      error: (err) => {
+        this.saving.set(false);
+        console.error('Income creation error:', err);
+        console.error('Body sent:', body);
+      },
     });
   }
+
 
   saveExpense(): void {
     this.saving.set(true);
