@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
 import { NotificationService } from '../../../shared/services/notification.service';
+import { DatePickerComponent } from '../../../shared/components/form/date-picker/date-picker.component';
 
 interface ChurchEvent {
   id: string;
@@ -33,7 +34,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 @Component({
   selector: 'app-events',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DatePickerComponent],
   template: `
     <div>
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
@@ -136,9 +137,12 @@ const STATUS_LABELS: Record<string, string> = {
                   </select>
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Fecha *</label>
-                  <input type="date" [(ngModel)]="form.date"
-                    class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-2.5 text-sm text-gray-800 dark:text-white/90 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none transition" />
+                  <app-date-picker
+                    id="event_date"
+                    label="Fecha *"
+                    [defaultDate]="form.date"
+                    (dateChange)="form.date = $event"
+                  />
                 </div>
               </div>
               <div class="grid grid-cols-2 gap-4">
