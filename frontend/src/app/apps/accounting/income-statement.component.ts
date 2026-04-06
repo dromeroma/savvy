@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
 import { NotificationService } from '../../shared/services/notification.service';
+import { DatePickerComponent } from '../../shared/components/form/date-picker/date-picker.component';
 
 interface AccountLine {
   code: string;
@@ -20,7 +21,7 @@ interface IncomeStatementData {
 
 @Component({
   selector: 'app-income-statement',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DatePickerComponent],
   template: `
     <div>
       <!-- Header -->
@@ -34,14 +35,20 @@ interface IncomeStatementData {
       <!-- Date Range Selector -->
       <div class="flex flex-col sm:flex-row gap-3 mb-6">
         <div class="flex flex-col gap-1">
-          <label class="text-xs font-medium text-gray-600 dark:text-gray-400">Fecha inicio</label>
-          <input type="date" [(ngModel)]="startDate"
-            class="h-11 px-4 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-theme-xs text-gray-800 dark:text-white/90 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition" />
+          <app-date-picker
+            id="is_start_date"
+            label="Fecha inicio"
+            [defaultDate]="startDate"
+            (dateChange)="startDate = $event"
+          />
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-xs font-medium text-gray-600 dark:text-gray-400">Fecha fin</label>
-          <input type="date" [(ngModel)]="endDate"
-            class="h-11 px-4 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-theme-xs text-gray-800 dark:text-white/90 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition" />
+          <app-date-picker
+            id="is_end_date"
+            label="Fecha fin"
+            [defaultDate]="endDate"
+            (dateChange)="endDate = $event"
+          />
         </div>
         <div class="flex items-end">
           <button (click)="loadReport()" [disabled]="loading()"

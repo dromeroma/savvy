@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
 import { NotificationService } from '../../shared/services/notification.service';
+import { DatePickerComponent } from '../../shared/components/form/date-picker/date-picker.component';
 
 interface JournalLine {
   id: string;
@@ -39,7 +40,7 @@ interface NewLine {
 
 @Component({
   selector: 'app-journal-entries',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DatePickerComponent],
   template: `
     <div>
       <!-- Header -->
@@ -199,9 +200,12 @@ interface NewLine {
               <!-- Date & Description -->
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="flex flex-col gap-1.5">
-                  <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Fecha</label>
-                  <input type="date" [(ngModel)]="newEntry.date"
-                    class="h-11 px-4 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-theme-xs text-gray-800 dark:text-white/90 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition" />
+                  <app-date-picker
+                    id="entry_date"
+                    label="Fecha"
+                    [defaultDate]="newEntry.date"
+                    (dateChange)="newEntry.date = $event"
+                  />
                 </div>
                 <div class="flex flex-col gap-1.5">
                   <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Descripcion</label>
