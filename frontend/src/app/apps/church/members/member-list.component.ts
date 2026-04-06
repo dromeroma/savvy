@@ -2,6 +2,7 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
 import { DatePickerComponent } from '../../../shared/components/form/date-picker/date-picker.component';
+import { LocationSelectorComponent, LocationSelection } from '../../../shared/components/form/location-selector/location-selector.component';
 
 interface Member {
   id: string;
@@ -22,7 +23,7 @@ interface PaginatedResponse {
 
 @Component({
   selector: 'app-member-list',
-  imports: [FormsModule, DatePickerComponent],
+  imports: [FormsModule, DatePickerComponent, LocationSelectorComponent],
   templateUrl: './member-list.component.html',
 })
 export class MemberListComponent implements OnInit {
@@ -39,6 +40,7 @@ export class MemberListComponent implements OnInit {
   // Modal
   showModal = signal(false);
   saving = signal(false);
+  location: LocationSelection = { country_id: null, country_name: '', state_id: null, state_name: '', city_id: null, city_name: '' };
   form = {
     first_name: '',
     last_name: '',
@@ -127,9 +129,13 @@ export class MemberListComponent implements OnInit {
     this.showModal.set(false);
   }
 
+  onLocationChange(loc: LocationSelection): void {
+    this.location = loc;
+  }
+
   saveMember(): void {
     this.saving.set(true);
-    const body: Record<string, string | boolean> = {
+    const body: Record<string, any> = {
       first_name: this.form.first_name,
       last_name: this.form.last_name,
     };
@@ -139,6 +145,9 @@ export class MemberListComponent implements OnInit {
     if (this.form.phone) body['phone'] = this.form.phone;
     if (this.form.gender) body['gender'] = this.form.gender;
     if (this.form.occupation) body['occupation'] = this.form.occupation;
+    if (this.location.country_name) body['country'] = this.location.country_name;
+    if (this.location.state_name) body['state'] = this.location.state_name;
+    if (this.location.city_name) body['city'] = this.location.city_name;
     if (this.form.date_of_birth) body['date_of_birth'] = this.form.date_of_birth;
     if (this.form.membership_date) body['membership_date'] = this.form.membership_date;
     if (this.form.baptism_date) body['baptism_date'] = this.form.baptism_date;
