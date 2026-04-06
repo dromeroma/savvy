@@ -5,16 +5,16 @@ import { ApiService } from '../../core/services/api.service';
 import { NotificationService } from '../../shared/services/notification.service';
 
 interface AccountLine {
-  account_code: string;
-  account_name: string;
-  total: number;
+  code: string;
+  name: string;
+  amount: number;
 }
 
 interface IncomeStatementData {
   revenues: AccountLine[];
   expenses: AccountLine[];
   total_revenue: number;
-  total_expenses: number;
+  total_expense: number;
   net_income: number;
 }
 
@@ -70,13 +70,13 @@ interface IncomeStatementData {
               <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
                 Ingresos
               </h4>
-              @for (item of data()!.revenues; track item.account_code) {
+              @for (item of data()!.revenues; track item.code) {
                 <div class="flex items-center justify-between py-2 px-2 hover:bg-gray-50 dark:hover:bg-white/5 rounded transition">
                   <div class="flex items-center gap-3">
-                    <span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ item.account_code }}</span>
-                    <span class="text-sm text-gray-700 dark:text-gray-300">{{ item.account_name }}</span>
+                    <span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ item.code }}</span>
+                    <span class="text-sm text-gray-700 dark:text-gray-300">{{ item.name }}</span>
                   </div>
-                  <span class="font-mono text-sm text-gray-800 dark:text-white/90">{{ formatAmount(item.total) }}</span>
+                  <span class="font-mono text-sm text-gray-800 dark:text-white/90">{{ formatAmount(item.amount) }}</span>
                 </div>
               }
               @if (data()!.revenues.length === 0) {
@@ -93,13 +93,13 @@ interface IncomeStatementData {
               <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
                 Gastos
               </h4>
-              @for (item of data()!.expenses; track item.account_code) {
+              @for (item of data()!.expenses; track item.code) {
                 <div class="flex items-center justify-between py-2 px-2 hover:bg-gray-50 dark:hover:bg-white/5 rounded transition">
                   <div class="flex items-center gap-3">
-                    <span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ item.account_code }}</span>
-                    <span class="text-sm text-gray-700 dark:text-gray-300">{{ item.account_name }}</span>
+                    <span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ item.code }}</span>
+                    <span class="text-sm text-gray-700 dark:text-gray-300">{{ item.name }}</span>
                   </div>
-                  <span class="font-mono text-sm text-gray-800 dark:text-white/90">{{ formatAmount(item.total) }}</span>
+                  <span class="font-mono text-sm text-gray-800 dark:text-white/90">{{ formatAmount(item.amount) }}</span>
                 </div>
               }
               @if (data()!.expenses.length === 0) {
@@ -107,7 +107,7 @@ interface IncomeStatementData {
               }
               <div class="flex items-center justify-between py-2 px-2 mt-1 border-t border-gray-200 dark:border-gray-700">
                 <span class="text-sm font-semibold text-gray-800 dark:text-white/90">Total Gastos</span>
-                <span class="font-mono text-sm font-bold text-red-600 dark:text-red-400">{{ formatAmount(data()!.total_expenses) }}</span>
+                <span class="font-mono text-sm font-bold text-red-600 dark:text-red-400">{{ formatAmount(data()!.total_expense) }}</span>
               </div>
             </div>
 
@@ -156,10 +156,10 @@ export class IncomeStatementComponent implements OnInit {
     }).subscribe({
       next: (raw) => {
         const parsed: IncomeStatementData = {
-          revenues: (raw.revenues || []).map((r: any) => ({ ...r, total: Number(r.total) || 0 })),
-          expenses: (raw.expenses || []).map((e: any) => ({ ...e, total: Number(e.total) || 0 })),
+          revenues: (raw.revenues || []).map((r: any) => ({ ...r, amount: Number(r.amount) || 0 })),
+          expenses: (raw.expenses || []).map((e: any) => ({ ...e, amount: Number(e.amount) || 0 })),
           total_revenue: Number(raw.total_revenue) || 0,
-          total_expenses: Number(raw.total_expenses) || 0,
+          total_expense: Number(raw.total_expense) || 0,
           net_income: Number(raw.net_income) || 0,
         };
         this.data.set(parsed);
