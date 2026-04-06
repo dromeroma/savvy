@@ -177,6 +177,15 @@ export class JournalEntriesComponent implements OnInit {
     this.loading.set(true);
     this.api.get<JournalEntry[]>('/accounting/journal-entries').subscribe({
       next: (data) => {
+        // Parse debit/credit from strings to numbers
+        for (const entry of data) {
+          if (entry.lines) {
+            for (const line of entry.lines) {
+              line.debit = Number(line.debit) || 0;
+              line.credit = Number(line.credit) || 0;
+            }
+          }
+        }
         this.entries.set(data);
         this.applyFilter();
         this.loading.set(false);
