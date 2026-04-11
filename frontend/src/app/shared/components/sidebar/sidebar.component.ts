@@ -57,6 +57,18 @@ const APP_MENUS: Record<string, { icon: string; items: { label: string; route: s
       { label: 'Documentos', route: '/edu/documents' },
     ],
   },
+  crm: {
+    icon: `<svg class="size-6" viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M21 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+    items: [
+      { label: 'Dashboard', route: '/crm/dashboard' },
+      { label: 'Contactos', route: '/crm/contacts' },
+      { label: 'Empresas', route: '/crm/companies' },
+      { label: 'Leads', route: '/crm/leads' },
+      { label: 'Pipelines', route: '/crm/pipelines' },
+      { label: 'Deals', route: '/crm/deals' },
+      { label: 'Actividades', route: '/crm/activities' },
+    ],
+  },
   credit: {
     icon: `<svg class="size-6" viewBox="0 0 24 24" fill="none"><rect x="1" y="4" width="22" height="16" rx="2" ry="2" stroke="currentColor" stroke-width="1.5"/><line x1="1" y1="10" x2="23" y2="10" stroke="currentColor" stroke-width="1.5"/></svg>`,
     items: [
