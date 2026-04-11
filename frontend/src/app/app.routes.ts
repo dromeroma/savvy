@@ -51,6 +51,13 @@ export const routes: Routes = [
         canActivate: [appAccessGuard],
       },
       {
+        path: 'credit',
+        loadChildren: () =>
+          import('./apps/credit/credit.routes').then((m) => m.CREDIT_ROUTES),
+        data: { app: 'credit' },
+        canActivate: [appAccessGuard],
+      },
+      {
         path: 'family',
         loadChildren: () =>
           import('./apps/family/family.routes').then((m) => m.FAMILY_ROUTES),

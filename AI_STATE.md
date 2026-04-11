@@ -1,12 +1,12 @@
 # AI_STATE.md — Estado del Proyecto Savvy
 
-> Ultima actualizacion: 2026-04-11
+> Ultima actualizacion: 2026-04-11 (v0.0.32)
 
 ## Resumen
 
 Savvy es una plataforma SaaS multi-tenant modular desarrollada por **Savvitrix Solutions**. El backend es un monolito modular en FastAPI, el frontend es Angular standalone con Tailwind CSS v4, y la base de datos es PostgreSQL vía Supabase.
 
-**Version actual del frontend**: 0.0.30
+**Version actual del frontend**: 0.0.32
 **Git remote**: `git@github-dromeroma:dromeroma/savvy.git`
 **Branch principal**: `main`
 
@@ -52,7 +52,8 @@ backend/src/
 └── apps/                      # Vertical business apps
     ├── church/                # SavvyChurch (7 sub-modules)
     ├── edu/                   # SavvyEdu (11 sub-modules)
-    └── family/                # SavvyFamily (1 module, 4 tables)
+    ├── family/                # SavvyFamily (1 module, 4 tables)
+    └── credit/                # SavvyCredit (7 sub-modules, 11 tables)
 ```
 
 ### Patron de cada modulo/app
@@ -131,6 +132,15 @@ frontend/src/app/
 - **19 categorias de anotacion**: substance_abuse, mental_health, physical_illness, violence, etc.
 - **Multi-app**: source_app permite que anotaciones vengan de church, health, edu
 
+### SavvyCredit (code: `credit`)
+- **Tablas (11)**: credit_products, credit_product_fees, credit_borrowers, credit_guarantors, credit_applications, credit_loans, credit_amortization, credit_disbursements, credit_payments, credit_penalties, credit_restructurings
+- **Backend**: src/apps/credit/ (products, borrowers, applications, loans, payments, restructuring, dashboard)
+- **CreditEngine**: Motor de calculo financiero con 4 metodos de amortizacion (french, german, flat, bullet), conversion de tasas entre periodos, asignacion de pagos configurable (interest_first, principal_first, proportional)
+- **Frontend**: 8 vistas (dashboard KPIs, productos crediticios, prestatarios, solicitudes con aprobacion, prestamos con tabla amortizacion, detalle de prestamo, pagos, registro de pagos)
+- **Config-driven**: Cada producto define su propio interest_type, amortization_method, payment_frequency, late_fee, grace_period, payment_allocation
+- **Loan lifecycle**: pending -> active -> current/delinquent -> paid_off/written_off/restructured
+- **Delega a**: PeopleService (borrowers), FinanceService + AccountingEngine (futuro)
+
 ### SavvyAccounting (modulo compartido, code: `accounting`)
 - **Tablas**: chart_of_accounts, fiscal_periods, journal_entries, journal_entry_lines
 - **AccountingEngine**: Plan de cuentas jerarquico, asientos doble partida, periodos fiscales, reportes (estado de resultados, balance general)
@@ -140,7 +150,7 @@ frontend/src/app/
 
 ## Apps en Dashboard "Proximamente"
 
-SavvyHealth, SavvyCondo, SavvyParking, SavvyCRM, SavvyCredit
+SavvyHealth, SavvyCondo, SavvyParking, SavvyCRM
 
 ---
 
@@ -150,9 +160,9 @@ SavvyHealth, SavvyCondo, SavvyParking, SavvyCRM, SavvyCredit
 |--------|-------------|---------------|
 | auth | users, refresh_tokens | Todos |
 | organization | organizations, memberships, invitations | Todos |
-| people | people, family_relationships, emergency_contacts | Church, Edu, Family |
+| people | people, family_relationships, emergency_contacts | Church, Edu, Family, Credit |
 | groups | organizational_scopes, group_types, groups, group_members, scope_leaders | Church, Edu |
-| finance | finance_categories, finance_transactions, finance_payment_accounts | Church, Edu |
+| finance | finance_categories, finance_transactions, finance_payment_accounts | Church, Edu, Credit |
 | accounting | chart_of_accounts, fiscal_periods, journal_entries, journal_entry_lines | Finance -> todos |
 | apps | app_registry, organization_apps, app_user_roles | Dashboard, sidebar, guards |
 | geography | geo_countries, geo_states, geo_cities | People |
@@ -235,6 +245,8 @@ docs/
 
 | Version | Descripcion |
 |---------|-------------|
+| 0.0.32 | SavvyCredit completo: CreditEngine, 4 metodos amortizacion, 11 tablas, 8 vistas |
+| 0.0.31 | Fix sidebar reactivo (BehaviorSubject) + AI_STATE.md |
 | 0.0.30 | Documentacion sincronizada: SavvyAccounting, SavvyEdu, SavvyFamily + indices |
 | 0.0.29 | SavvyFamily completo: familiograma D3.js, anotaciones clinicas, genograma |
 | 0.0.28 | SavvyEdu completo: 11 modulos, 24 tablas, GradingEngine, config-driven |
