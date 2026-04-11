@@ -32,49 +32,64 @@ SavvyCore es la base compartida sobre la cual se construyen multiples aplicacion
 
 ---
 
+## Aplicaciones implementadas
+
+### SavvyChurch
+
+**Dominio**: Gestion integral de iglesias y ministerios.
+**Estado**: Produccion.
+**Documentacion**: [docs/apps/church/README.md](./church/README.md)
+
+**Funcionalidades**: Congregantes, visitantes, eventos/cultos, asistencia, grupos/ministerios, finanzas (diezmos, ofrendas), reportes, dashboard con KPIs.
+
+### SavvyEdu
+
+**Dominio**: Plataforma de gestion educativa universal (K-12, universidades, institutos, academias).
+**Estado**: Produccion.
+**Documentacion**: [docs/apps/edu/README.md](./edu/README.md)
+
+**Funcionalidades**: Config institucional (grading systems, period types, evaluation templates), programas, cursos con prerrequisitos, estudiantes, docentes, secciones con matricula/waitlist, horarios con deteccion de conflictos, calificaciones con GradingEngine, asistencia, finanzas educativas (tuition, becas), documentos.
+
+### SavvyFamily
+
+**Dominio**: Familiograma, arbol genealogico y diagnostico familiar.
+**Estado**: Produccion.
+**Documentacion**: [docs/apps/family/README.md](./family/README.md)
+
+**Funcionalidades**: Unidades familiares, miembros con generaciones, metadata de relaciones (matrimonios, divorcios), anotaciones clinicas/pastorales (19 categorias), genograma visual con D3.js.
+
+---
+
 ## Aplicaciones planeadas
 
 ### SavvyPOS
 
-**Dominio**: Punto de venta para restaurantes, tiendas y comercios.
-
-**Funcionalidades principales**:
-- Gestion de productos y categorias
-- Registro de ventas y transacciones
-- Gestion de cajas (apertura, cierre, cortes)
-- Gestion de clientes
-- Reportes de ventas (diario, semanal, mensual)
-- Impresion de tickets
-- Multiples metodos de pago
-
+**Dominio**: Punto de venta para retail latinoamericano.
 **Estado**: En planificacion.
 
-### SavvyLogistics
+### SavvyHealth
 
-**Dominio**: Gestion de logistica, entregas y transporte.
-
-**Funcionalidades principales**:
-- Creacion y seguimiento de envios
-- Gestion de rutas y conductores
-- Tracking en tiempo real
-- Calculo de ETAs
-- Notificaciones al cliente
-- Reportes de entregas
-
+**Dominio**: Gestion de clinicas y consultorios.
 **Estado**: Concepto.
 
-### SavvyInventory
+### SavvyCondo
 
-**Dominio**: Control de inventario y almacenes.
+**Dominio**: Administracion de propiedades horizontales.
+**Estado**: Concepto.
 
-**Funcionalidades principales**:
-- Gestion de productos y SKUs
-- Multiples almacenes
-- Movimientos de entrada/salida
-- Alertas de stock bajo
-- Reportes de inventario
-- Integracion con POS y Logistics
+### SavvyCRM
 
+**Dominio**: CRM para equipos de ventas y soporte.
+**Estado**: Concepto.
+
+### SavvyCredit
+
+**Dominio**: Gestion de creditos y cartera.
+**Estado**: Concepto.
+
+### SavvyParking
+
+**Dominio**: Control de parqueaderos y accesos.
 **Estado**: Concepto.
 
 ---

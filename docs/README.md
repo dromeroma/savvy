@@ -6,7 +6,10 @@
 
 ## Acerca de este repositorio
 
-**SavvyCore** es el nucleo compartido sobre el cual se construyen todas las aplicaciones SaaS de Savvitrix Solutions (SavvyPOS, SavvyLogistics, SavvyInventory, etc.). Proporciona autenticacion, gestion de organizaciones, gateway API, multi-tenancy y las convenciones base que todo producto debe seguir.
+**SavvyCore** es el nucleo compartido sobre el cual se construyen todas las aplicaciones SaaS de Savvitrix Solutions. Proporciona autenticacion, gestion de organizaciones, gateway API, multi-tenancy y las convenciones base que todo producto debe seguir.
+
+**Apps activas**: SavvyChurch, SavvyEdu, SavvyFamily, SavvyAccounting
+**Apps planeadas**: SavvyPOS, SavvyHealth, SavvyCondo, SavvyCRM, SavvyCredit, SavvyParking
 
 **Stack tecnologico**: Python 3.12+ / FastAPI / SQLAlchemy 2.0 / PostgreSQL 16 / Redis
 
@@ -31,6 +34,15 @@
 | [Organization](./modules/organization/README.md) | Gestion de organizaciones, membresias, invitaciones |
 | [API Gateway](./modules/gateway/README.md) | Pipeline de middleware, routing, versionado |
 
+### Modulos Compartidos
+
+| Documento | Descripcion |
+|-----------|-------------|
+| [People](./modules/people/README.md) | Personas universales, relaciones familiares, contactos emergencia |
+| [Groups](./modules/groups/README.md) | Grupos, tipos de grupo, scopes organizacionales, liderazgo |
+| [Finance](./modules/finance/README.md) | Motor de transacciones: categorias, ingresos/egresos, cuentas de pago |
+| [Accounting](./modules/accounting/README.md) | Motor contable: plan de cuentas, asientos doble partida, reportes financieros |
+
 ### Base de Datos
 
 | Documento | Descripcion |
@@ -52,6 +64,9 @@
 |-----------|-------------|
 | [Apps sobre SavvyCore](./apps/README.md) | Como se construyen las apps SaaS sobre el core |
 | [Template de App](./apps/_template/README.md) | Plantilla para documentar una nueva aplicacion |
+| [SavvyChurch](./apps/church/README.md) | Gestion integral de iglesias: congregantes, clases, asistencia, finanzas |
+| [SavvyEdu](./apps/edu/README.md) | Gestion educativa: estudiantes, docentes, calificaciones, GradingEngine |
+| [SavvyFamily](./apps/family/README.md) | Familiograma, arbol genealogico, anotaciones clinicas, genograma D3.js |
 
 ### Guias de Desarrollo
 
@@ -106,6 +121,10 @@ docs/
     auth/README.md                   <-- Modulo de autenticacion
     organization/README.md           <-- Modulo de organizaciones
     gateway/README.md                <-- API Gateway
+    people/README.md                 <-- Modulo de personas
+    groups/README.md                 <-- Modulo de grupos
+    finance/README.md                <-- Motor de transacciones financieras
+    accounting/README.md             <-- Motor contable doble partida
   database/
     schema.md                        <-- Esquema de base de datos
     conventions.md                   <-- Convenciones de BD
@@ -116,6 +135,9 @@ docs/
   apps/
     README.md                        <-- Guia de apps SaaS
     _template/README.md              <-- Plantilla para nueva app
+    church/README.md                 <-- SavvyChurch
+    edu/README.md                    <-- SavvyEdu
+    family/README.md                 <-- SavvyFamily
   guides/
     adding-a-module.md               <-- Guia: agregar modulo
     adding-an-app.md                 <-- Guia: agregar app
