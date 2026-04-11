@@ -17,6 +17,7 @@ from src.modules.geography.router import router as geography_router
 # Apps
 from src.apps.church.router import router as church_router
 from src.apps.edu.router import router as edu_router
+from src.apps.family.router import router as family_router
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -35,3 +36,4 @@ api_router.include_router(geography_router)
 # Vertical apps
 api_router.include_router(church_router)
 api_router.include_router(edu_router)
+api_router.include_router(family_router)
