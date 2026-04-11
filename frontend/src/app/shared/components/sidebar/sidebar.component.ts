@@ -1,6 +1,7 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { SidebarService } from '../../services/sidebar.service';
 import { AppsService } from '../../../core/services/apps.service';
 import { MyApp } from '../../../core/models/app.model';
@@ -78,9 +79,10 @@ const APP_MENUS: Record<string, { icon: string; items: { label: string; route: s
   imports: [CommonModule, RouterLink, RouterLinkActive],
   templateUrl: './sidebar.component.html',
 })
-export class SidebarComponent implements OnInit {
+export class SidebarComponent implements OnInit, OnDestroy {
   private readonly sidebarService = inject(SidebarService);
   private readonly appsService = inject(AppsService);
+  private appsSub?: Subscription;
 
   isExpanded$ = this.sidebarService.isExpanded$;
   isMobileOpen$ = this.sidebarService.isMobileOpen$;
@@ -90,21 +92,27 @@ export class SidebarComponent implements OnInit {
   appMenus = signal<AppMenu[]>([]);
 
   ngOnInit(): void {
-    this.appsService.getMyApps().subscribe({
-      next: (apps) => {
-        const menus = apps
-          .filter(a => APP_MENUS[a.app.code])
-          .map(a => ({
-            code: a.app.code,
-            name: a.app.name,
-            icon: APP_MENUS[a.app.code].icon,
-            open: false,
-            items: APP_MENUS[a.app.code].items,
-          }));
-        this.appMenus.set(menus);
-      },
-      error: () => {},
+    // Subscribe to reactive apps stream — updates automatically when apps change
+    this.appsSub = this.appsService.apps$.subscribe((apps) => {
+      const currentOpen = new Set(this.appMenus().filter(m => m.open).map(m => m.code));
+      const menus = apps
+        .filter(a => APP_MENUS[a.app.code])
+        .map(a => ({
+          code: a.app.code,
+          name: a.app.name,
+          icon: APP_MENUS[a.app.code].icon,
+          open: currentOpen.has(a.app.code),
+          items: APP_MENUS[a.app.code].items,
+        }));
+      this.appMenus.set(menus);
     });
+
+    // Trigger initial load
+    this.appsService.getMyApps().subscribe();
+  }
+
+  ngOnDestroy(): void {
+    this.appsSub?.unsubscribe();
   }
 
   onMouseEnter(): void {

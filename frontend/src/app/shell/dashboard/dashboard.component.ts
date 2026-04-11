@@ -110,7 +110,7 @@ export class DashboardComponent implements OnInit {
     this.appsService.activateApp(appCode).subscribe({
       next: () => {
         this.notify.show({ type: 'success', title: 'App activada', message: 'La aplicación se activó correctamente' });
-        this.loadData();
+        this.loadData(); // Reloads dashboard + triggers sidebar update via apps$ stream
       },
       error: (err) => {
         const msg = err.error?.detail ?? 'Error al activar la aplicación.';
