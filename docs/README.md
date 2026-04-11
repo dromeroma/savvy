@@ -67,6 +67,9 @@
 | [SavvyChurch](./apps/church/README.md) | Gestion integral de iglesias: congregantes, clases, asistencia, finanzas |
 | [SavvyEdu](./apps/edu/README.md) | Gestion educativa: estudiantes, docentes, calificaciones, GradingEngine |
 | [SavvyFamily](./apps/family/README.md) | Familiograma, arbol genealogico, anotaciones clinicas, genograma D3.js |
+| [SavvyCredit](./apps/credit/README.md) | Creditos y prestamos: CreditEngine, 4 metodos amortizacion, pagos |
+| [SavvyCRM](./apps/crm/README.md) | CRM pipeline-driven: contactos, leads, deals, actividades |
+| [SavvyParking](./apps/parking/README.md) | Parqueaderos: sesiones, tarifas config, servicios, tiempo real |
 
 ### Guias de Desarrollo
 

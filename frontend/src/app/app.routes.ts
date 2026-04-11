@@ -58,6 +58,13 @@ export const routes: Routes = [
         canActivate: [appAccessGuard],
       },
       {
+        path: 'parking',
+        loadChildren: () =>
+          import('./apps/parking/parking.routes').then((m) => m.PARKING_ROUTES),
+        data: { app: 'parking' },
+        canActivate: [appAccessGuard],
+      },
+      {
         path: 'crm',
         loadChildren: () =>
           import('./apps/crm/crm.routes').then((m) => m.CRM_ROUTES),

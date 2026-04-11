@@ -57,6 +57,17 @@ const APP_MENUS: Record<string, { icon: string; items: { label: string; route: s
       { label: 'Documentos', route: '/edu/documents' },
     ],
   },
+  parking: {
+    icon: `<svg class="size-6" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    items: [
+      { label: 'Dashboard', route: '/parking/dashboard' },
+      { label: 'Infraestructura', route: '/parking/infrastructure' },
+      { label: 'Vehículos', route: '/parking/vehicles' },
+      { label: 'Sesiones', route: '/parking/sessions' },
+      { label: 'Tarifas', route: '/parking/pricing' },
+      { label: 'Servicios', route: '/parking/services' },
+    ],
+  },
   crm: {
     icon: `<svg class="size-6" viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M21 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
     items: [
