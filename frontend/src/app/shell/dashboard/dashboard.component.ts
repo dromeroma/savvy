@@ -40,12 +40,6 @@ export class DashboardComponent implements OnInit {
       icon: `<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>`,
     },
     {
-      name: 'SavvyEdu',
-      description: 'Gestión educativa: estudiantes, docentes, calificaciones, informes académicos y coordinación',
-      color: '#8B5CF6',
-      icon: `<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/></svg>`,
-    },
-    {
       name: 'SavvyParking',
       description: 'Automatización de parqueaderos: control vehicular, cámaras, vigilancia, lavado y disponibilidad en tiempo real',
       color: '#0EA5E9',

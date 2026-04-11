@@ -43,6 +43,13 @@ export const routes: Routes = [
         data: { app: 'accounting' },
         canActivate: [appAccessGuard],
       },
+      {
+        path: 'edu',
+        loadChildren: () =>
+          import('./apps/edu/edu.routes').then((m) => m.EDU_ROUTES),
+        data: { app: 'edu' },
+        canActivate: [appAccessGuard],
+      },
     ],
   },
   { path: '**', redirectTo: 'dashboard' },
