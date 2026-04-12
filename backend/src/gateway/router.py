@@ -23,6 +23,7 @@ from src.apps.crm.router import router as crm_router
 from src.apps.parking.router import router as parking_router
 from src.apps.condo.router import router as condo_router
 from src.apps.health.router import router as health_router
+from src.apps.pay.router import router as pay_router
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -47,3 +48,4 @@ api_router.include_router(crm_router)
 api_router.include_router(parking_router)
 api_router.include_router(condo_router)
 api_router.include_router(health_router)
+api_router.include_router(pay_router)

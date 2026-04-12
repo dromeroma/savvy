@@ -30,6 +30,18 @@ const APP_MENUS: Record<string, { icon: string; items: { label: string; route: s
       { label: 'Reportes', route: '/church/reports' },
     ],
   },
+  pay: {
+    icon: `<svg class="size-6" viewBox="0 0 24 24" fill="none"><rect x="1" y="4" width="22" height="16" rx="2" ry="2" stroke="currentColor" stroke-width="1.5"/><line x1="1" y1="10" x2="23" y2="10" stroke="currentColor" stroke-width="1.5"/><path d="M7 15h2m4 0h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+    items: [
+      { label: 'Dashboard', route: '/pay/dashboard' },
+      { label: 'Ledger', route: '/pay/ledger' },
+      { label: 'Transacciones', route: '/pay/transactions' },
+      { label: 'Wallets', route: '/pay/wallets' },
+      { label: 'Fees', route: '/pay/fees' },
+      { label: 'Payouts', route: '/pay/payouts' },
+      { label: 'Suscripciones', route: '/pay/subscriptions' },
+    ],
+  },
   accounting: {
     icon: `<svg class="size-6" viewBox="0 0 24 24" fill="none"><path d="M4 2V22" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M4 4H13L11 6L13 8H4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 12H10L8 14L10 16H4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="14" y="12" width="6" height="8" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M16 16H18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
     items: [

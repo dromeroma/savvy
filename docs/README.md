@@ -72,6 +72,7 @@
 | [SavvyParking](./apps/parking/README.md) | Parqueaderos: sesiones, tarifas config, servicios, tiempo real |
 | [SavvyCondo](./apps/condo/README.md) | Propiedad horizontal: cuotas, areas comunes, asambleas, votacion digital |
 | [SavvyHealth](./apps/health/README.md) | Clinicas: pacientes, citas, historia clinica SOAP, prescripciones, laboratorio |
+| [SavvyPay](./apps/pay/README.md) | Infraestructura financiera: ledger doble partida, wallets, transacciones, payouts, suscripciones |
 
 ### Guias de Desarrollo
 

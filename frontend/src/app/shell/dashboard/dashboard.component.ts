@@ -28,12 +28,6 @@ export class DashboardComponent implements OnInit {
       icon: `<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`,
     },
     {
-      name: 'SavvyPay',
-      description: 'Pasarela de pagos y facturación electrónica: cobros online, recurrentes, wallets y conciliación',
-      color: '#10B981',
-      icon: `<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/><path d="M7 15h2m4 0h4"/></svg>`,
-    },
-    {
       name: 'SavvyWater',
       description: 'Gestión de acueductos y servicios de agua: medidores, consumo, facturación, redes y cortes',
       color: '#06B6D4',
