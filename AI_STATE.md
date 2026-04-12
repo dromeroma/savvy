@@ -1,12 +1,12 @@
 # AI_STATE.md — Estado del Proyecto Savvy
 
-> Ultima actualizacion: 2026-04-11 (v0.0.34)
+> Ultima actualizacion: 2026-04-11 (v0.0.35)
 
 ## Resumen
 
 Savvy es una plataforma SaaS multi-tenant modular desarrollada por **Savvitrix Solutions**. El backend es un monolito modular en FastAPI, el frontend es Angular standalone con Tailwind CSS v4, y la base de datos es PostgreSQL vía Supabase.
 
-**Version actual del frontend**: 0.0.34
+**Version actual del frontend**: 0.0.35
 **Git remote**: `git@github-dromeroma:dromeroma/savvy.git`
 **Branch principal**: `main`
 
@@ -55,7 +55,8 @@ backend/src/
     ├── family/                # SavvyFamily (1 module, 4 tables)
     ├── credit/                # SavvyCredit (7 sub-modules, 11 tables)
     ├── crm/                   # SavvyCRM (6 sub-modules, 9 tables)
-    └── parking/                # SavvyParking (6 sub-modules, 10 tables)
+    ├── parking/                # SavvyParking (6 sub-modules, 10 tables)
+    └── condo/                 # SavvyCondo (8 sub-modules, 11 tables)
 ```
 
 ### Patron de cada modulo/app
@@ -152,7 +153,7 @@ frontend/src/app/
 
 ## Apps en Dashboard "Proximamente"
 
-SavvyHealth, SavvyCondo
+SavvyHealth
 
 ---
 
@@ -247,6 +248,7 @@ docs/
 
 | Version | Descripcion |
 |---------|-------------|
+| 0.0.35 | SavvyCondo completo: 11 tablas, 9 vistas, gobernanza digital, cuotas por coeficiente |
 | 0.0.34 | SavvyParking completo: PricingEngine, sesiones entry/exit, 10 tablas, 7 vistas + docs Credit/CRM/Parking |
 | 0.0.33 | SavvyCRM completo: pipelines, deals, leads, contacts, companies, activities, 9 tablas |
 | 0.0.32 | SavvyCredit completo: CreditEngine, 4 metodos amortizacion, 11 tablas, 8 vistas |

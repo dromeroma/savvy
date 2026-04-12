@@ -72,6 +72,13 @@ export const routes: Routes = [
         canActivate: [appAccessGuard],
       },
       {
+        path: 'condo',
+        loadChildren: () =>
+          import('./apps/condo/condo.routes').then((m) => m.CONDO_ROUTES),
+        data: { app: 'condo' },
+        canActivate: [appAccessGuard],
+      },
+      {
         path: 'family',
         loadChildren: () =>
           import('./apps/family/family.routes').then((m) => m.FAMILY_ROUTES),

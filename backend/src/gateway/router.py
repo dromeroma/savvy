@@ -21,6 +21,7 @@ from src.apps.family.router import router as family_router
 from src.apps.credit.router import router as credit_router
 from src.apps.crm.router import router as crm_router
 from src.apps.parking.router import router as parking_router
+from src.apps.condo.router import router as condo_router
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -43,3 +44,4 @@ api_router.include_router(family_router)
 api_router.include_router(credit_router)
 api_router.include_router(crm_router)
 api_router.include_router(parking_router)
+api_router.include_router(condo_router)

@@ -68,6 +68,19 @@ const APP_MENUS: Record<string, { icon: string; items: { label: string; route: s
       { label: 'Servicios', route: '/parking/services' },
     ],
   },
+  condo: {
+    icon: `<svg class="size-6" viewBox="0 0 24 24" fill="none"><rect x="4" y="2" width="16" height="20" rx="2" ry="2" stroke="currentColor" stroke-width="1.5"/><path d="M9 22v-4h6v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+    items: [
+      { label: 'Dashboard', route: '/condo/dashboard' },
+      { label: 'Propiedades', route: '/condo/properties' },
+      { label: 'Residentes', route: '/condo/residents' },
+      { label: 'Cuotas', route: '/condo/fees' },
+      { label: 'Areas Comunes', route: '/condo/areas' },
+      { label: 'Mantenimiento', route: '/condo/maintenance' },
+      { label: 'Asambleas', route: '/condo/governance' },
+      { label: 'Comunicados', route: '/condo/announcements' },
+    ],
+  },
   crm: {
     icon: `<svg class="size-6" viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M21 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
     items: [
