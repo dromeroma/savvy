@@ -44,6 +44,13 @@ export const routes: Routes = [
         canActivate: [appAccessGuard],
       },
       {
+        path: 'pos',
+        loadChildren: () =>
+          import('./apps/pos/pos.routes').then((m) => m.POS_ROUTES),
+        data: { app: 'pos' },
+        canActivate: [appAccessGuard],
+      },
+      {
         path: 'edu',
         loadChildren: () =>
           import('./apps/edu/edu.routes').then((m) => m.EDU_ROUTES),

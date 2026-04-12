@@ -1,12 +1,12 @@
 # AI_STATE.md — Estado del Proyecto Savvy
 
-> Ultima actualizacion: 2026-04-11 (v0.0.38)
+> Ultima actualizacion: 2026-04-11 (v0.0.39)
 
 ## Resumen
 
 Savvy es una plataforma SaaS multi-tenant modular desarrollada por **Savvitrix Solutions**. El backend es un monolito modular en FastAPI, el frontend es Angular standalone con Tailwind CSS v4, y la base de datos es PostgreSQL vía Supabase.
 
-**Version actual del frontend**: 0.0.38
+**Version actual del frontend**: 0.0.39
 **Git remote**: `git@github-dromeroma:dromeroma/savvy.git`
 **Branch principal**: `main`
 
@@ -58,7 +58,8 @@ backend/src/
     ├── parking/                # SavvyParking (6 sub-modules, 10 tables)
     ├── condo/                 # SavvyCondo (8 sub-modules, 11 tables)
     ├── health/                # SavvyHealth (6 sub-modules, 12 tables)
-    └── pay/                   # SavvyPay (7 sub-modules, 11 tables) — FINANCIAL BACKBONE
+    ├── pay/                   # SavvyPay (7 sub-modules, 11 tables) — FINANCIAL BACKBONE
+    └── pos/                   # SavvyPOS cloud (6 sub-modules, 11 tables) + SavvyPOS LocalFirst (external, code=pos_local)
 ```
 
 ### Patron de cada modulo/app
