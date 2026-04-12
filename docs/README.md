@@ -71,6 +71,7 @@
 | [SavvyCRM](./apps/crm/README.md) | CRM pipeline-driven: contactos, leads, deals, actividades |
 | [SavvyParking](./apps/parking/README.md) | Parqueaderos: sesiones, tarifas config, servicios, tiempo real |
 | [SavvyCondo](./apps/condo/README.md) | Propiedad horizontal: cuotas, areas comunes, asambleas, votacion digital |
+| [SavvyHealth](./apps/health/README.md) | Clinicas: pacientes, citas, historia clinica SOAP, prescripciones, laboratorio |
 
 ### Guias de Desarrollo
 

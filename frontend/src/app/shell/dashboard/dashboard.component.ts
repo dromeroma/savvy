@@ -20,14 +20,7 @@ export class DashboardComponent implements OnInit {
   loading = signal(true);
   error = signal('');
 
-  comingSoonApps = [
-    {
-      name: 'SavvyHealth',
-      description: 'Gestión de clínicas y consultorios: pacientes, citas, historia clínica y facturación',
-      color: '#EF4444',
-      icon: `<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>`,
-    },
-  ];
+  comingSoonApps: any[] = [];
 
   // Computed: separate internal from external
   myInternalApps = computed(() => this.myApps().filter(a => !a.app.is_external));

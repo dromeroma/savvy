@@ -57,6 +57,17 @@ const APP_MENUS: Record<string, { icon: string; items: { label: string; route: s
       { label: 'Documentos', route: '/edu/documents' },
     ],
   },
+  health: {
+    icon: `<svg class="size-6" viewBox="0 0 24 24" fill="none"><path d="M22 12h-4l-3 9L9 3l-3 9H2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    items: [
+      { label: 'Dashboard', route: '/health/dashboard' },
+      { label: 'Pacientes', route: '/health/patients' },
+      { label: 'Profesionales', route: '/health/providers' },
+      { label: 'Citas', route: '/health/appointments' },
+      { label: 'Historias', route: '/health/clinical' },
+      { label: 'Servicios', route: '/health/services' },
+    ],
+  },
   parking: {
     icon: `<svg class="size-6" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
     items: [
