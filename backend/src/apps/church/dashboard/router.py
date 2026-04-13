@@ -7,9 +7,14 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.dependencies import get_db, get_org_id
+from src.modules.apps.permissions import require_permission
 from src.apps.church.dashboard.service import ChurchDashboardService
 
-router = APIRouter(prefix="/dashboard", tags=["Church Dashboard"])
+router = APIRouter(
+    prefix="/dashboard",
+    tags=["Church Dashboard"],
+    dependencies=[Depends(require_permission("church", "reports.view", "members.read"))],
+)
 
 
 @router.get("/kpis")

@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.dependencies import get_db, get_org_id
+from src.modules.apps.permissions import require_permission
 from src.apps.church.congregants.schemas import (
     CongregantCreate,
     CongregantListParams,
@@ -18,8 +19,12 @@ from src.apps.church.congregants.service import CongregantService
 
 router = APIRouter(prefix="/congregants", tags=["Church Congregants"])
 
+_READ = [Depends(require_permission("church", "members.read"))]
+_WRITE = [Depends(require_permission("church", "members.write"))]
+_DELETE = [Depends(require_permission("church", "members.delete", "members.write"))]
 
-@router.get("", response_model=dict)
+
+@router.get("", response_model=dict, dependencies=_READ)
 async def list_congregants(
     db: AsyncSession = Depends(get_db),
     org_id: uuid.UUID = Depends(get_org_id),
@@ -52,6 +57,7 @@ async def list_congregants(
     "",
     response_model=CongregantResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=_WRITE,
 )
 async def create_congregant(
     data: CongregantCreate,
@@ -62,7 +68,7 @@ async def create_congregant(
     return await CongregantService.create_congregant(db, org_id, data)
 
 
-@router.get("/{congregant_id}", response_model=CongregantResponse)
+@router.get("/{congregant_id}", response_model=CongregantResponse, dependencies=_READ)
 async def get_congregant(
     congregant_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -72,7 +78,7 @@ async def get_congregant(
     return await CongregantService.get_congregant(db, org_id, congregant_id)
 
 
-@router.patch("/{congregant_id}", response_model=CongregantResponse)
+@router.patch("/{congregant_id}", response_model=CongregantResponse, dependencies=_WRITE)
 async def update_congregant(
     congregant_id: uuid.UUID,
     data: CongregantUpdate,
@@ -83,7 +89,7 @@ async def update_congregant(
     return await CongregantService.update_congregant(db, org_id, congregant_id, data)
 
 
-@router.post("/{congregant_id}/inactivate", response_model=CongregantResponse)
+@router.post("/{congregant_id}/inactivate", response_model=CongregantResponse, dependencies=_DELETE)
 async def inactivate_congregant(
     congregant_id: uuid.UUID,
     data: InactivateRequest,
@@ -94,7 +100,7 @@ async def inactivate_congregant(
     return await CongregantService.inactivate_congregant(db, org_id, congregant_id, data.reason, data.other_reason)
 
 
-@router.post("/{congregant_id}/reactivate", response_model=CongregantResponse)
+@router.post("/{congregant_id}/reactivate", response_model=CongregantResponse, dependencies=_WRITE)
 async def reactivate_congregant(
     congregant_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),

@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.dependencies import get_db, get_org_id
+from src.modules.apps.permissions import require_permission
 from src.apps.church.pastoral.schemas import (
     LifecycleCreate,
     LifecycleResponse,
@@ -23,7 +24,11 @@ from src.apps.church.pastoral.service import (
     TransferService,
 )
 
-router = APIRouter(prefix="/pastoral", tags=["Church Pastoral"])
+router = APIRouter(
+    prefix="/pastoral",
+    tags=["Church Pastoral"],
+    dependencies=[Depends(require_permission("church", "pastoral.notes", "members.read", "members.write"))],
+)
 
 
 # ------------------------------------------------------------------

@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.dependencies import get_db, get_org_id
+from src.modules.apps.permissions import require_permission
 from src.apps.church.rotations.schemas import (
     AssignmentCreate,
     AssignmentResponse,
@@ -21,7 +22,11 @@ from src.apps.church.rotations.service import (
     RotationService,
 )
 
-router = APIRouter(prefix="/rotations", tags=["Church Rotations"])
+router = APIRouter(
+    prefix="/rotations",
+    tags=["Church Rotations"],
+    dependencies=[Depends(require_permission("church", "rotations.manage", "events.manage"))],
+)
 
 
 # ------------------------------------------------------------------

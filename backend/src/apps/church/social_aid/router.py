@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.dependencies import get_db, get_org_id
+from src.modules.apps.permissions import require_permission
 from src.apps.church.social_aid.schemas import (
     AidProgramCreate,
     AidProgramResponse,
@@ -23,7 +24,11 @@ from src.apps.church.social_aid.service import (
     DistributionService,
 )
 
-router = APIRouter(prefix="/social-aid", tags=["Church Social Aid"])
+router = APIRouter(
+    prefix="/social-aid",
+    tags=["Church Social Aid"],
+    dependencies=[Depends(require_permission("church", "social_aid.manage"))],
+)
 
 
 # ------------------------------------------------------------------

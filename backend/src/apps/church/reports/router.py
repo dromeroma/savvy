@@ -6,10 +6,15 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.dependencies import get_db, get_org_id
+from src.modules.apps.permissions import require_permission
 from src.apps.church.reports.schemas import MonthlySummaryResponse, TitheOfTitheResponse
 from src.apps.church.reports.service import ChurchReportService
 
-router = APIRouter(prefix="/reports", tags=["Church Reports"])
+router = APIRouter(
+    prefix="/reports",
+    tags=["Church Reports"],
+    dependencies=[Depends(require_permission("church", "reports.view"))],
+)
 
 
 @router.get("/monthly-summary", response_model=MonthlySummaryResponse)

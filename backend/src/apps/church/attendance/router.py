@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.dependencies import get_db, get_org_id
+from src.modules.apps.permissions import require_permission
 from src.apps.church.attendance.schemas import (
     AttendanceBulkCreate,
     AttendanceResponse,
@@ -14,10 +15,17 @@ from src.apps.church.attendance.schemas import (
 )
 from src.apps.church.attendance.service import AttendanceService
 
-router = APIRouter(prefix="/attendance", tags=["Church Attendance"])
+router = APIRouter(
+    prefix="/attendance",
+    tags=["Church Attendance"],
+    dependencies=[Depends(require_permission("church", "events.manage", "members.read"))],
+)
 
 
-@router.post("/")
+@router.post(
+    "/",
+    dependencies=[Depends(require_permission("church", "events.manage"))],
+)
 async def record_attendance(
     data: AttendanceBulkCreate,
     db: AsyncSession = Depends(get_db),

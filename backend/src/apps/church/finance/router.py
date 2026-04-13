@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.dependencies import get_current_user, get_db, get_org_id
+from src.modules.apps.permissions import require_permission
 from src.apps.church.finance.schemas import (
     AggregateOfferingCreate,
     AggregateOfferingResponse,
@@ -21,13 +22,16 @@ from src.apps.church.finance.service import ChurchFinanceService
 
 router = APIRouter(prefix="/finance", tags=["Church Finance"])
 
+_READ = [Depends(require_permission("church", "finance.read"))]
+_WRITE = [Depends(require_permission("church", "finance.write"))]
+
 
 # ---------------------------------------------------------------------------
 # Income
 # ---------------------------------------------------------------------------
 
 
-@router.get("/income", response_model=dict)
+@router.get("/income", response_model=dict, dependencies=_READ)
 async def list_incomes(
     db: AsyncSession = Depends(get_db),
     org_id: uuid.UUID = Depends(get_org_id),
@@ -45,6 +49,7 @@ async def list_incomes(
     "/income",
     response_model=IncomeResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=_WRITE,
 )
 async def create_income(
     data: IncomeCreate,
@@ -58,7 +63,7 @@ async def create_income(
     )
 
 
-@router.get("/income/{income_id}", response_model=IncomeResponse)
+@router.get("/income/{income_id}", response_model=IncomeResponse, dependencies=_READ)
 async def get_income(
     income_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -73,7 +78,7 @@ async def get_income(
 # ---------------------------------------------------------------------------
 
 
-@router.get("/expenses", response_model=dict)
+@router.get("/expenses", response_model=dict, dependencies=_READ)
 async def list_expenses(
     db: AsyncSession = Depends(get_db),
     org_id: uuid.UUID = Depends(get_org_id),
@@ -91,6 +96,7 @@ async def list_expenses(
     "/expenses",
     response_model=ExpenseResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=_WRITE,
 )
 async def create_expense(
     data: ExpenseCreate,
@@ -104,7 +110,7 @@ async def create_expense(
     )
 
 
-@router.get("/expenses/{expense_id}", response_model=ExpenseResponse)
+@router.get("/expenses/{expense_id}", response_model=ExpenseResponse, dependencies=_READ)
 async def get_expense(
     expense_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -119,7 +125,7 @@ async def get_expense(
 # ---------------------------------------------------------------------------
 
 
-@router.get("/person/{person_id}/history")
+@router.get("/person/{person_id}/history", dependencies=_READ)
 async def get_person_financial_history(
     person_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -129,7 +135,7 @@ async def get_person_financial_history(
     return await ChurchFinanceService.get_person_history(db, org_id, person_id)
 
 
-@router.post("/transactions/{transaction_id}/void", response_model=IncomeResponse)
+@router.post("/transactions/{transaction_id}/void", response_model=IncomeResponse, dependencies=_WRITE)
 async def void_transaction(
     transaction_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -142,7 +148,7 @@ async def void_transaction(
     )
 
 
-@router.get("/categories/income", response_model=list[IncomeCategoryResponse])
+@router.get("/categories/income", response_model=list[IncomeCategoryResponse], dependencies=_READ)
 async def list_income_categories(
     db: AsyncSession = Depends(get_db),
     org_id: uuid.UUID = Depends(get_org_id),
@@ -151,7 +157,7 @@ async def list_income_categories(
     return await ChurchFinanceService.list_income_categories(db, org_id)
 
 
-@router.get("/categories/expenses", response_model=list[ExpenseCategoryResponse])
+@router.get("/categories/expenses", response_model=list[ExpenseCategoryResponse], dependencies=_READ)
 async def list_expense_categories(
     db: AsyncSession = Depends(get_db),
     org_id: uuid.UUID = Depends(get_org_id),
@@ -165,7 +171,7 @@ async def list_expense_categories(
 # ---------------------------------------------------------------------------
 
 
-@router.get("/aggregate-offerings", response_model=list[AggregateOfferingResponse])
+@router.get("/aggregate-offerings", response_model=list[AggregateOfferingResponse], dependencies=_READ)
 async def list_aggregate_offerings(
     event_id: uuid.UUID | None = Query(None),
     db: AsyncSession = Depends(get_db),
@@ -179,6 +185,7 @@ async def list_aggregate_offerings(
     "/aggregate-offerings",
     response_model=AggregateOfferingResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=_WRITE,
 )
 async def create_aggregate_offering(
     data: AggregateOfferingCreate,
