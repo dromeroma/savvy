@@ -8,6 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.dependencies import get_current_user, get_db, get_org_id
 from src.apps.church.finance.schemas import (
+    AggregateOfferingCreate,
+    AggregateOfferingResponse,
     ExpenseCategoryResponse,
     ExpenseCreate,
     ExpenseResponse,
@@ -156,3 +158,38 @@ async def list_expense_categories(
 ) -> Any:
     """List expense categories for this church."""
     return await ChurchFinanceService.list_expense_categories(db, org_id)
+
+
+# ---------------------------------------------------------------------------
+# Aggregate Offerings (mass-input "remainder" tithes/offerings)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/aggregate-offerings", response_model=list[AggregateOfferingResponse])
+async def list_aggregate_offerings(
+    event_id: uuid.UUID | None = Query(None),
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    """List aggregate offerings, optionally filtered by event."""
+    return await ChurchFinanceService.list_aggregate_offerings(db, org_id, event_id)
+
+
+@router.post(
+    "/aggregate-offerings",
+    response_model=AggregateOfferingResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_aggregate_offering(
+    data: AggregateOfferingCreate,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+    current_user: dict = Depends(get_current_user),
+) -> Any:
+    """Register an aggregate (mass-input) offering tied to a cult/event.
+
+    Mirrors the total into the shared `finance_transactions` ledger.
+    """
+    return await ChurchFinanceService.create_aggregate_offering(
+        db, org_id, uuid.UUID(current_user["sub"]), data,
+    )

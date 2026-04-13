@@ -45,3 +45,6 @@ class ChurchCongregant(BaseMixin, OrgMixin, Base):
     pastoral_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     inactivation_reason: Mapped[str | None] = mapped_column(String(50), nullable=True)
     inactivated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    family_head_person_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("people.id", ondelete="SET NULL"), nullable=True,
+    )

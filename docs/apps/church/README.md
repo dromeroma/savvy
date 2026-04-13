@@ -776,3 +776,163 @@ Modulos compartidos consumidos:
 ---
 
 > **Principio clave**: SavvyChurch solo contiene lo que es exclusivamente eclesiastico. Todo lo demas (personas, grupos, finanzas, contabilidad) se delega a modulos compartidos, permitiendo que cualquier otra app del ecosistema reutilice esa infraestructura sin duplicacion.
+
+---
+
+## SavvyChurch v2 — Hierarchical, Role-Aware Extensions
+
+A partir de la version 0.0.40, SavvyChurch evoluciona a un modelo jerarquico, escalable y orientado a grandes organizaciones religiosas (MMM, asambleas, concilios, etc.), sin perder la filosofia de delegacion a modulos compartidos.
+
+### Principios v2
+
+1. **Jerarquia configurable**: se reutiliza `organizational_scopes` (tree con `parent_id` self-referential). No se hardcodea ningun nivel (pais/zona/distrito/iglesia) — cualquier organizacion define su propio arbol.
+2. **Un solo ledger financiero**: las ofrendas agregadas ("diezmos y ofrendas restantes") se registran en una tabla dedicada pero se espejan en `finance_transactions` via `reference_type='church_aggregate_offering'` — asi los reportes siguen viendo una unica fuente de verdad.
+3. **Roles contextuales reutilizando `scope_leaders`**: no se crea tabla nueva de roles; la capa RBAC por scope usa `scope_leaders.role` (pastor, deacon, teacher, usher_captain, etc.).
+4. **Arbol familiar via `family_relationships`**: se reutiliza la tabla compartida de SavvyPeople (padre/hijo/conyuge/hermano) + nuevo FK `church_congregants.family_head_person_id` para acceso rapido al cabeza de familia.
+5. **Todas las features son opcionales**: cada iglesia u organizacion decide si activa doctrina, ayuda social, rotaciones, etc., sin tocar codigo.
+
+### Nuevas entidades (12 tablas)
+
+#### Bloque pastoral (3)
+
+| Tabla | Proposito |
+|---|---|
+| `church_member_lifecycle` | Historial inmutable append-only de cambios de `spiritual_status` (`visitor` → `in_doctrine` → `baptized` → `active_member` → `inactive`). Incluye `from_status`, `to_status`, `changed_at`, `changed_by`, `reason`, `notes`. Fuente de verdad para la "hoja de vida" del congregante. |
+| `church_transfers` | Traslados entre scopes (`from_scope_id` → `to_scope_id`) con `transfer_date`, `reason`, `approved_by`, `status`. Al marcar status='completed', el service sincroniza `church_congregants.scope_id`. |
+| `church_pastoral_notes` | Notas tipadas controladas por visibilidad: `note_type` in `observation/recognition/discipline/prayer/counseling/other`, `visibility` in `private/pastor/leadership/public`, con `author_id` y `title`. |
+
+#### Bloque doctrina (3)
+
+| Tabla | Proposito |
+|---|---|
+| `church_doctrine_groups` | Clase pre-bautismo con `teacher_person_id`, `scope_id`, `meeting_day`, `meeting_time`, `start_date`/`end_date`, `max_students`, `status`. |
+| `church_doctrine_enrollments` | Inscripcion de alumno (`doctrine_group_id` + `person_id`) con `progress_pct` y `result` (`graduated`, `baptized`, `dropped`, `transferred`). Constraint unica: un alumno solo puede tener una inscripcion activa (WHERE result IS NULL) por grupo. |
+| `church_doctrine_attendance` | Asistencia por sesion (`session_date` + `present`). Soporta ingreso masivo via `POST /doctrine/attendance/bulk`. |
+
+#### Bloque finanzas agregadas (1)
+
+| Tabla | Proposito |
+|---|---|
+| `church_aggregate_offerings` | Entrada masiva de diezmos/ofrendas restantes por culto: `event_id`, `offering_type` (tithe/offering/special/mission/building), `total_amount`, `contributor_count`, `payment_method`, `collected_date`, `notes`. Al crear se genera automaticamente un `finance_transactions` espejo con `reference_type='church_aggregate_offering'`, y la FK `finance_transaction_id` enlaza ambos registros. |
+
+#### Bloque ayuda social (3)
+
+| Tabla | Proposito |
+|---|---|
+| `church_aid_programs` | Programa social con `program_type` (food/clothing/medical/educational/housing/emergency/other), `scope_id`, `start_date`/`end_date`, `budget_amount`, `status`. |
+| `church_aid_beneficiaries` | Beneficiario: puede ser un `person_id` (miembro existente) O datos externos (`external_name`, `external_document`, `external_phone`) para no miembros. Incluye `need_category` y `household_size`. Validacion: se exige `person_id` o `external_name`. |
+| `church_aid_distributions` | Entrega registrada (`program_id` + `beneficiary_id` + `distribution_date`) con `item_description`, `quantity`, `unit`, `estimated_value`, `delivered_by`. |
+
+#### Bloque rotaciones operativas (2)
+
+| Tabla | Proposito |
+|---|---|
+| `church_rotations` | Rotacion con `rotation_type` (ushers/worship_team/cleaning/security/kids/welcome/other), `frequency` (weekly/biweekly/monthly/event_based), `scope_id`, `active`. |
+| `church_rotation_assignments` | Asignacion por persona + fecha (o evento): `rotation_id` + `person_id` + `assignment_date` + `event_id` opcional + `role` + `status` (scheduled/done/swapped/absent/cancelled). |
+
+### Extensiones a tablas existentes
+
+- `church_congregants.family_head_person_id` — FK a `people`, para acceso rapido al cabeza de familia sin consultar `family_relationships`.
+- `church_events.event_category` — varchar libre (regular_service/special/training/outreach) para segmentar analytics por tipo de culto.
+- `church_events.scope_id` — FK a `organizational_scopes` para cultos multi-sede.
+
+### RBAC contextual via `scope_leaders`
+
+En lugar de crear una tabla `church_member_roles`, v2 reutiliza la tabla compartida `scope_leaders` (shared/groups). Un usuario puede ser "Pastor de Zona Norte" registrando un `scope_leaders` con `scope_id = zona_norte.id` y `role = 'pastor'`. Los services pueden filtrar congregantes por el subarbol del scope del usuario via un CTE recursivo (`dashboard/analytics` ya usa este patron).
+
+### Dashboard multi-nivel
+
+El nuevo endpoint `GET /church/dashboard/analytics?scope_id=<opt>` devuelve:
+
+- `total_active` — conteo de miembros activos en el subarbol
+- `by_gender` — segmentacion por genero
+- `by_age_bucket` — children/teenagers/youth/adults/seniors
+- `by_spiritual_status` — segmentacion por `church_congregants.spiritual_status`
+- `growth_last_6_months` — nuevos congregantes por mes
+- `income_by_month` — ingresos por mes (via `finance_transactions`)
+
+Si no se pasa `scope_id`, devuelve analytics globales de la organizacion. Si se pasa, se filtra al scope y todos sus descendientes (recursive CTE sobre `organizational_scopes`).
+
+Tambien existe `GET /church/dashboard/scopes` que devuelve el arbol plano de scopes para poblar un selector en el frontend.
+
+### Endpoints API v2 (nuevos)
+
+#### Pastoral
+
+| Metodo | Ruta | Descripcion |
+|---|---|---|
+| GET | `/church/pastoral/lifecycle/{congregant_id}` | Timeline inmutable de cambios de estado espiritual |
+| POST | `/church/pastoral/lifecycle` | Registrar transicion (sincroniza `spiritual_status`) |
+| GET | `/church/pastoral/transfers` | Historial de traslados (filtrable por `person_id`) |
+| POST | `/church/pastoral/transfers` | Crear traslado (si status='completed', mueve `scope_id` del congregante) |
+| PATCH | `/church/pastoral/transfers/{id}` | Aprobar / completar |
+| GET | `/church/pastoral/notes/{person_id}` | Listar notas con filtro por visibilidad |
+| POST | `/church/pastoral/notes` | Crear nota tipada |
+| PATCH/DELETE | `/church/pastoral/notes/{id}` | Editar / eliminar |
+
+#### Doctrine
+
+| Metodo | Ruta | Descripcion |
+|---|---|---|
+| GET/POST | `/church/doctrine/groups` | CRUD de clases de doctrina |
+| GET/PATCH | `/church/doctrine/groups/{id}` | |
+| GET | `/church/doctrine/groups/{id}/enrollments` | Alumnos inscritos |
+| POST | `/church/doctrine/enrollments` | Inscribir alumno |
+| PATCH | `/church/doctrine/enrollments/{id}` | Actualizar progreso / resultado |
+| GET | `/church/doctrine/groups/{id}/attendance` | Asistencia historica |
+| POST | `/church/doctrine/attendance` | Registrar asistencia individual |
+| POST | `/church/doctrine/attendance/bulk` | Ingreso masivo por sesion |
+
+#### Social Aid
+
+| Metodo | Ruta | Descripcion |
+|---|---|---|
+| GET/POST | `/church/social-aid/programs` | CRUD de programas |
+| GET/PATCH | `/church/social-aid/programs/{id}` | |
+| GET | `/church/social-aid/programs/{id}/beneficiaries` | |
+| POST/PATCH | `/church/social-aid/beneficiaries` | |
+| GET | `/church/social-aid/programs/{id}/distributions` | |
+| POST | `/church/social-aid/distributions` | |
+
+#### Rotations
+
+| Metodo | Ruta | Descripcion |
+|---|---|---|
+| GET/POST | `/church/rotations` | CRUD de rotaciones |
+| GET/PATCH | `/church/rotations/{id}` | |
+| GET | `/church/rotations/assignments/list` | Listar asignaciones con filtros |
+| POST | `/church/rotations/assignments` | Crear asignacion |
+| PATCH | `/church/rotations/assignments/{id}` | Cambiar estado (done/swapped/absent) |
+
+#### Aggregate Offerings (dentro de finance)
+
+| Metodo | Ruta | Descripcion |
+|---|---|---|
+| GET | `/church/finance/aggregate-offerings` | Listar (filtrable por `event_id`) |
+| POST | `/church/finance/aggregate-offerings` | Registrar + espejar en `finance_transactions` |
+
+#### Dashboard v2
+
+| Metodo | Ruta | Descripcion |
+|---|---|---|
+| GET | `/church/dashboard/analytics?scope_id=` | Analytics multi-nivel con segmentacion |
+| GET | `/church/dashboard/scopes` | Arbol plano de scopes para selector |
+
+### Frontend v2
+
+Nuevas vistas Angular 20 standalone:
+
+- `church/doctrine/` — lista de grupos, creacion, panel de alumnos inscritos, panel de asistencia masiva por sesion
+- `church/social-aid/` — programas, beneficiarios (incluido externos no-miembros), entregas
+- `church/rotations/` — rotaciones y asignaciones por fecha / evento
+- `church/aggregate-offerings/` — tabla de ofrendas agregadas + formulario con selector de culto
+
+Sidebar actualizado con los 4 nuevos items: Doctrina, Rotaciones, Ayuda Social, Ofrendas Agregadas.
+
+### Resumen de tablas (v2)
+
+**Propias de SavvyChurch (total 20):**
+- v1: `church_congregants`, `church_events`, `church_attendance`, `church_visitors` (+ clases legacy)
+- v2 nuevas: `church_member_lifecycle`, `church_transfers`, `church_pastoral_notes`, `church_doctrine_groups`, `church_doctrine_enrollments`, `church_doctrine_attendance`, `church_aggregate_offerings`, `church_aid_programs`, `church_aid_beneficiaries`, `church_aid_distributions`, `church_rotations`, `church_rotation_assignments`
+
+**Reutilizadas (no propias):** `people`, `family_relationships`, `organizational_scopes`, `scope_leaders`, `groups`, `finance_transactions`, `finance_categories`, `chart_of_accounts`, `journal_entries`.

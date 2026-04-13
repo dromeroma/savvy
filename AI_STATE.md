@@ -1,12 +1,12 @@
 # AI_STATE.md — Estado del Proyecto Savvy
 
-> Ultima actualizacion: 2026-04-11 (v0.0.39)
+> Ultima actualizacion: 2026-04-12 (v0.0.40)
 
 ## Resumen
 
 Savvy es una plataforma SaaS multi-tenant modular desarrollada por **Savvitrix Solutions**. El backend es un monolito modular en FastAPI, el frontend es Angular standalone con Tailwind CSS v4, y la base de datos es PostgreSQL vía Supabase.
 
-**Version actual del frontend**: 0.0.39
+**Version actual del frontend**: 0.0.40
 **Git remote**: `git@github-dromeroma:dromeroma/savvy.git`
 **Branch principal**: `main`
 
@@ -50,7 +50,7 @@ backend/src/
 │   ├── apps/                  # AppRegistry, OrganizationApp, AppUserRole
 │   └── geography/             # GeoCountry, GeoState, GeoCity
 └── apps/                      # Vertical business apps
-    ├── church/                # SavvyChurch (7 sub-modules)
+    ├── church/                # SavvyChurch v2 (11 sub-modules, 16 church tables)
     ├── edu/                   # SavvyEdu (11 sub-modules)
     ├── family/                # SavvyFamily (1 module, 4 tables)
     ├── credit/                # SavvyCredit (7 sub-modules, 11 tables)
@@ -117,10 +117,16 @@ frontend/src/app/
 
 ## Apps Implementadas
 
-### SavvyChurch (code: `church`)
-- **Tablas**: church_congregants, church_events, church_attendance, church_visitors
-- **Backend**: src/apps/church/ (congregants, events, attendance, visitors, finance, reports, dashboard)
-- **Frontend**: 10 vistas (dashboard, congregantes, visitantes, grupos, eventos, asistencia, finanzas, reportes)
+### SavvyChurch v2 (code: `church`)
+- **Tablas v1**: church_congregants, church_events (+ event_category, scope_id), church_attendance, church_visitors
+- **Tablas v2 nuevas (12)**: church_member_lifecycle, church_transfers, church_pastoral_notes, church_doctrine_groups, church_doctrine_enrollments, church_doctrine_attendance, church_aggregate_offerings, church_aid_programs, church_aid_beneficiaries, church_aid_distributions, church_rotations, church_rotation_assignments
+- **Backend**: src/apps/church/ — 11 sub-modulos (congregants, events, attendance, visitors, finance + aggregate_offerings, reports, dashboard v2 con analytics multi-scope, pastoral, doctrine, social_aid, rotations)
+- **Frontend**: 12 vistas — (dashboard, congregantes, visitantes, grupos, eventos, asistencia, doctrina, rotaciones, ayuda social, finanzas, ofrendas agregadas, reportes)
+- **RBAC contextual**: reutiliza `scope_leaders` (shared/groups) en vez de tabla propia
+- **Arbol familiar**: reutiliza `family_relationships` + nuevo FK `church_congregants.family_head_person_id`
+- **Jerarquia**: reutiliza `organizational_scopes` (recursive CTE en dashboard analytics)
+- **Ofrendas agregadas**: `church_aggregate_offerings` espejada automaticamente en `finance_transactions` via `reference_type='church_aggregate_offering'`
+- **Migracion**: `church_v2_hierarchical_extensions` (2026-04-12)
 - **Delega a**: PeopleService, GroupService, FinanceService, AccountingEngine
 
 ### SavvyEdu (code: `edu`)
@@ -243,7 +249,7 @@ docs/
 - ChurchLayoutComponent importa RouterLink y RouterLinkActive sin usarlos (warning Angular)
 - flatpickr no es ESM (warning en build, no-fatal)
 - CSS selector warnings (empty sub-selector, no-fatal)
-- SavvyChurch docs describe tablas church_classes y church_class_enrollments que no estan implementadas en codigo (solo en la doc original)
+- SavvyChurch docs describe tablas church_classes y church_class_enrollments que no estan implementadas en codigo (solo en la doc original) — v2 introduce church_doctrine_* como el reemplazo funcional
 
 ---
 

@@ -117,3 +117,46 @@ class ExpenseResponse(BaseModel):
     created_by: uuid.UUID
     created_at: datetime
     updated_at: datetime
+
+
+# ---------------------------------------------------------------------------
+# Aggregate Offerings
+# ---------------------------------------------------------------------------
+
+OFFERING_TYPE = Literal["tithe", "offering", "special", "mission", "building"]
+
+
+class AggregateOfferingCreate(BaseModel):
+    """Payload for registering an aggregate (mass-input) offering."""
+
+    event_id: uuid.UUID | None = None
+    scope_id: uuid.UUID | None = None
+    offering_type: OFFERING_TYPE = "tithe"
+    total_amount: Decimal = Field(..., gt=0, decimal_places=2)
+    contributor_count: int | None = Field(None, ge=0)
+    payment_method: PAYMENT_METHODS = "cash"
+    collected_date: date
+    category_code: str = Field(
+        "TITHE",
+        description="Finance category code used to create the linked ledger entry.",
+    )
+    notes: str | None = None
+
+
+class AggregateOfferingResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    organization_id: uuid.UUID
+    event_id: uuid.UUID | None = None
+    scope_id: uuid.UUID | None = None
+    offering_type: str
+    total_amount: Decimal
+    contributor_count: int | None = None
+    payment_method: str
+    collected_date: date
+    notes: str | None = None
+    finance_transaction_id: uuid.UUID | None = None
+    created_by: uuid.UUID | None = None
+    created_at: datetime
+    updated_at: datetime

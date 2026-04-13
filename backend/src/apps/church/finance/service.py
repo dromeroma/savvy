@@ -14,7 +14,12 @@ from decimal import Decimal
 
 from sqlalchemy import select
 
-from src.apps.church.finance.schemas import ExpenseCreate, IncomeCreate
+from src.apps.church.finance.aggregate_models import ChurchAggregateOffering
+from src.apps.church.finance.schemas import (
+    AggregateOfferingCreate,
+    ExpenseCreate,
+    IncomeCreate,
+)
 from src.core.exceptions import NotFoundError, ValidationError
 from src.modules.accounting.models import ChartOfAccounts
 from src.modules.accounting.schemas import JournalEntryLineCreate
@@ -291,3 +296,74 @@ class ChurchFinanceService:
     ) -> list[FinanceCategory]:
         """List church expense categories."""
         return await FinanceService.list_categories(db, org_id, app_code=APP_CODE, type_="expense")
+
+    # ------------------------------------------------------------------
+    # Aggregate Offerings
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    async def list_aggregate_offerings(
+        db: AsyncSession,
+        org_id: uuid.UUID,
+        event_id: uuid.UUID | None = None,
+    ) -> list[ChurchAggregateOffering]:
+        """List aggregate offerings, optionally filtered by event."""
+        stmt = (
+            select(ChurchAggregateOffering)
+            .where(ChurchAggregateOffering.organization_id == org_id)
+            .order_by(ChurchAggregateOffering.collected_date.desc())
+        )
+        if event_id:
+            stmt = stmt.where(ChurchAggregateOffering.event_id == event_id)
+        result = await db.execute(stmt)
+        return list(result.scalars().all())
+
+    @staticmethod
+    async def create_aggregate_offering(
+        db: AsyncSession,
+        org_id: uuid.UUID,
+        user_id: uuid.UUID,
+        data: AggregateOfferingCreate,
+    ) -> ChurchAggregateOffering:
+        """Create an aggregate offering and mirror it in finance_transactions."""
+        # 1. Create the aggregate record (without FK yet).
+        offering = ChurchAggregateOffering(
+            organization_id=org_id,
+            event_id=data.event_id,
+            scope_id=data.scope_id,
+            offering_type=data.offering_type,
+            total_amount=data.total_amount,
+            contributor_count=data.contributor_count,
+            payment_method=data.payment_method,
+            collected_date=data.collected_date,
+            notes=data.notes,
+            created_by=None,  # tracked via finance txn created_by instead
+        )
+        db.add(offering)
+        await db.flush()
+        await db.refresh(offering)
+
+        # 2. Mirror into the shared finance_transactions ledger.
+        txn_data = TransactionCreate(
+            category_code=data.category_code,
+            type="income",
+            amount=data.total_amount,
+            date=data.collected_date,
+            payment_method=data.payment_method,
+            description=(
+                data.notes
+                or f"Ofrenda agregada ({data.offering_type}) — "
+                f"{data.contributor_count or 0} contribuyentes"
+            ),
+            app_code=APP_CODE,
+            reference_type="church_aggregate_offering",
+            reference_id=offering.id,
+            scope_id=data.scope_id,
+        )
+        txn = await FinanceService.create_transaction(db, org_id, user_id, txn_data)
+
+        # 3. Link the ledger row back to the aggregate.
+        offering.finance_transaction_id = txn.id
+        await db.flush()
+        await db.refresh(offering)
+        return offering

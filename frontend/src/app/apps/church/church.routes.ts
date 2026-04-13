@@ -68,6 +68,34 @@ export const CHURCH_ROUTES: Routes = [
             (m) => m.AttendanceComponent,
           ),
       },
+      {
+        path: 'doctrine',
+        loadComponent: () =>
+          import('./doctrine/doctrine.component').then(
+            (m) => m.ChurchDoctrineComponent,
+          ),
+      },
+      {
+        path: 'social-aid',
+        loadComponent: () =>
+          import('./social-aid/social-aid.component').then(
+            (m) => m.ChurchSocialAidComponent,
+          ),
+      },
+      {
+        path: 'rotations',
+        loadComponent: () =>
+          import('./rotations/rotations.component').then(
+            (m) => m.ChurchRotationsComponent,
+          ),
+      },
+      {
+        path: 'aggregate-offerings',
+        loadComponent: () =>
+          import('./aggregate-offerings/aggregate-offerings.component').then(
+            (m) => m.ChurchAggregateOfferingsComponent,
+          ),
+      },
     ],
   },
 ];

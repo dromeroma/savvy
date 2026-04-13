@@ -1,7 +1,9 @@
 """Pydantic schemas for church events."""
 
+from __future__ import annotations
+
 import uuid
-from datetime import date, datetime, time
+from datetime import date as _Date, datetime, time
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -13,7 +15,7 @@ EVENT_TYPE = Literal["service", "event", "campaign", "meeting"]
 class EventCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     type: EVENT_TYPE
-    date: date
+    date: _Date
     start_time: time | None = None
     end_time: time | None = None
     location: str | None = Field(None, max_length=255)
@@ -25,7 +27,7 @@ class EventCreate(BaseModel):
 class EventUpdate(BaseModel):
     name: str | None = Field(None, max_length=255)
     type: EVENT_TYPE | None = None
-    date: date | None = None
+    date: _Date | None = None
     start_time: time | None = None
     end_time: time | None = None
     location: str | None = Field(None, max_length=255)
@@ -42,7 +44,7 @@ class EventResponse(BaseModel):
     organization_id: uuid.UUID
     name: str
     type: str
-    date: date
+    date: _Date
     start_time: time | None = None
     end_time: time | None = None
     location: str | None = None
