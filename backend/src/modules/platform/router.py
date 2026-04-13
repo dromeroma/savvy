@@ -16,13 +16,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.dependencies import get_db
 from src.modules.platform.dependencies import require_super_admin
 from src.modules.platform.schemas import (
+    AppPermissionResponse,
     AppRegistryResponse,
     AppRoleCatalogResponse,
     AssignAppRoleRequest,
     AuditLogEntry,
+    CustomRoleCreate,
+    CustomRoleUpdate,
     DashboardKPIs,
     FeatureCreate,
     FeatureResponse,
+    FeatureUpdate,
     GrantRoleRequest,
     InviteMemberRequest,
     OrgAppActivateRequest,
@@ -41,9 +45,11 @@ from src.modules.platform.schemas import (
     PlatformOrgUpdate,
     PlatformRoleResponse,
     PlatformUserSummary,
+    ResetPasswordRequest,
     SubscriptionCreate,
     SubscriptionResponse,
     SubscriptionUpdate,
+    TimeseriesPoint,
     UserPlatformRoleResponse,
 )
 from src.modules.platform.service import (
@@ -77,6 +83,15 @@ async def get_dashboard(
 ) -> Any:
     """KPIs globales del ecosistema Savvy."""
     return await DashboardService.get_kpis(db)
+
+
+@router.get("/dashboard/timeseries", response_model=list[TimeseriesPoint])
+async def get_dashboard_timeseries(
+    months: int = Query(12, ge=1, le=36),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """Monthly new orgs + new users for the last N months (default 12)."""
+    return await DashboardService.get_timeseries(db, months)
 
 
 # =====================================================================
@@ -277,6 +292,35 @@ async def create_feature(
     )
 
 
+@router.patch("/features/{feature_id}", response_model=FeatureResponse)
+async def update_feature(
+    feature_id: uuid.UUID,
+    data: FeatureUpdate,
+    request: Request,
+    user: dict = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    return await FeatureService.update_feature(
+        db, uuid.UUID(user["sub"]), feature_id, data, request,
+    )
+
+
+@router.delete(
+    "/features/{feature_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None,
+)
+async def delete_feature(
+    feature_id: uuid.UUID,
+    request: Request,
+    user: dict = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    await FeatureService.delete_feature(
+        db, uuid.UUID(user["sub"]), feature_id, request,
+    )
+
+
 # =====================================================================
 # Subscriptions
 # =====================================================================
@@ -383,6 +427,24 @@ async def list_users(
     db: AsyncSession = Depends(get_db),
 ) -> Any:
     return await PlatformUserService.list_users(db, search, with_platform_role)
+
+
+@router.post(
+    "/users/{user_id}/reset-password",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None,
+)
+async def reset_user_password(
+    user_id: uuid.UUID,
+    data: ResetPasswordRequest,
+    request: Request,
+    user: dict = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """Super-admin reset of a user's password."""
+    await PlatformUserService.reset_password(
+        db, uuid.UUID(user["sub"]), user_id, data.new_password, request,
+    )
 
 
 # =====================================================================
@@ -494,10 +556,90 @@ async def list_platform_apps(db: AsyncSession = Depends(get_db)) -> Any:
 )
 async def list_app_role_catalog(
     app_code: str,
+    organization_id: uuid.UUID | None = Query(None),
     db: AsyncSession = Depends(get_db),
 ) -> Any:
-    """List valid roles for the given app."""
-    return await PlatformAppService.list_role_catalog(db, app_code)
+    """List valid roles for the given app.
+
+    If `organization_id` is provided, includes custom roles owned by that org
+    in addition to the system roles.
+    """
+    return await PlatformAppService.list_role_catalog(db, app_code, organization_id)
+
+
+@router.get(
+    "/apps/{app_code}/permissions",
+    response_model=list[AppPermissionResponse],
+)
+async def list_app_permissions(
+    app_code: str,
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """List the permission catalog for the given app."""
+    return await PlatformAppService.list_permissions_catalog(db, app_code)
+
+
+@router.get(
+    "/organizations/{org_id}/custom-roles",
+    response_model=list[AppRoleCatalogResponse],
+)
+async def list_org_custom_roles(
+    org_id: uuid.UUID,
+    app_code: str | None = Query(None),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    return await PlatformAppService.list_org_custom_roles(db, org_id, app_code)
+
+
+@router.post(
+    "/organizations/{org_id}/custom-roles",
+    response_model=AppRoleCatalogResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_org_custom_role(
+    org_id: uuid.UUID,
+    data: CustomRoleCreate,
+    request: Request,
+    user: dict = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    return await PlatformAppService.create_custom_role(
+        db, uuid.UUID(user["sub"]), org_id, data, request,
+    )
+
+
+@router.patch(
+    "/organizations/{org_id}/custom-roles/{role_id}",
+    response_model=AppRoleCatalogResponse,
+)
+async def update_org_custom_role(
+    org_id: uuid.UUID,
+    role_id: uuid.UUID,
+    data: CustomRoleUpdate,
+    request: Request,
+    user: dict = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    return await PlatformAppService.update_custom_role(
+        db, uuid.UUID(user["sub"]), org_id, role_id, data, request,
+    )
+
+
+@router.delete(
+    "/organizations/{org_id}/custom-roles/{role_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None,
+)
+async def delete_org_custom_role(
+    org_id: uuid.UUID,
+    role_id: uuid.UUID,
+    request: Request,
+    user: dict = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    await PlatformAppService.delete_custom_role(
+        db, uuid.UUID(user["sub"]), org_id, role_id, request,
+    )
 
 
 # =====================================================================

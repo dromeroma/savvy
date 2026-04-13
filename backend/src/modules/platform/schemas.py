@@ -326,12 +326,42 @@ class AppRoleCatalogResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
+    organization_id: uuid.UUID | None = None
     app_code: str
     code: str
     name: str
     description: str | None = None
+    permissions: list[str] = []
     sort_order: int
+    is_system: bool
     is_active: bool
+
+
+class AppPermissionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    app_code: str
+    code: str
+    name: str
+    description: str | None = None
+    category: str | None = None
+    sort_order: int
+
+
+class CustomRoleCreate(BaseModel):
+    app_code: str = Field(..., min_length=1, max_length=50)
+    code: str = Field(..., min_length=1, max_length=60, pattern=r"^[a-z][a-z0-9_]*$")
+    name: str = Field(..., min_length=1, max_length=150)
+    description: str | None = None
+    permissions: list[str] = []
+
+
+class CustomRoleUpdate(BaseModel):
+    name: str | None = Field(None, max_length=150)
+    description: str | None = None
+    permissions: list[str] | None = None
+    is_active: bool | None = None
 
 
 class OrgAppSummary(BaseModel):
@@ -402,3 +432,21 @@ class DashboardKPIs(BaseModel):
     new_orgs_last_30d: int
     cancelled_last_30d: int
     subscriptions_by_plan: dict[str, int]
+
+
+class TimeseriesPoint(BaseModel):
+    month: str
+    new_orgs: int
+    new_users: int
+
+
+class ResetPasswordRequest(BaseModel):
+    new_password: str = Field(..., min_length=8, max_length=100)
+
+
+class FeatureUpdate(BaseModel):
+    name: str | None = Field(None, max_length=150)
+    description: str | None = None
+    category: str | None = Field(None, max_length=40)
+    default_enabled: bool | None = None
+    default_limit: int | None = None

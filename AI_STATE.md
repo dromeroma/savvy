@@ -1,12 +1,12 @@
 # AI_STATE.md — Estado del Proyecto Savvy
 
-> Ultima actualizacion: 2026-04-13 (v0.0.42)
+> Ultima actualizacion: 2026-04-13 (v0.0.43)
 
 ## Resumen
 
 Savvy es una plataforma SaaS multi-tenant modular desarrollada por **Savvitrix Solutions**. El backend es un monolito modular en FastAPI, el frontend es Angular standalone con Tailwind CSS v4, y la base de datos es PostgreSQL vía Supabase.
 
-**Version actual del frontend**: 0.0.42
+**Version actual del frontend**: 0.0.43
 **Git remote**: `git@github-dromeroma:dromeroma/savvy.git`
 **Branch principal**: `main`
 
@@ -270,6 +270,7 @@ docs/
 
 | Version | Descripcion |
 |---------|-------------|
+| 0.0.43 | **Platform v3 — custom roles + permissions + self-service settings**: extended `app_role_catalog` with `organization_id` (nullable = system, non-null = org-custom), `permissions` JSONB, `created_by`, `updated_at`; new `app_permission_catalog` table seeded with 55 permissions across the 11 apps (church: members.read/write, finance.read/write, events.manage, doctrine.manage, pastoral.notes, etc.; pos: sales.create/void, inventory.read/write, products.manage, cash.open_close, discounts.apply; accounting, edu, family, credit, crm, parking, condo, health, pay — all with a baseline permission set). Backend: +9 platform endpoints — `/platform/users/{id}/reset-password`, `/platform/features/{id}` PATCH/DELETE, `/platform/dashboard/timeseries`, `/platform/apps/{code}/permissions`, `/platform/organizations/{id}/custom-roles` CRUD (GET/POST/PATCH/DELETE). `assign_app_role` now accepts custom roles scoped to the same org. Catalog validation prevents unknown permissions from being saved. Frontend: settings page redesigned with 3 tabs — **Organización** (existing), **Mi cuenta** (change password with current → new + confirm), **Roles personalizados** (list + create/edit custom roles per app with permission checkboxes grouped by category). Platform: users list now has "Reset pwd" button with auto-generated 12-char password, dashboard shows 12-month time-series SVG chart (bars = new orgs, line = new users), new `/platform/features` CRUD page with grouped table + modal editor, org-detail gains "Roles personalizados" tab mirroring settings UI. Total platform routes: 39 → 48. |
 | 0.0.42 | **Platform v2 — org parametrization**: new `app_role_catalog` table seeded with 50 roles across 11 apps (church: pastor/treasurer/teacher/leader/member; pos: store_manager/cashier/inventory/viewer; accounting: accountant/auditor/assistant; edu, family, credit, crm, parking, condo, health, pay). Backend: 10 new `/platform/*` endpoints for listing apps, role catalog per app, activating/deactivating apps for an org, listing org members with their per-app roles, inviting new users into an org with a starting password, removing members, and assigning/revoking app roles with catalog validation. Frontend: organization-detail now has 3 new tabs — **Apps** (toggle activation per app), **Usuarios & roles** (list + invite + remove + assign per-app roles via catalog dropdown), **Features** (per-org overrides forced ON/OFF with reason). All actions write to `platform_audit_log`. |
 | 0.0.41 | **Savvy Platform super admin**: platform_roles (RBAC over orgs) + plans (starter/pro/enterprise + platform) + subscriptions + features + overrides + audit log. Nuevo modulo backend `src/modules/platform/` con 29 endpoints bajo `/api/v1/platform/*`, guard `require_super_admin` + JWT claim `platform_roles`. Nueva area frontend `src/app/platform/` con layout propio, 7 vistas (dashboard, organizations list/detail/create, plans, subscriptions, users, audit), `superAdminGuard` + redirect al login si super_admin. Rename `Iglesia XYZ` → `Savvytrix` (type=`platform`), sin apps activadas. Nueva org de pruebas `Empresa Demo` (demo@savvytrix.local) con Starter trial 14d. El super_admin NO puede entrar a organizaciones — parametriza todo desde su propio panel. |
 | 0.0.40 | **SavvyChurch v2**: 12 tablas nuevas para pastoral/doctrine/social_aid/rotations + aggregate_offerings + analytics multi-scope con recursive CTE. 4 nuevas vistas frontend. |

@@ -55,6 +55,13 @@ export const PLATFORM_ROUTES: Routes = [
           ),
       },
       {
+        path: 'features',
+        loadComponent: () =>
+          import('./features/features-catalog.component').then(
+            (m) => m.FeaturesCatalogComponent,
+          ),
+      },
+      {
         path: 'audit',
         loadComponent: () =>
           import('./audit/audit-log.component').then((m) => m.AuditLogComponent),

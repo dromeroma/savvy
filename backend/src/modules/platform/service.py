@@ -21,6 +21,7 @@ from src.modules.apps.models import AppRegistry, AppUserRole, OrganizationApp
 from src.modules.auth.models import User
 from src.modules.organization.models import Membership, Organization
 from src.modules.platform.models import (
+    AppPermissionCatalog,
     AppRoleCatalog,
     OrganizationFeatureOverride,
     OrganizationSubscription,
@@ -33,7 +34,10 @@ from src.modules.platform.models import (
 )
 from src.modules.platform.schemas import (
     AssignAppRoleRequest,
+    CustomRoleCreate,
+    CustomRoleUpdate,
     FeatureCreate,
+    FeatureUpdate,
     InviteMemberRequest,
     OrgAppActivateRequest,
     OverrideSet,
@@ -352,6 +356,61 @@ class FeatureService:
             request=request,
         )
         return feat
+
+    @staticmethod
+    async def update_feature(
+        db: AsyncSession, actor_id: uuid.UUID,
+        feature_id: uuid.UUID, data: FeatureUpdate,
+        request: Request | None = None,
+    ) -> PlatformFeature:
+        feat = await db.get(PlatformFeature, feature_id)
+        if feat is None:
+            raise NotFoundError("Feature not found.")
+        updates = data.model_dump(exclude_unset=True)
+        for k, v in updates.items():
+            setattr(feat, k, v)
+        await db.flush()
+        await db.refresh(feat)
+        await write_audit(
+            db, actor_id, "feature.update",
+            "feature", feature_id,
+            payload=updates,
+            request=request,
+        )
+        return feat
+
+    @staticmethod
+    async def delete_feature(
+        db: AsyncSession, actor_id: uuid.UUID,
+        feature_id: uuid.UUID,
+        request: Request | None = None,
+    ) -> None:
+        feat = await db.get(PlatformFeature, feature_id)
+        if feat is None:
+            raise NotFoundError("Feature not found.")
+
+        # Block deletion if any plan or override uses it
+        plan_uses = await db.scalar(
+            select(func.count(PlanFeature.id)).where(PlanFeature.feature_id == feature_id),
+        )
+        override_uses = await db.scalar(
+            select(func.count(OrganizationFeatureOverride.id))
+            .where(OrganizationFeatureOverride.feature_id == feature_id),
+        )
+        if plan_uses or override_uses:
+            raise ConflictError(
+                f"Cannot delete feature — referenced by {plan_uses} plan(s) and {override_uses} override(s).",
+            )
+
+        key = feat.key
+        await db.delete(feat)
+        await db.flush()
+        await write_audit(
+            db, actor_id, "feature.delete",
+            "feature", feature_id,
+            payload={"key": key},
+            request=request,
+        )
 
     @staticmethod
     async def list_plan_features(
@@ -780,6 +839,25 @@ class PlatformOrgService:
 class PlatformUserService:
 
     @staticmethod
+    async def reset_password(
+        db: AsyncSession, actor_id: uuid.UUID,
+        target_user_id: uuid.UUID, new_password: str,
+        request: Request | None = None,
+    ) -> None:
+        """Super-admin-only password reset for any user."""
+        target = await db.get(User, target_user_id)
+        if target is None:
+            raise NotFoundError("User not found.")
+        target.password_hash = hash_password(new_password)
+        await db.flush()
+        await write_audit(
+            db, actor_id, "user.password_reset",
+            "user", target_user_id,
+            payload={"email": target.email},
+            request=request,
+        )
+
+    @staticmethod
     async def list_users(
         db: AsyncSession,
         search: str | None = None,
@@ -988,16 +1066,231 @@ class PlatformAppService:
     @staticmethod
     async def list_role_catalog(
         db: AsyncSession, app_code: str,
+        organization_id: uuid.UUID | None = None,
     ) -> list[AppRoleCatalog]:
+        """Return system roles + (optionally) custom roles for the given org."""
+        conditions = [
+            AppRoleCatalog.app_code == app_code,
+            AppRoleCatalog.is_active.is_(True),
+        ]
+        if organization_id is not None:
+            conditions.append(
+                (AppRoleCatalog.organization_id.is_(None))
+                | (AppRoleCatalog.organization_id == organization_id)
+            )
+        else:
+            conditions.append(AppRoleCatalog.organization_id.is_(None))
+
         result = await db.execute(
             select(AppRoleCatalog)
-            .where(
-                AppRoleCatalog.app_code == app_code,
-                AppRoleCatalog.is_active.is_(True),
+            .where(*conditions)
+            .order_by(
+                AppRoleCatalog.is_system.desc(),
+                AppRoleCatalog.sort_order,
+                AppRoleCatalog.code,
             )
-            .order_by(AppRoleCatalog.sort_order, AppRoleCatalog.code)
         )
         return list(result.scalars().all())
+
+    @staticmethod
+    async def list_permissions_catalog(
+        db: AsyncSession, app_code: str,
+    ) -> list[AppPermissionCatalog]:
+        result = await db.execute(
+            select(AppPermissionCatalog)
+            .where(AppPermissionCatalog.app_code == app_code)
+            .order_by(AppPermissionCatalog.category, AppPermissionCatalog.sort_order)
+        )
+        return list(result.scalars().all())
+
+    # ------------------------------------------------------------------
+    # Per-org custom roles
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    async def list_org_custom_roles(
+        db: AsyncSession, org_id: uuid.UUID,
+        app_code: str | None = None,
+    ) -> list[AppRoleCatalog]:
+        stmt = (
+            select(AppRoleCatalog)
+            .where(AppRoleCatalog.organization_id == org_id)
+            .order_by(AppRoleCatalog.app_code, AppRoleCatalog.code)
+        )
+        if app_code:
+            stmt = stmt.where(AppRoleCatalog.app_code == app_code)
+        result = await db.execute(stmt)
+        return list(result.scalars().all())
+
+    @staticmethod
+    async def create_custom_role(
+        db: AsyncSession, actor_id: uuid.UUID,
+        org_id: uuid.UUID, data: CustomRoleCreate,
+        request: Request | None = None,
+    ) -> AppRoleCatalog:
+        # Validate org
+        org = await db.get(Organization, org_id)
+        if org is None or org.deleted_at is not None:
+            raise NotFoundError("Organization not found.")
+
+        # Validate app
+        app = await db.scalar(
+            select(AppRegistry).where(AppRegistry.code == data.app_code)
+        )
+        if app is None:
+            raise NotFoundError(f"App '{data.app_code}' not found.")
+
+        # Reject collisions with system roles
+        sys_collision = await db.scalar(
+            select(AppRoleCatalog).where(
+                AppRoleCatalog.app_code == data.app_code,
+                AppRoleCatalog.code == data.code,
+                AppRoleCatalog.organization_id.is_(None),
+            )
+        )
+        if sys_collision is not None:
+            raise ConflictError(
+                f"Role code '{data.code}' collides with a system role. Pick a different code.",
+            )
+
+        # Reject duplicate custom roles in same org
+        existing = await db.scalar(
+            select(AppRoleCatalog).where(
+                AppRoleCatalog.organization_id == org_id,
+                AppRoleCatalog.app_code == data.app_code,
+                AppRoleCatalog.code == data.code,
+            )
+        )
+        if existing is not None:
+            raise ConflictError(
+                f"Custom role '{data.code}' already exists for this org and app.",
+            )
+
+        # Validate permissions against the catalog
+        await PlatformAppService._validate_permissions(db, data.app_code, data.permissions)
+
+        role = AppRoleCatalog(
+            organization_id=org_id,
+            app_code=data.app_code,
+            code=data.code,
+            name=data.name,
+            description=data.description,
+            permissions=list(data.permissions),
+            is_system=False,
+            is_active=True,
+            created_by=actor_id,
+            sort_order=100,
+        )
+        db.add(role)
+        await db.flush()
+        await db.refresh(role)
+
+        await write_audit(
+            db, actor_id, "custom_role.create",
+            "organization", org_id,
+            target_org_id=org_id,
+            payload={
+                "app_code": data.app_code,
+                "code": data.code,
+                "name": data.name,
+                "permissions": data.permissions,
+            },
+            request=request,
+        )
+        return role
+
+    @staticmethod
+    async def update_custom_role(
+        db: AsyncSession, actor_id: uuid.UUID,
+        org_id: uuid.UUID, role_id: uuid.UUID, data: CustomRoleUpdate,
+        request: Request | None = None,
+    ) -> AppRoleCatalog:
+        role = await db.get(AppRoleCatalog, role_id)
+        if role is None or role.organization_id != org_id:
+            raise NotFoundError("Custom role not found.")
+        if role.is_system:
+            raise ValidationError("Cannot modify a system role.")
+
+        updates = data.model_dump(exclude_unset=True)
+        if "permissions" in updates:
+            await PlatformAppService._validate_permissions(
+                db, role.app_code, updates["permissions"] or [],
+            )
+        for k, v in updates.items():
+            setattr(role, k, v)
+        await db.flush()
+        await db.refresh(role)
+
+        await write_audit(
+            db, actor_id, "custom_role.update",
+            "organization", org_id,
+            target_org_id=org_id,
+            payload={"role_id": str(role_id), **updates},
+            request=request,
+        )
+        return role
+
+    @staticmethod
+    async def delete_custom_role(
+        db: AsyncSession, actor_id: uuid.UUID,
+        org_id: uuid.UUID, role_id: uuid.UUID,
+        request: Request | None = None,
+    ) -> None:
+        role = await db.get(AppRoleCatalog, role_id)
+        if role is None or role.organization_id != org_id:
+            raise NotFoundError("Custom role not found.")
+        if role.is_system:
+            raise ValidationError("Cannot delete a system role.")
+
+        # Check if any user in the org uses this role
+        app = await db.scalar(
+            select(AppRegistry).where(AppRegistry.code == role.app_code)
+        )
+        if app is not None:
+            in_use = await db.scalar(
+                select(func.count(AppUserRole.id)).where(
+                    AppUserRole.organization_id == org_id,
+                    AppUserRole.app_id == app.id,
+                    AppUserRole.role == role.code,
+                )
+            )
+            if in_use:
+                raise ConflictError(
+                    f"Cannot delete — {in_use} user(s) still hold this role. Reassign them first.",
+                )
+
+        code = role.code
+        app_code = role.app_code
+        await db.delete(role)
+        await db.flush()
+
+        await write_audit(
+            db, actor_id, "custom_role.delete",
+            "organization", org_id,
+            target_org_id=org_id,
+            payload={"app_code": app_code, "code": code},
+            request=request,
+        )
+
+    @staticmethod
+    async def _validate_permissions(
+        db: AsyncSession, app_code: str, permission_codes: list[str],
+    ) -> None:
+        """Raise ValidationError if any permission code is unknown for the app."""
+        if not permission_codes:
+            return
+        rows = await db.execute(
+            select(AppPermissionCatalog.code).where(
+                AppPermissionCatalog.app_code == app_code,
+                AppPermissionCatalog.code.in_(permission_codes),
+            )
+        )
+        valid = {r[0] for r in rows.all()}
+        unknown = [p for p in permission_codes if p not in valid]
+        if unknown:
+            raise ValidationError(
+                f"Unknown permissions for app '{app_code}': {', '.join(unknown)}",
+            )
 
     # ------------------------------------------------------------------
     # Per-org app activation
@@ -1283,16 +1576,20 @@ class PlatformAppService:
         if app is None:
             raise NotFoundError(f"App '{data.app_code}' not found.")
 
+        # Accept either a system role (organization_id IS NULL) or a
+        # custom role owned by THIS org.
         role_def = await db.scalar(
             select(AppRoleCatalog).where(
                 AppRoleCatalog.app_code == data.app_code,
                 AppRoleCatalog.code == data.role,
                 AppRoleCatalog.is_active.is_(True),
+                (AppRoleCatalog.organization_id.is_(None))
+                | (AppRoleCatalog.organization_id == org_id),
             )
         )
         if role_def is None:
             raise ValidationError(
-                f"Role '{data.role}' is not a valid role for app '{data.app_code}'.",
+                f"Role '{data.role}' is not a valid role for app '{data.app_code}' in this organization.",
             )
 
         # Upsert
@@ -1445,3 +1742,54 @@ class DashboardService:
             "cancelled_last_30d": int(cancelled or 0),
             "subscriptions_by_plan": by_plan,
         }
+
+    @staticmethod
+    async def get_timeseries(db: AsyncSession, months: int = 12) -> list[dict]:
+        """Monthly new orgs + new users for the last N months."""
+        start = (datetime.now(UTC).replace(day=1) - timedelta(days=months * 31)).replace(day=1)
+
+        org_rows = await db.execute(
+            select(
+                func.date_trunc("month", Organization.created_at).label("m"),
+                func.count(Organization.id),
+            )
+            .where(
+                Organization.deleted_at.is_(None),
+                Organization.created_at >= start,
+            )
+            .group_by("m")
+            .order_by("m")
+        )
+        by_month_orgs = {row[0]: int(row[1]) for row in org_rows.all()}
+
+        user_rows = await db.execute(
+            select(
+                func.date_trunc("month", User.created_at).label("m"),
+                func.count(User.id),
+            )
+            .where(
+                User.deleted_at.is_(None),
+                User.created_at >= start,
+            )
+            .group_by("m")
+            .order_by("m")
+        )
+        by_month_users = {row[0]: int(row[1]) for row in user_rows.all()}
+
+        # Build a contiguous list for the last `months` buckets
+        now = datetime.now(UTC).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        series: list[dict] = []
+        for i in range(months - 1, -1, -1):
+            # Step back i months
+            y = now.year
+            m = now.month - i
+            while m <= 0:
+                m += 12
+                y -= 1
+            bucket = datetime(y, m, 1, tzinfo=UTC)
+            series.append({
+                "month": bucket.date().isoformat(),
+                "new_orgs": by_month_orgs.get(bucket, 0),
+                "new_users": by_month_users.get(bucket, 0),
+            })
+        return series

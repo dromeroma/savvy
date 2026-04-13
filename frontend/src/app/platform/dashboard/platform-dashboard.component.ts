@@ -15,6 +15,12 @@ interface DashboardKPIs {
   subscriptions_by_plan: Record<string, number>;
 }
 
+interface TimeseriesPoint {
+  month: string;
+  new_orgs: number;
+  new_users: number;
+}
+
 @Component({
   selector: 'app-platform-dashboard',
   imports: [CommonModule, RouterLink],
@@ -51,6 +57,50 @@ interface DashboardKPIs {
             <p class="mt-2 text-3xl font-bold text-gray-800 dark:text-white/90">{{ kpis()!.total_users }}</p>
             <p class="mt-1 text-xs text-gray-500">Cross-organization</p>
           </div>
+        </div>
+
+        <!-- Time series chart -->
+        <div class="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800 p-6 mb-6">
+          <h3 class="text-base font-semibold text-gray-800 dark:text-white/90 mb-4">Crecimiento — últimos 12 meses</h3>
+          @if (timeseries().length > 0) {
+            <svg [attr.viewBox]="'0 0 ' + chartWidth + ' ' + chartHeight" class="w-full h-56">
+              <!-- Y axis grid -->
+              @for (tick of yTicks(); track tick.y) {
+                <line [attr.x1]="chartPadLeft" [attr.y1]="tick.y" [attr.x2]="chartWidth - chartPadRight" [attr.y2]="tick.y"
+                  stroke="currentColor" class="text-gray-200 dark:text-gray-700" stroke-width="1" />
+                <text [attr.x]="chartPadLeft - 6" [attr.y]="tick.y + 3" text-anchor="end"
+                  class="fill-gray-400 text-[9px]">{{ tick.label }}</text>
+              }
+              <!-- Bars (new orgs) -->
+              @for (p of chartPoints(); track p.month) {
+                <rect [attr.x]="p.x - barWidth / 2" [attr.y]="p.yOrgs" [attr.width]="barWidth" [attr.height]="chartHeight - chartPadBottom - p.yOrgs"
+                  rx="2" class="fill-brand-500" />
+              }
+              <!-- Line (new users) -->
+              <polyline [attr.points]="usersLine()"
+                fill="none" stroke="currentColor" stroke-width="2" class="text-success-500" />
+              @for (p of chartPoints(); track p.month) {
+                <circle [attr.cx]="p.x" [attr.cy]="p.yUsers" r="3" class="fill-success-500" />
+              }
+              <!-- X labels -->
+              @for (p of chartPoints(); track p.month) {
+                <text [attr.x]="p.x" [attr.y]="chartHeight - 4" text-anchor="middle"
+                  class="fill-gray-400 text-[9px]">{{ p.label }}</text>
+              }
+            </svg>
+            <div class="flex items-center gap-4 mt-3 text-xs">
+              <div class="flex items-center gap-1.5">
+                <span class="w-3 h-3 rounded bg-brand-500"></span>
+                <span class="text-gray-600 dark:text-gray-400">Nuevas empresas</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="w-3 h-[2px] bg-success-500"></span>
+                <span class="text-gray-600 dark:text-gray-400">Nuevos usuarios</span>
+              </div>
+            </div>
+          } @else {
+            <p class="text-sm text-gray-400 text-center py-8">Sin datos para el periodo.</p>
+          }
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
@@ -108,6 +158,16 @@ export class PlatformDashboardComponent implements OnInit {
 
   loading = signal(true);
   kpis = signal<DashboardKPIs | null>(null);
+  timeseries = signal<TimeseriesPoint[]>([]);
+
+  // Chart constants
+  readonly chartWidth = 720;
+  readonly chartHeight = 220;
+  readonly chartPadLeft = 30;
+  readonly chartPadRight = 10;
+  readonly chartPadTop = 14;
+  readonly chartPadBottom = 22;
+  readonly barWidth = 22;
 
   ngOnInit(): void {
     this.api.get<DashboardKPIs>('/platform/dashboard').subscribe({
@@ -117,6 +177,52 @@ export class PlatformDashboardComponent implements OnInit {
       },
       error: () => this.loading.set(false),
     });
+    this.api.get<TimeseriesPoint[]>('/platform/dashboard/timeseries', { months: 12 }).subscribe({
+      next: (ts) => this.timeseries.set(ts),
+    });
+  }
+
+  private chartMax(): number {
+    const ts = this.timeseries();
+    if (ts.length === 0) return 1;
+    return Math.max(1, ...ts.map((p) => Math.max(p.new_orgs, p.new_users)));
+  }
+
+  yTicks(): Array<{ y: number; label: string }> {
+    const max = this.chartMax();
+    const steps = 4;
+    const ticks: Array<{ y: number; label: string }> = [];
+    for (let i = 0; i <= steps; i++) {
+      const value = Math.round((max * i) / steps);
+      const y = this.chartHeight - this.chartPadBottom - ((this.chartHeight - this.chartPadTop - this.chartPadBottom) * i) / steps;
+      ticks.push({ y, label: String(value) });
+    }
+    return ticks;
+  }
+
+  chartPoints(): Array<{
+    month: string;
+    label: string;
+    x: number;
+    yOrgs: number;
+    yUsers: number;
+  }> {
+    const ts = this.timeseries();
+    if (ts.length === 0) return [];
+    const max = this.chartMax();
+    const usableW = this.chartWidth - this.chartPadLeft - this.chartPadRight;
+    const usableH = this.chartHeight - this.chartPadTop - this.chartPadBottom;
+    return ts.map((p, i) => {
+      const x = this.chartPadLeft + (usableW * (i + 0.5)) / ts.length;
+      const yOrgs = this.chartHeight - this.chartPadBottom - (usableH * p.new_orgs) / max;
+      const yUsers = this.chartHeight - this.chartPadBottom - (usableH * p.new_users) / max;
+      const label = p.month.slice(2, 7); // YY-MM
+      return { month: p.month, label, x, yOrgs, yUsers };
+    });
+  }
+
+  usersLine(): string {
+    return this.chartPoints().map((p) => `${p.x},${p.yUsers}`).join(' ');
   }
 
   planEntries(): Array<{ code: string; count: number; color: string }> {

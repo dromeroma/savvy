@@ -91,7 +91,27 @@ interface FeatureOverride {
   expires_at: string | null;
 }
 
-type TabId = 'general' | 'subscription' | 'apps' | 'members' | 'features';
+interface CustomRoleRow {
+  id: string;
+  app_code: string;
+  code: string;
+  name: string;
+  description: string | null;
+  permissions: string[];
+  is_system: boolean;
+  is_active: boolean;
+}
+
+interface AppPerm {
+  id: string;
+  app_code: string;
+  code: string;
+  name: string;
+  description: string | null;
+  category: string | null;
+}
+
+type TabId = 'general' | 'subscription' | 'apps' | 'members' | 'custom_roles' | 'features';
 
 @Component({
   selector: 'app-platform-org-detail',
@@ -317,6 +337,60 @@ type TabId = 'general' | 'subscription' | 'apps' | 'members' | 'features';
           </div>
         }
 
+        <!-- ===== CUSTOM ROLES ===== -->
+        @if (activeTab() === 'custom_roles') {
+          <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+            <div class="flex items-start justify-between gap-3 mb-4">
+              <div>
+                <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200">Roles personalizados</h3>
+                <p class="text-xs text-gray-500">Crea roles propios de esta empresa con los permisos que necesites.</p>
+              </div>
+              <button (click)="openCreateCustomRole()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-brand-500 hover:bg-brand-600 text-white transition">
+                + Nuevo rol
+              </button>
+            </div>
+            @if (loadingCustomRoles()) {
+              <div class="flex items-center justify-center py-8">
+                <div class="animate-spin rounded-full h-6 w-6 border-4 border-brand-200 border-t-brand-600"></div>
+              </div>
+            } @else if (customRoles().length === 0) {
+              <div class="text-center py-8 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg">
+                <p class="text-sm text-gray-500">Sin roles personalizados todavía.</p>
+                <p class="text-xs text-gray-400 mt-1">Los roles del sistema siempre están disponibles.</p>
+              </div>
+            } @else {
+              <div class="space-y-3">
+                @for (r of customRoles(); track r.id) {
+                  <div class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                    <div class="flex items-start justify-between gap-3">
+                      <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                          <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-brand-100 text-brand-700 dark:bg-brand-500/20 dark:text-brand-400 font-mono uppercase">{{ r.app_code }}</span>
+                          <p class="text-sm font-semibold text-gray-800 dark:text-white/90">{{ r.name }}</p>
+                          <span class="text-[10px] text-gray-500 font-mono">· {{ r.code }}</span>
+                        </div>
+                        @if (r.description) { <p class="text-xs text-gray-500 mb-2">{{ r.description }}</p> }
+                        <div class="flex flex-wrap gap-1">
+                          @for (p of r.permissions; track p) {
+                            <span class="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-mono">{{ p }}</span>
+                          }
+                          @if (r.permissions.length === 0) {
+                            <span class="text-[10px] text-gray-400">Sin permisos</span>
+                          }
+                        </div>
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <button (click)="openEditCustomRole(r)" class="text-[10px] px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Editar</button>
+                        <button (click)="deleteCustomRole(r)" class="text-[10px] px-2 py-1 rounded border border-red-300 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">Eliminar</button>
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+
         <!-- ===== FEATURES OVERRIDES ===== -->
         @if (activeTab() === 'features') {
           <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
@@ -403,6 +477,83 @@ type TabId = 'general' | 'subscription' | 'apps' | 'members' | 'features';
         </div>
       }
 
+      <!-- Custom role editor modal -->
+      @if (showRoleModal()) {
+        <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div class="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-xl shadow-xl max-h-[90vh] flex flex-col">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700 shrink-0">
+              <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+                {{ editingRoleId() ? 'Editar rol personalizado' : 'Nuevo rol personalizado' }}
+              </h3>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1 space-y-3">
+              <div>
+                <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">App *</label>
+                <select [(ngModel)]="customRoleForm.app_code" (ngModelChange)="onRoleAppChange()" [disabled]="!!editingRoleId()"
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm disabled:opacity-60">
+                  <option value="">Selecciona una app...</option>
+                  @for (a of activeApps(); track a.app_code) {
+                    <option [value]="a.app_code">{{ a.app_name }}</option>
+                  }
+                </select>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Código *</label>
+                  <input type="text" [(ngModel)]="customRoleForm.code" [disabled]="!!editingRoleId()" placeholder="asistente_ventas"
+                    class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm font-mono lowercase disabled:opacity-60" />
+                  <p class="text-[10px] text-gray-500 mt-1">Solo minúsculas, números y "_"</p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Nombre *</label>
+                  <input type="text" [(ngModel)]="customRoleForm.name"
+                    class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Descripción</label>
+                <textarea [(ngModel)]="customRoleForm.description" rows="2" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm resize-none"></textarea>
+              </div>
+              <div class="border-t border-gray-200 dark:border-gray-700 pt-4 mt-2">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Permisos</label>
+                @if (!customRoleForm.app_code) {
+                  <p class="text-xs text-gray-400">Selecciona una app para ver los permisos disponibles.</p>
+                } @else if (permissionsByCategory().length === 0) {
+                  <p class="text-xs text-gray-400">Esta app no tiene permisos en el catálogo.</p>
+                } @else {
+                  <div class="space-y-3 max-h-60 overflow-y-auto custom-scrollbar pr-2">
+                    @for (group of permissionsByCategory(); track group.category) {
+                      <div>
+                        <p class="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mb-1">{{ group.category }}</p>
+                        <div class="space-y-1">
+                          @for (p of group.items; track p.code) {
+                            <label class="flex items-start gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-1.5 rounded">
+                              <input type="checkbox" [checked]="customRoleForm.permissions.includes(p.code)" (change)="toggleRolePermission(p.code)" class="mt-0.5 rounded border-gray-300 text-brand-500" />
+                              <div class="min-w-0 flex-1">
+                                <p class="text-xs font-medium text-gray-800 dark:text-white/90">{{ p.name }}</p>
+                                <p class="text-[10px] text-gray-500 font-mono">{{ p.code }}</p>
+                                @if (p.description) { <p class="text-[10px] text-gray-500">{{ p.description }}</p> }
+                              </div>
+                            </label>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+            <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3 shrink-0">
+              <button (click)="closeRoleModal()" class="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">Cancelar</button>
+              <button (click)="saveCustomRole()" [disabled]="!canSaveCustomRole()"
+                class="px-4 py-2 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg">
+                {{ editingRoleId() ? 'Guardar' : 'Crear rol' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
       <!-- Assign app role modal -->
       @if (assigningMember()) {
         <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -479,8 +630,23 @@ export class OrganizationDetailComponent implements OnInit {
     { id: 'subscription', label: 'Suscripción' },
     { id: 'apps', label: 'Apps' },
     { id: 'members', label: 'Usuarios & roles' },
+    { id: 'custom_roles', label: 'Roles personalizados' },
     { id: 'features', label: 'Features' },
   ];
+
+  // Custom roles tab
+  loadingCustomRoles = signal(false);
+  customRoles = signal<CustomRoleRow[]>([]);
+  permissionsCatalog = signal<AppPerm[]>([]);
+  showRoleModal = signal(false);
+  editingRoleId = signal<string | null>(null);
+  customRoleForm = {
+    app_code: '',
+    code: '',
+    name: '',
+    description: '',
+    permissions: [] as string[],
+  };
 
   editForm = { name: '', slug: '', type: 'business' };
 
@@ -500,6 +666,10 @@ export class OrganizationDetailComponent implements OnInit {
     if (id === 'apps') this.loadOrgApps(orgId);
     if (id === 'members') {
       this.loadMembers(orgId);
+      this.loadOrgApps(orgId);
+    }
+    if (id === 'custom_roles') {
+      this.loadCustomRoles(orgId);
       this.loadOrgApps(orgId);
     }
     if (id === 'features') this.loadFeatures(orgId);
@@ -754,6 +924,147 @@ export class OrganizationDetailComponent implements OnInit {
         this.loadMembers(orgId);
       },
       error: () => this.notify.show({ type: 'error', title: 'Error', message: 'No se pudo revocar' }),
+    });
+  }
+
+  // ---------- Custom roles tab ----------
+
+  private loadCustomRoles(orgId: string): void {
+    this.loadingCustomRoles.set(true);
+    this.api.get<CustomRoleRow[]>(`/platform/organizations/${orgId}/custom-roles`).subscribe({
+      next: (list) => {
+        this.customRoles.set(list);
+        this.loadingCustomRoles.set(false);
+      },
+      error: () => {
+        this.customRoles.set([]);
+        this.loadingCustomRoles.set(false);
+      },
+    });
+  }
+
+  openCreateCustomRole(): void {
+    this.editingRoleId.set(null);
+    this.customRoleForm = { app_code: '', code: '', name: '', description: '', permissions: [] };
+    this.permissionsCatalog.set([]);
+    this.showRoleModal.set(true);
+  }
+
+  openEditCustomRole(r: CustomRoleRow): void {
+    this.editingRoleId.set(r.id);
+    this.customRoleForm = {
+      app_code: r.app_code,
+      code: r.code,
+      name: r.name,
+      description: r.description || '',
+      permissions: [...r.permissions],
+    };
+    this.showRoleModal.set(true);
+    this.loadPermissionsForApp(r.app_code);
+  }
+
+  closeRoleModal(): void {
+    this.showRoleModal.set(false);
+    this.editingRoleId.set(null);
+  }
+
+  onRoleAppChange(): void {
+    this.customRoleForm.permissions = [];
+    if (this.customRoleForm.app_code) {
+      this.loadPermissionsForApp(this.customRoleForm.app_code);
+    } else {
+      this.permissionsCatalog.set([]);
+    }
+  }
+
+  private loadPermissionsForApp(appCode: string): void {
+    this.api.get<AppPerm[]>(`/platform/apps/${appCode}/permissions`).subscribe({
+      next: (list) => this.permissionsCatalog.set(list),
+      error: () => this.permissionsCatalog.set([]),
+    });
+  }
+
+  permissionsByCategory(): Array<{ category: string; items: AppPerm[] }> {
+    const groups = new Map<string, AppPerm[]>();
+    for (const p of this.permissionsCatalog()) {
+      const cat = p.category || 'general';
+      if (!groups.has(cat)) groups.set(cat, []);
+      groups.get(cat)!.push(p);
+    }
+    return Array.from(groups.entries()).map(([category, items]) => ({ category, items }));
+  }
+
+  toggleRolePermission(code: string): void {
+    const idx = this.customRoleForm.permissions.indexOf(code);
+    if (idx >= 0) {
+      this.customRoleForm.permissions.splice(idx, 1);
+    } else {
+      this.customRoleForm.permissions.push(code);
+    }
+  }
+
+  canSaveCustomRole(): boolean {
+    return !!(
+      this.customRoleForm.app_code &&
+      this.customRoleForm.code &&
+      /^[a-z][a-z0-9_]*$/.test(this.customRoleForm.code) &&
+      this.customRoleForm.name
+    );
+  }
+
+  saveCustomRole(): void {
+    if (!this.canSaveCustomRole()) return;
+    const orgId = this.org()?.id;
+    if (!orgId) return;
+    const editId = this.editingRoleId();
+    const payload = editId
+      ? {
+          name: this.customRoleForm.name,
+          description: this.customRoleForm.description,
+          permissions: this.customRoleForm.permissions,
+        }
+      : this.customRoleForm;
+
+    const req$ = editId
+      ? this.api.patch<CustomRoleRow>(
+          `/platform/organizations/${orgId}/custom-roles/${editId}`,
+          payload,
+        )
+      : this.api.post<CustomRoleRow>(
+          `/platform/organizations/${orgId}/custom-roles`,
+          payload,
+        );
+
+    req$.subscribe({
+      next: () => {
+        this.notify.show({
+          type: 'success',
+          title: editId ? 'Rol actualizado' : 'Rol creado',
+          message: this.customRoleForm.name,
+        });
+        this.closeRoleModal();
+        this.loadCustomRoles(orgId);
+      },
+      error: (err) => this.notify.show({
+        type: 'error', title: 'Error',
+        message: err.error?.detail || 'No se pudo guardar',
+      }),
+    });
+  }
+
+  deleteCustomRole(r: CustomRoleRow): void {
+    const orgId = this.org()?.id;
+    if (!orgId) return;
+    if (!confirm(`¿Eliminar el rol "${r.name}"?`)) return;
+    this.api.delete(`/platform/organizations/${orgId}/custom-roles/${r.id}`).subscribe({
+      next: () => {
+        this.notify.show({ type: 'success', title: 'Eliminado', message: r.name });
+        this.loadCustomRoles(orgId);
+      },
+      error: (err) => this.notify.show({
+        type: 'error', title: 'Error',
+        message: err.error?.detail || 'No se pudo eliminar',
+      }),
     });
   }
 

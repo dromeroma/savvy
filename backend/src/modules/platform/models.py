@@ -213,23 +213,59 @@ class OrganizationFeatureOverride(BaseMixin, Base):
 
 
 class AppRoleCatalog(Base):
-    """Catalog of valid roles per app (for the platform admin panel)."""
+    """Catalog of valid roles per app.
+
+    Two flavors coexist in the same table:
+    - System roles: `organization_id IS NULL`, `is_system = true`,
+      seeded globally; visible for every org.
+    - Custom roles: `organization_id` set, `is_system = false`,
+      created by that org's admins (or by the super admin).
+    """
 
     __tablename__ = "app_role_catalog"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, primary_key=True, default=uuid.uuid4,
+    )
+    organization_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=True,
+    )
+    app_code: Mapped[str] = mapped_column(String(50), nullable=False)
+    code: Mapped[str] = mapped_column(String(60), nullable=False)
+    name: Mapped[str] = mapped_column(String(150), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    permissions: Mapped[list] = mapped_column(JSONB, default=list, nullable=False)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    is_system: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False,
+    )
+
+
+class AppPermissionCatalog(Base):
+    """Catalog of permissions each app recognizes."""
+
+    __tablename__ = "app_permission_catalog"
     __table_args__ = (
-        UniqueConstraint("app_code", "code", name="app_role_catalog_app_code_code_key"),
+        UniqueConstraint("app_code", "code", name="app_permission_catalog_app_code_code_key"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
         Uuid, primary_key=True, default=uuid.uuid4,
     )
     app_code: Mapped[str] = mapped_column(String(50), nullable=False)
-    code: Mapped[str] = mapped_column(String(60), nullable=False)
+    code: Mapped[str] = mapped_column(String(80), nullable=False)
     name: Mapped[str] = mapped_column(String(150), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    category: Mapped[str | None] = mapped_column(String(40), nullable=True)
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    is_system: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False,
     )

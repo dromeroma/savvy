@@ -86,9 +86,14 @@ interface PlatformRole {
                     </td>
                     <td class="px-4 py-3 text-xs text-gray-500">{{ u.last_login_at ? (u.last_login_at | date:'short') : 'Nunca' }}</td>
                     <td class="px-4 py-3 text-right">
-                      <button (click)="openGrant(u)" class="text-xs font-medium text-brand-600 dark:text-brand-400 hover:underline">
-                        Asignar rol
-                      </button>
+                      <div class="flex items-center justify-end gap-3">
+                        <button (click)="openResetPassword(u)" class="text-xs font-medium text-gray-500 hover:text-red-600 dark:hover:text-red-400 transition">
+                          Reset pwd
+                        </button>
+                        <button (click)="openGrant(u)" class="text-xs font-medium text-brand-600 dark:text-brand-400 hover:underline">
+                          Asignar rol
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 }
@@ -100,6 +105,33 @@ interface PlatformRole {
               <p class="text-sm text-gray-400">No hay usuarios.</p>
             </div>
           }
+        </div>
+      }
+
+      <!-- Reset password modal -->
+      @if (resettingUser()) {
+        <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div class="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md shadow-xl">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Resetear contraseña</h3>
+              <p class="text-xs text-gray-500 mt-1">{{ resettingUser()!.name }} · {{ resettingUser()!.email }}</p>
+            </div>
+            <div class="p-6 space-y-3">
+              <div>
+                <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Nueva contraseña *</label>
+                <input type="text" [(ngModel)]="newPassword" placeholder="Mínimo 8 caracteres"
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm font-mono" />
+                <p class="text-[10px] text-gray-500 mt-1">La contraseña se guarda en texto para que la compartas manualmente con el usuario. Una vez cerrada esta ventana no la verás de nuevo.</p>
+              </div>
+            </div>
+            <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+              <button (click)="resettingUser.set(null)" class="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">Cancelar</button>
+              <button (click)="confirmReset()" [disabled]="newPassword.length < 8"
+                class="px-4 py-2 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg">
+                Resetear
+              </button>
+            </div>
+          </div>
         </div>
       }
 
@@ -137,6 +169,10 @@ export class PlatformUsersListComponent implements OnInit {
 
   grantingUser = signal<PlatformUser | null>(null);
   selectedRoleCode = 'support';
+
+  // Reset password
+  resettingUser = signal<PlatformUser | null>(null);
+  newPassword = '';
 
   search = '';
   roleFilter = '';
@@ -191,6 +227,43 @@ export class PlatformUsersListComponent implements OnInit {
         message: err.error?.detail || 'No se pudo asignar',
       }),
     });
+  }
+
+  openResetPassword(u: PlatformUser): void {
+    this.resettingUser.set(u);
+    this.newPassword = this.generatePassword();
+  }
+
+  confirmReset(): void {
+    const u = this.resettingUser();
+    if (!u || this.newPassword.length < 8) return;
+    this.api.post(`/platform/users/${u.id}/reset-password`, {
+      new_password: this.newPassword,
+    }).subscribe({
+      next: () => {
+        this.notify.show({
+          type: 'success',
+          title: 'Contraseña restablecida',
+          message: `Comparte "${this.newPassword}" con el usuario de forma segura.`,
+        });
+        this.resettingUser.set(null);
+        this.newPassword = '';
+      },
+      error: (err) => this.notify.show({
+        type: 'error',
+        title: 'Error',
+        message: err.error?.detail || 'No se pudo restablecer la contraseña',
+      }),
+    });
+  }
+
+  private generatePassword(): string {
+    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    let out = '';
+    for (let i = 0; i < 12; i++) {
+      out += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return out + '!';
   }
 
   revoke(u: PlatformUser, roleCode: string): void {
