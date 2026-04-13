@@ -7,10 +7,16 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.dependencies import get_db, get_org_id
+from src.modules.apps.permissions import require_permission
 from src.apps.crm.contacts.schemas import *
 from src.apps.crm.contacts.service import CompanyService, ContactService
 
-router = APIRouter(tags=["CRM Contacts"])
+router = APIRouter(
+    tags=["CRM Contacts"],
+    dependencies=[Depends(require_permission("crm", "contacts.write", "deals.write", "reports.view"))],
+)
+_WRITE = [Depends(require_permission("crm", "contacts.write"))]
+
 
 # Contacts
 @router.get("/contacts", response_model=dict)
@@ -22,7 +28,7 @@ async def list_contacts(
     items, total = await ContactService.list_contacts(db, org_id, search, lifecycle, page, page_size)
     return {"items": items, "total": total, "page": page, "page_size": page_size}
 
-@router.post("/contacts", response_model=ContactResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/contacts", response_model=ContactResponse, status_code=status.HTTP_201_CREATED, dependencies=_WRITE)
 async def create_contact(data: ContactCreate, db: AsyncSession = Depends(get_db), org_id: uuid.UUID = Depends(get_org_id)) -> Any:
     return await ContactService.create_contact(db, org_id, data)
 
@@ -30,7 +36,7 @@ async def create_contact(data: ContactCreate, db: AsyncSession = Depends(get_db)
 async def get_contact(contact_id: uuid.UUID, db: AsyncSession = Depends(get_db), org_id: uuid.UUID = Depends(get_org_id)) -> Any:
     return await ContactService.get_contact(db, org_id, contact_id)
 
-@router.patch("/contacts/{contact_id}", response_model=ContactResponse)
+@router.patch("/contacts/{contact_id}", response_model=ContactResponse, dependencies=_WRITE)
 async def update_contact(contact_id: uuid.UUID, data: ContactUpdate, db: AsyncSession = Depends(get_db), org_id: uuid.UUID = Depends(get_org_id)) -> Any:
     return await ContactService.update_contact(db, org_id, contact_id, data)
 
@@ -39,10 +45,10 @@ async def update_contact(contact_id: uuid.UUID, data: ContactUpdate, db: AsyncSe
 async def list_companies(search: str | None = Query(None), db: AsyncSession = Depends(get_db), org_id: uuid.UUID = Depends(get_org_id)) -> Any:
     return await CompanyService.list_companies(db, org_id, search)
 
-@router.post("/companies", response_model=CompanyResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/companies", response_model=CompanyResponse, status_code=status.HTTP_201_CREATED, dependencies=_WRITE)
 async def create_company(data: CompanyCreate, db: AsyncSession = Depends(get_db), org_id: uuid.UUID = Depends(get_org_id)) -> Any:
     return await CompanyService.create_company(db, org_id, data)
 
-@router.patch("/companies/{company_id}", response_model=CompanyResponse)
+@router.patch("/companies/{company_id}", response_model=CompanyResponse, dependencies=_WRITE)
 async def update_company(company_id: uuid.UUID, data: CompanyUpdate, db: AsyncSession = Depends(get_db), org_id: uuid.UUID = Depends(get_org_id)) -> Any:
     return await CompanyService.update_company(db, org_id, company_id, data)
