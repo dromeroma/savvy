@@ -82,6 +82,23 @@ export class AuthService {
     }
   }
 
+  /** Return the list of platform roles from the JWT claim (may be empty). */
+  getPlatformRoles(): string[] {
+    const token = this.getToken();
+    if (!token) return [];
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const roles = payload.platform_roles;
+      return Array.isArray(roles) ? roles : [];
+    } catch {
+      return [];
+    }
+  }
+
+  isSuperAdmin(): boolean {
+    return this.getPlatformRoles().includes('super_admin');
+  }
+
   /** Silently refresh the access token using the refresh token */
   refreshAccessToken(): Observable<TokenResponse | null> {
     const refreshToken = this.getRefreshToken();

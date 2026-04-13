@@ -19,6 +19,7 @@ from src.core.security import (
     verify_token,
 )
 from src.modules.auth.models import RefreshToken, User
+from src.modules.platform.models import PlatformRole, UserPlatformRole
 from src.modules.auth.schemas import (
     AuthResponse,
     ChangePasswordRequest,
@@ -34,6 +35,21 @@ from src.modules.auth.schemas import (
 from src.modules.organization.models import Membership, Organization
 
 settings = get_settings()
+
+
+async def _get_platform_role_codes(
+    db: AsyncSession, user_id: uuid.UUID,
+) -> list[str]:
+    """Fetch the list of platform role codes granted to a user."""
+    result = await db.execute(
+        select(PlatformRole.code)
+        .join(UserPlatformRole, UserPlatformRole.platform_role_id == PlatformRole.id)
+        .where(
+            UserPlatformRole.user_id == user_id,
+            PlatformRole.is_active.is_(True),
+        )
+    )
+    return [row[0] for row in result.all()]
 
 
 class AuthService:
@@ -89,11 +105,13 @@ class AuthService:
         db.add(membership)
         await db.flush()
 
+        # New accounts never have platform roles yet.
         # Generate tokens
         token_data = {
             "sub": str(user.id),
             "org_id": str(org.id),
             "role": "owner",
+            "platform_roles": [],
         }
         access_token = create_access_token(token_data)
         refresh_token_str = create_refresh_token(token_data)
@@ -154,7 +172,11 @@ class AuthService:
         if not memberships:
             raise UnauthorizedError("No organization found for this user.")
 
+        # Always attach platform roles to the returned user so the
+        # frontend can redirect super admins to /platform right after login.
+        platform_roles = await _get_platform_role_codes(db, user.id)
         user_response = UserResponse.model_validate(user)
+        user_response.platform_roles = platform_roles
 
         # Multiple orgs and no org_id specified → return list
         if len(memberships) > 1 and data.org_id is None:
@@ -192,11 +214,13 @@ class AuthService:
         user.last_login_at = datetime.now(UTC)
         await db.flush()
 
+        # Platform roles already fetched above — reuse
         # Generate tokens
         token_data = {
             "sub": str(user.id),
             "org_id": str(org.id),
             "role": membership.role,
+            "platform_roles": platform_roles,
         }
         access_token = create_access_token(token_data)
         refresh_token_str = create_refresh_token(token_data)
@@ -268,11 +292,17 @@ class AuthService:
         stored.revoked_at = datetime.now(UTC)
         await db.flush()
 
+        # Re-fetch platform roles (may have changed since last token)
+        platform_roles = await _get_platform_role_codes(
+            db, uuid.UUID(payload["sub"]),
+        )
+
         # Issue new pair with same family_id
         token_data = {
             "sub": payload["sub"],
             "org_id": payload["org_id"],
             "role": payload.get("role", "member"),
+            "platform_roles": platform_roles,
         }
         new_access = create_access_token(token_data)
         new_refresh = create_refresh_token(token_data)
@@ -328,6 +358,18 @@ class AuthService:
         if user is None:
             raise NotFoundError("User not found.")
         return user
+
+    async def get_current_user_response(
+        self,
+        db: AsyncSession,
+        user_id: uuid.UUID,
+    ) -> UserResponse:
+        """Fetch the user profile enriched with platform_roles."""
+        user = await self.get_current_user_profile(db, user_id)
+        roles = await _get_platform_role_codes(db, user_id)
+        response = UserResponse.model_validate(user)
+        response.platform_roles = roles
+        return response
 
     async def update_profile(
         self,

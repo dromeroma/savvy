@@ -107,11 +107,10 @@ async def get_me(
     current_user: dict = Depends(get_current_user),
     service: AuthService = Depends(get_auth_service),
 ) -> UserResponse:
-    user = await service.get_current_user_profile(
+    return await service.get_current_user_response(
         db,
         user_id=uuid.UUID(current_user["sub"]),
     )
-    return UserResponse.model_validate(user)
 
 
 @router.patch(
@@ -126,12 +125,15 @@ async def update_me(
     current_user: dict = Depends(get_current_user),
     service: AuthService = Depends(get_auth_service),
 ) -> UserResponse:
-    user = await service.update_profile(
+    await service.update_profile(
         db,
         user_id=uuid.UUID(current_user["sub"]),
         data=data,
     )
-    return UserResponse.model_validate(user)
+    return await service.get_current_user_response(
+        db,
+        user_id=uuid.UUID(current_user["sub"]),
+    )
 
 
 @router.post(

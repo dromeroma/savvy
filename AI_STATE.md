@@ -1,12 +1,12 @@
 # AI_STATE.md — Estado del Proyecto Savvy
 
-> Ultima actualizacion: 2026-04-12 (v0.0.40)
+> Ultima actualizacion: 2026-04-13 (v0.0.41)
 
 ## Resumen
 
 Savvy es una plataforma SaaS multi-tenant modular desarrollada por **Savvitrix Solutions**. El backend es un monolito modular en FastAPI, el frontend es Angular standalone con Tailwind CSS v4, y la base de datos es PostgreSQL vía Supabase.
 
-**Version actual del frontend**: 0.0.40
+**Version actual del frontend**: 0.0.41
 **Git remote**: `git@github-dromeroma:dromeroma/savvy.git`
 **Branch principal**: `main`
 
@@ -41,8 +41,12 @@ backend/src/
 │   ├── models/base.py         # BaseMixin (id, timestamps), OrgMixin (organization_id)
 │   └── middleware/             # TenantMiddleware, LoggingMiddleware
 ├── modules/                   # Shared reusable modules
-│   ├── auth/                  # Users, RefreshTokens, register/login/refresh
+│   ├── auth/                  # Users, RefreshTokens, register/login/refresh (+ platform_roles in JWT)
 │   ├── organization/          # Organizations, Memberships, Invitations
+│   ├── platform/              # NEW v0.0.41 — Savvy Platform super-admin panel
+│   │                          # PlatformRole, UserPlatformRole, SubscriptionPlan, PlatformFeature,
+│   │                          # PlanFeature, OrganizationSubscription, OrganizationFeatureOverride,
+│   │                          # PlatformAuditLog — 29 endpoints under /api/v1/platform/*
 │   ├── people/                # Person, FamilyRelationship, EmergencyContact
 │   ├── groups/                # OrganizationalScope, GroupType, Group, GroupMember
 │   ├── finance/               # FinanceCategory, FinanceTransaction, PaymentAccount
@@ -84,9 +88,17 @@ frontend/src/app/
 │   ├── layout/                # Main layout with sidebar
 │   ├── dashboard/             # App launcher + catalog + coming soon
 │   └── settings/              # Organization settings
+├── platform/                  # NEW v0.0.41 — Super admin panel (rojo)
+│   ├── layout/                # platform-layout (sidebar distinto, badge Super Admin)
+│   ├── dashboard/             # KPIs globales: MRR, orgs totales, churn, etc.
+│   ├── organizations/         # list + detail (tabs General/Subscription) + create
+│   ├── plans/                 # catálogo de planes con edición de precios
+│   ├── subscriptions/         # listado global con filtros + activar/suspender
+│   ├── users/                 # todos los users + grant/revoke platform role
+│   └── audit/                 # bitácora inmutable con filtros
 ├── core/                      # Singleton services, guards, interceptors
-│   ├── services/              # AuthService, ApiService, AppsService, SoundManager
-│   ├── guards/                # authGuard, appAccessGuard
+│   ├── services/              # AuthService (+isSuperAdmin/getPlatformRoles), ApiService (+put), AppsService
+│   ├── guards/                # authGuard, appAccessGuard, superAdminGuard (NEW)
 │   ├── interceptors/          # Auth interceptor (Bearer + refresh)
 │   └── models/                # app.model, user.model
 ├── shared/                    # Reusable components and services
@@ -257,6 +269,9 @@ docs/
 
 | Version | Descripcion |
 |---------|-------------|
+| 0.0.41 | **Savvy Platform super admin**: platform_roles (RBAC over orgs) + plans (starter/pro/enterprise + platform) + subscriptions + features + overrides + audit log. Nuevo modulo backend `src/modules/platform/` con 29 endpoints bajo `/api/v1/platform/*`, guard `require_super_admin` + JWT claim `platform_roles`. Nueva area frontend `src/app/platform/` con layout propio, 7 vistas (dashboard, organizations list/detail/create, plans, subscriptions, users, audit), `superAdminGuard` + redirect al login si super_admin. Rename `Iglesia XYZ` → `Savvytrix` (type=`platform`), sin apps activadas. Nueva org de pruebas `Empresa Demo` (demo@savvytrix.local) con Starter trial 14d. El super_admin NO puede entrar a organizaciones — parametriza todo desde su propio panel. |
+| 0.0.40 | **SavvyChurch v2**: 12 tablas nuevas para pastoral/doctrine/social_aid/rotations + aggregate_offerings + analytics multi-scope con recursive CTE. 4 nuevas vistas frontend. |
+| 0.0.39 | SavvyPOS cloud completo |
 | 0.0.38 | SavvyHealth completo: 12 tablas, 7 vistas, EHR SOAP, citas, diagnosticos, prescripciones, lab |
 | 0.0.35 | SavvyCondo completo: 11 tablas, 9 vistas, gobernanza digital, cuotas por coeficiente |
 | 0.0.34 | SavvyParking completo: PricingEngine, sesiones entry/exit, 10 tablas, 7 vistas + docs Credit/CRM/Parking |

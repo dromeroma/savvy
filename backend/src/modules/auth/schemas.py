@@ -74,6 +74,7 @@ class UserResponse(BaseModel):
     email_verified_at: datetime | None = None
     last_login_at: datetime | None = None
     created_at: datetime
+    platform_roles: list[str] = []
 
 
 class OrganizationResponse(BaseModel):

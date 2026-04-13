@@ -6,6 +6,9 @@ from fastapi import APIRouter
 from src.modules.auth.router import router as auth_router
 from src.modules.organization.router import router as organization_router
 
+# Platform admin (Savvytrix super admins)
+from src.modules.platform.router import router as platform_router
+
 # Shared modules
 from src.modules.apps.router import router as apps_router
 from src.modules.accounting.router import router as accounting_router
@@ -31,6 +34,9 @@ api_router = APIRouter(prefix="/api/v1")
 # Core modules
 api_router.include_router(auth_router)
 api_router.include_router(organization_router)
+
+# Platform admin (must come before shared modules)
+api_router.include_router(platform_router)
 
 # Shared modules
 api_router.include_router(apps_router)

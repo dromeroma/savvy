@@ -1,0 +1,487 @@
+"""Savvy Platform admin REST endpoints.
+
+All endpoints live under /api/v1/platform and are guarded by
+`require_super_admin`. Super admins operate exclusively from this
+surface — they never enter organizations themselves.
+"""
+
+from __future__ import annotations
+
+import uuid
+from typing import Any
+
+from fastapi import APIRouter, Depends, Query, Request, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.core.dependencies import get_db
+from src.modules.platform.dependencies import require_super_admin
+from src.modules.platform.schemas import (
+    AuditLogEntry,
+    DashboardKPIs,
+    FeatureCreate,
+    FeatureResponse,
+    GrantRoleRequest,
+    OverrideResponse,
+    OverrideSet,
+    PlanCreate,
+    PlanFeatureResponse,
+    PlanFeatureSet,
+    PlanResponse,
+    PlanUpdate,
+    PlatformOrgCreate,
+    PlatformOrgDetail,
+    PlatformOrgSummary,
+    PlatformOrgUpdate,
+    PlatformRoleResponse,
+    PlatformUserSummary,
+    SubscriptionCreate,
+    SubscriptionResponse,
+    SubscriptionUpdate,
+    UserPlatformRoleResponse,
+)
+from src.modules.platform.service import (
+    AuditService,
+    DashboardService,
+    FeatureService,
+    OverrideService,
+    PlanService,
+    PlatformOrgService,
+    PlatformRoleService,
+    PlatformUserService,
+    SubscriptionService,
+)
+
+router = APIRouter(
+    prefix="/platform",
+    tags=["Savvy Platform"],
+    dependencies=[Depends(require_super_admin)],
+)
+
+
+# =====================================================================
+# Dashboard
+# =====================================================================
+
+
+@router.get("/dashboard", response_model=DashboardKPIs)
+async def get_dashboard(
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """KPIs globales del ecosistema Savvy."""
+    return await DashboardService.get_kpis(db)
+
+
+# =====================================================================
+# Organizations
+# =====================================================================
+
+
+@router.get("/organizations", response_model=list[PlatformOrgSummary])
+async def list_organizations(
+    search: str | None = Query(None),
+    type: str | None = Query(None),
+    status_filter: str | None = Query(None, alias="status"),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    return await PlatformOrgService.list_organizations(
+        db, search, type, status_filter,
+    )
+
+
+@router.get("/organizations/{org_id}", response_model=PlatformOrgDetail)
+async def get_organization(
+    org_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    return await PlatformOrgService.get_organization(db, org_id)
+
+
+@router.post(
+    "/organizations",
+    response_model=PlatformOrgDetail,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_organization(
+    data: PlatformOrgCreate,
+    request: Request,
+    user: dict = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    org = await PlatformOrgService.create_organization(
+        db, uuid.UUID(user["sub"]), data, request,
+    )
+    return await PlatformOrgService.get_organization(db, org.id)
+
+
+@router.patch("/organizations/{org_id}", response_model=PlatformOrgDetail)
+async def update_organization(
+    org_id: uuid.UUID,
+    data: PlatformOrgUpdate,
+    request: Request,
+    user: dict = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    await PlatformOrgService.update_organization(
+        db, uuid.UUID(user["sub"]), org_id, data, request,
+    )
+    return await PlatformOrgService.get_organization(db, org_id)
+
+
+@router.delete(
+    "/organizations/{org_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None,
+)
+async def delete_organization(
+    org_id: uuid.UUID,
+    request: Request,
+    user: dict = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    await PlatformOrgService.soft_delete_organization(
+        db, uuid.UUID(user["sub"]), org_id, request,
+    )
+
+
+# =====================================================================
+# Plans
+# =====================================================================
+
+
+@router.get("/plans", response_model=list[PlanResponse])
+async def list_plans(
+    include_inactive: bool = Query(False),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    return await PlanService.list_plans(db, include_inactive)
+
+
+@router.get("/plans/{plan_id}", response_model=PlanResponse)
+async def get_plan(
+    plan_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    return await PlanService.get_plan(db, plan_id)
+
+
+@router.post(
+    "/plans", response_model=PlanResponse, status_code=status.HTTP_201_CREATED,
+)
+async def create_plan(
+    data: PlanCreate,
+    request: Request,
+    user: dict = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    return await PlanService.create_plan(
+        db, uuid.UUID(user["sub"]), data, request,
+    )
+
+
+@router.patch("/plans/{plan_id}", response_model=PlanResponse)
+async def update_plan(
+    plan_id: uuid.UUID,
+    data: PlanUpdate,
+    request: Request,
+    user: dict = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    return await PlanService.update_plan(
+        db, uuid.UUID(user["sub"]), plan_id, data, request,
+    )
+
+
+@router.delete(
+    "/plans/{plan_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None,
+)
+async def deactivate_plan(
+    plan_id: uuid.UUID,
+    request: Request,
+    user: dict = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    await PlanService.delete_plan(
+        db, uuid.UUID(user["sub"]), plan_id, request,
+    )
+
+
+@router.get("/plans/{plan_id}/features", response_model=list[PlanFeatureResponse])
+async def list_plan_features(
+    plan_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    return await FeatureService.list_plan_features(db, plan_id)
+
+
+@router.put("/plans/{plan_id}/features", response_model=PlanFeatureResponse)
+async def set_plan_feature(
+    plan_id: uuid.UUID,
+    data: PlanFeatureSet,
+    request: Request,
+    user: dict = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    return await FeatureService.set_plan_feature(
+        db, uuid.UUID(user["sub"]), plan_id, data, request,
+    )
+
+
+@router.delete(
+    "/plans/{plan_id}/features/{feature_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None,
+)
+async def remove_plan_feature(
+    plan_id: uuid.UUID,
+    feature_id: uuid.UUID,
+    request: Request,
+    user: dict = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    await FeatureService.remove_plan_feature(
+        db, uuid.UUID(user["sub"]), plan_id, feature_id, request,
+    )
+
+
+# =====================================================================
+# Features catalog
+# =====================================================================
+
+
+@router.get("/features", response_model=list[FeatureResponse])
+async def list_features(db: AsyncSession = Depends(get_db)) -> Any:
+    return await FeatureService.list_features(db)
+
+
+@router.post(
+    "/features", response_model=FeatureResponse, status_code=status.HTTP_201_CREATED,
+)
+async def create_feature(
+    data: FeatureCreate,
+    request: Request,
+    user: dict = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    return await FeatureService.create_feature(
+        db, uuid.UUID(user["sub"]), data, request,
+    )
+
+
+# =====================================================================
+# Subscriptions
+# =====================================================================
+
+
+@router.get("/subscriptions", response_model=list[dict])
+async def list_subscriptions(
+    status_filter: str | None = Query(None, alias="status"),
+    plan_code: str | None = Query(None),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    rows = await SubscriptionService.list_subscriptions(db, status_filter, plan_code)
+    return [
+        {
+            "id": str(sub.id),
+            "organization_id": str(sub.organization_id),
+            "organization_name": org.name,
+            "organization_slug": org.slug,
+            "plan_id": str(sub.plan_id),
+            "plan_code": plan.code,
+            "plan_name": plan.name,
+            "status": sub.status,
+            "billing_cycle": sub.billing_cycle,
+            "started_at": sub.started_at.isoformat() if sub.started_at else None,
+            "expires_at": sub.expires_at.isoformat() if sub.expires_at else None,
+            "trial_ends_at": sub.trial_ends_at.isoformat() if sub.trial_ends_at else None,
+            "auto_renew": sub.auto_renew,
+            "price_monthly": float(plan.price_monthly),
+            "price_yearly": float(plan.price_yearly),
+            "updated_at": sub.updated_at.isoformat(),
+        }
+        for sub, org, plan in rows
+    ]
+
+
+@router.post(
+    "/subscriptions",
+    response_model=SubscriptionResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_subscription(
+    data: SubscriptionCreate,
+    request: Request,
+    user: dict = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    return await SubscriptionService.create_subscription(
+        db, uuid.UUID(user["sub"]), data, request,
+    )
+
+
+@router.patch("/subscriptions/{subscription_id}", response_model=SubscriptionResponse)
+async def update_subscription(
+    subscription_id: uuid.UUID,
+    data: SubscriptionUpdate,
+    request: Request,
+    user: dict = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    return await SubscriptionService.update_subscription(
+        db, uuid.UUID(user["sub"]), subscription_id, data, request,
+    )
+
+
+@router.post(
+    "/subscriptions/{subscription_id}/activate",
+    response_model=SubscriptionResponse,
+)
+async def activate_subscription(
+    subscription_id: uuid.UUID,
+    request: Request,
+    user: dict = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    return await SubscriptionService.activate_subscription(
+        db, uuid.UUID(user["sub"]), subscription_id, request,
+    )
+
+
+@router.post(
+    "/subscriptions/{subscription_id}/suspend",
+    response_model=SubscriptionResponse,
+)
+async def suspend_subscription(
+    subscription_id: uuid.UUID,
+    request: Request,
+    user: dict = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    return await SubscriptionService.suspend_subscription(
+        db, uuid.UUID(user["sub"]), subscription_id, request,
+    )
+
+
+# =====================================================================
+# Platform users
+# =====================================================================
+
+
+@router.get("/users", response_model=list[PlatformUserSummary])
+async def list_users(
+    search: str | None = Query(None),
+    with_platform_role: bool | None = Query(None),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    return await PlatformUserService.list_users(db, search, with_platform_role)
+
+
+# =====================================================================
+# Platform roles catalog + grants
+# =====================================================================
+
+
+@router.get("/roles", response_model=list[PlatformRoleResponse])
+async def list_platform_roles(db: AsyncSession = Depends(get_db)) -> Any:
+    return await PlatformRoleService.list_roles(db)
+
+
+@router.post(
+    "/roles/grant",
+    response_model=UserPlatformRoleResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def grant_platform_role(
+    data: GrantRoleRequest,
+    request: Request,
+    user: dict = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    return await PlatformRoleService.grant_role(
+        db, uuid.UUID(user["sub"]), data.user_id, data.role_code, request,
+    )
+
+
+@router.delete(
+    "/roles/revoke",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None,
+)
+async def revoke_platform_role(
+    request: Request,
+    user_id: uuid.UUID = Query(...),
+    role_code: str = Query(...),
+    user: dict = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    await PlatformRoleService.revoke_role(
+        db, uuid.UUID(user["sub"]), user_id, role_code, request,
+    )
+
+
+# =====================================================================
+# Feature overrides
+# =====================================================================
+
+
+@router.get(
+    "/organizations/{org_id}/overrides",
+    response_model=list[OverrideResponse],
+)
+async def list_overrides(
+    org_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    return await OverrideService.list_for_org(db, org_id)
+
+
+@router.put(
+    "/organizations/{org_id}/overrides",
+    response_model=OverrideResponse,
+)
+async def set_override(
+    org_id: uuid.UUID,
+    data: OverrideSet,
+    request: Request,
+    user: dict = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    return await OverrideService.set_override(
+        db, uuid.UUID(user["sub"]), org_id, data, request,
+    )
+
+
+@router.delete(
+    "/organizations/{org_id}/overrides/{feature_key}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None,
+)
+async def remove_override(
+    org_id: uuid.UUID,
+    feature_key: str,
+    request: Request,
+    user: dict = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    await OverrideService.remove_override(
+        db, uuid.UUID(user["sub"]), org_id, feature_key, request,
+    )
+
+
+# =====================================================================
+# Audit log
+# =====================================================================
+
+
+@router.get("/audit", response_model=list[AuditLogEntry])
+async def list_audit(
+    actor_id: uuid.UUID | None = Query(None),
+    action: str | None = Query(None),
+    target_org_id: uuid.UUID | None = Query(None),
+    limit: int = Query(100, ge=1, le=500),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    return await AuditService.list_entries(
+        db, actor_id, action, target_org_id, limit,
+    )

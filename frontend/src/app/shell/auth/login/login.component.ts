@@ -41,7 +41,7 @@ export class LoginComponent {
         } else {
           // Single org → go to dashboard
           this.notify.show({ type: 'success', title: 'Bienvenido', message: 'Has iniciado sesión correctamente' });
-          this.router.navigate(['/dashboard']);
+          this.router.navigate([this.auth.isSuperAdmin() ? '/platform' : '/dashboard']);
         }
       },
       error: (err) => {

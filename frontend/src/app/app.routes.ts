@@ -1,7 +1,23 @@
-import { Routes } from '@angular/router';
+import { inject } from '@angular/core';
+import { Router, Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { appAccessGuard } from './core/guards/app-access.guard';
+import { superAdminGuard } from './core/guards/super-admin.guard';
+import { AuthService } from './core/services/auth.service';
 import { LayoutComponent } from './shell/layout/layout.component';
+
+/**
+ * Redirects super admins away from org dashboards to /platform.
+ * Regular users continue normally.
+ */
+const superAdminRedirectGuard = () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  if (auth.isAuthenticated() && auth.isSuperAdmin()) {
+    return router.createUrlTree(['/platform']);
+  }
+  return true;
+};
 
 export const routes: Routes = [
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
@@ -17,6 +33,7 @@ export const routes: Routes = [
     children: [
       {
         path: 'dashboard',
+        canActivate: [superAdminRedirectGuard],
         loadComponent: () =>
           import('./shell/dashboard/dashboard.component').then(
             (m) => m.DashboardComponent,
@@ -107,6 +124,12 @@ export const routes: Routes = [
         canActivate: [appAccessGuard],
       },
     ],
+  },
+  {
+    path: 'platform',
+    canActivate: [authGuard, superAdminGuard],
+    loadChildren: () =>
+      import('./platform/platform.routes').then((m) => m.PLATFORM_ROUTES),
   },
   { path: '**', redirectTo: 'dashboard' },
 ];
