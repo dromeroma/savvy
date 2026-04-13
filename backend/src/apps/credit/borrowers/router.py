@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.dependencies import get_db, get_org_id
+from src.modules.apps.permissions import require_permission
 from src.apps.credit.borrowers.schemas import (
     BorrowerCreate,
     BorrowerListParams,
@@ -15,7 +16,12 @@ from src.apps.credit.borrowers.schemas import (
 )
 from src.apps.credit.borrowers.service import BorrowerService
 
-router = APIRouter(prefix="/borrowers", tags=["Credit Borrowers"])
+router = APIRouter(
+    prefix="/borrowers",
+    tags=["Credit Borrowers"],
+    dependencies=[Depends(require_permission("credit", "loans.create", "loans.approve", "reports.view"))],
+)
+_CREATE = [Depends(require_permission("credit", "loans.create"))]
 
 
 @router.get("", response_model=dict)
@@ -36,7 +42,7 @@ async def list_borrowers(
     return {"items": items, "total": total, "page": page, "page_size": page_size}
 
 
-@router.post("", response_model=BorrowerResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=BorrowerResponse, status_code=status.HTTP_201_CREATED, dependencies=_CREATE)
 async def create_borrower(
     data: BorrowerCreate,
     db: AsyncSession = Depends(get_db),
@@ -54,7 +60,7 @@ async def get_borrower(
     return await BorrowerService.get_borrower(db, org_id, borrower_id)
 
 
-@router.patch("/{borrower_id}", response_model=BorrowerResponse)
+@router.patch("/{borrower_id}", response_model=BorrowerResponse, dependencies=_CREATE)
 async def update_borrower(
     borrower_id: uuid.UUID,
     data: BorrowerUpdate,

@@ -7,13 +7,19 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.dependencies import get_db, get_org_id
+from src.modules.apps.permissions import require_permission
 from src.apps.credit.payments.schemas import PaymentCreate, PaymentResponse, PenaltyResponse
 from src.apps.credit.payments.service import PaymentService
 
-router = APIRouter(prefix="/payments", tags=["Credit Payments"])
+router = APIRouter(
+    prefix="/payments",
+    tags=["Credit Payments"],
+    dependencies=[Depends(require_permission("credit", "payments.write", "reports.view"))],
+)
+_WRITE = [Depends(require_permission("credit", "payments.write"))]
 
 
-@router.post("", response_model=PaymentResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=PaymentResponse, status_code=status.HTTP_201_CREATED, dependencies=_WRITE)
 async def record_payment(
     data: PaymentCreate,
     db: AsyncSession = Depends(get_db),

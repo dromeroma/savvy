@@ -7,10 +7,15 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.dependencies import get_db, get_org_id
+from src.modules.apps.permissions import require_permission
 from src.apps.credit.restructuring.schemas import RestructuringCreate, RestructuringResponse
 from src.apps.credit.restructuring.service import RestructuringService
 
-router = APIRouter(prefix="/restructuring", tags=["Credit Restructuring"])
+router = APIRouter(
+    prefix="/restructuring",
+    tags=["Credit Restructuring"],
+    dependencies=[Depends(require_permission("credit", "loans.approve"))],
+)
 
 
 @router.post("", response_model=RestructuringResponse, status_code=status.HTTP_201_CREATED)
