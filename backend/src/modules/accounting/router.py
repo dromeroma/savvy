@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.dependencies import get_current_user, get_db, get_org_id
+from src.modules.apps.permissions import require_permission
 from src.modules.accounting.schemas import (
     AccountCreate,
     AccountResponse,
@@ -24,6 +25,12 @@ from src.modules.accounting.service import AccountingEngine
 
 router = APIRouter(prefix="/accounting", tags=["Accounting"])
 
+_READ = [Depends(require_permission("accounting", "reports.view", "entries.create", "chart.manage"))]
+_CHART_WRITE = [Depends(require_permission("accounting", "chart.manage"))]
+_PERIOD_CLOSE = [Depends(require_permission("accounting", "periods.close"))]
+_ENTRY_CREATE = [Depends(require_permission("accounting", "entries.create"))]
+_REPORTS = [Depends(require_permission("accounting", "reports.view"))]
+
 
 # ---------------------------------------------------------------------------
 # Chart of Accounts
@@ -33,6 +40,7 @@ router = APIRouter(prefix="/accounting", tags=["Accounting"])
 @router.get(
     "/chart-of-accounts",
     response_model=list[AccountResponse],
+    dependencies=_READ,
 )
 async def list_accounts(
     db: AsyncSession = Depends(get_db),
@@ -46,6 +54,7 @@ async def list_accounts(
     "/chart-of-accounts",
     response_model=AccountResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=_CHART_WRITE,
 )
 async def create_account(
     data: AccountCreate,
@@ -59,6 +68,7 @@ async def create_account(
 @router.patch(
     "/chart-of-accounts/{account_id}",
     response_model=AccountResponse,
+    dependencies=_CHART_WRITE,
 )
 async def update_account(
     account_id: uuid.UUID,
@@ -78,6 +88,7 @@ async def update_account(
 @router.get(
     "/fiscal-periods",
     response_model=list[FiscalPeriodResponse],
+    dependencies=_READ,
 )
 async def list_periods(
     db: AsyncSession = Depends(get_db),
@@ -91,6 +102,7 @@ async def list_periods(
     "/fiscal-periods",
     response_model=FiscalPeriodResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=_PERIOD_CLOSE,
 )
 async def create_period(
     data: FiscalPeriodCreate,
@@ -107,6 +119,7 @@ async def create_period(
 @router.post(
     "/fiscal-periods/{period_id}/close",
     response_model=FiscalPeriodResponse,
+    dependencies=_PERIOD_CLOSE,
 )
 async def close_period(
     period_id: uuid.UUID,
@@ -153,6 +166,7 @@ def _entry_to_response(entry: Any) -> JournalEntryResponse:
 @router.get(
     "/journal-entries",
     response_model=list[JournalEntryResponse],
+    dependencies=_READ,
 )
 async def list_entries(
     period_id: uuid.UUID | None = Query(default=None),
@@ -168,6 +182,7 @@ async def list_entries(
 @router.get(
     "/journal-entries/{entry_id}",
     response_model=JournalEntryResponse,
+    dependencies=_READ,
 )
 async def get_entry(
     entry_id: uuid.UUID,
@@ -183,6 +198,7 @@ async def get_entry(
     "/journal-entries",
     response_model=JournalEntryResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=_ENTRY_CREATE,
 )
 async def create_entry(
     data: JournalEntryCreate,
@@ -211,6 +227,7 @@ async def create_entry(
 @router.get(
     "/reports/income-statement",
     response_model=IncomeStatementResponse,
+    dependencies=_REPORTS,
 )
 async def income_statement(
     start_date: date = Query(...),
@@ -225,6 +242,7 @@ async def income_statement(
 @router.get(
     "/reports/balance-sheet",
     response_model=BalanceSheetResponse,
+    dependencies=_REPORTS,
 )
 async def balance_sheet(
     as_of_date: date = Query(...),
