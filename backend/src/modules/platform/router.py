@@ -16,11 +16,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.dependencies import get_db
 from src.modules.platform.dependencies import require_super_admin
 from src.modules.platform.schemas import (
+    AppRegistryResponse,
+    AppRoleCatalogResponse,
+    AssignAppRoleRequest,
     AuditLogEntry,
     DashboardKPIs,
     FeatureCreate,
     FeatureResponse,
     GrantRoleRequest,
+    InviteMemberRequest,
+    OrgAppActivateRequest,
+    OrgAppSummary,
+    OrgMemberSummary,
     OverrideResponse,
     OverrideSet,
     PlanCreate,
@@ -45,6 +52,7 @@ from src.modules.platform.service import (
     FeatureService,
     OverrideService,
     PlanService,
+    PlatformAppService,
     PlatformOrgService,
     PlatformRoleService,
     PlatformUserService,
@@ -466,6 +474,177 @@ async def remove_override(
 ) -> None:
     await OverrideService.remove_override(
         db, uuid.UUID(user["sub"]), org_id, feature_key, request,
+    )
+
+
+# =====================================================================
+# App registry + role catalog
+# =====================================================================
+
+
+@router.get("/apps", response_model=list[AppRegistryResponse])
+async def list_platform_apps(db: AsyncSession = Depends(get_db)) -> Any:
+    """List every app in the Savvy ecosystem registry."""
+    return await PlatformAppService.list_apps(db)
+
+
+@router.get(
+    "/apps/{app_code}/roles",
+    response_model=list[AppRoleCatalogResponse],
+)
+async def list_app_role_catalog(
+    app_code: str,
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """List valid roles for the given app."""
+    return await PlatformAppService.list_role_catalog(db, app_code)
+
+
+# =====================================================================
+# Organization apps (activate/deactivate per org)
+# =====================================================================
+
+
+@router.get(
+    "/organizations/{org_id}/apps",
+    response_model=list[OrgAppSummary],
+)
+async def list_org_apps(
+    org_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    return await PlatformAppService.list_org_apps(db, org_id)
+
+
+@router.post(
+    "/organizations/{org_id}/apps/activate",
+    response_model=OrgAppSummary,
+    status_code=status.HTTP_201_CREATED,
+)
+async def activate_org_app(
+    org_id: uuid.UUID,
+    data: OrgAppActivateRequest,
+    request: Request,
+    user: dict = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    await PlatformAppService.activate_org_app(
+        db, uuid.UUID(user["sub"]), org_id, data.app_code, request,
+    )
+    apps = await PlatformAppService.list_org_apps(db, org_id)
+    match = next((a for a in apps if a["app_code"] == data.app_code), None)
+    if match is None:
+        raise RuntimeError("Activation not visible after write")  # pragma: no cover
+    return match
+
+
+@router.post(
+    "/organizations/{org_id}/apps/deactivate",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None,
+)
+async def deactivate_org_app(
+    org_id: uuid.UUID,
+    data: OrgAppActivateRequest,
+    request: Request,
+    user: dict = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    await PlatformAppService.deactivate_org_app(
+        db, uuid.UUID(user["sub"]), org_id, data.app_code, request,
+    )
+
+
+# =====================================================================
+# Organization members + per-app roles
+# =====================================================================
+
+
+@router.get(
+    "/organizations/{org_id}/members",
+    response_model=list[OrgMemberSummary],
+)
+async def list_org_members(
+    org_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    return await PlatformAppService.list_org_members(db, org_id)
+
+
+@router.post(
+    "/organizations/{org_id}/members",
+    response_model=OrgMemberSummary,
+    status_code=status.HTTP_201_CREATED,
+)
+async def invite_org_member(
+    org_id: uuid.UUID,
+    data: InviteMemberRequest,
+    request: Request,
+    user: dict = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    await PlatformAppService.invite_member(
+        db, uuid.UUID(user["sub"]), org_id, data, request,
+    )
+    members = await PlatformAppService.list_org_members(db, org_id)
+    return next(m for m in members if m["email"] == data.email)
+
+
+@router.delete(
+    "/organizations/{org_id}/members/{user_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None,
+)
+async def remove_org_member(
+    org_id: uuid.UUID,
+    user_id: uuid.UUID,
+    request: Request,
+    user: dict = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    await PlatformAppService.remove_member(
+        db, uuid.UUID(user["sub"]), org_id, user_id, request,
+    )
+
+
+@router.post(
+    "/organizations/{org_id}/app-roles",
+    status_code=status.HTTP_200_OK,
+)
+async def assign_org_app_role(
+    org_id: uuid.UUID,
+    data: AssignAppRoleRequest,
+    request: Request,
+    user: dict = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    row = await PlatformAppService.assign_app_role(
+        db, uuid.UUID(user["sub"]), org_id, data, request,
+    )
+    return {
+        "id": str(row.id),
+        "organization_id": str(row.organization_id),
+        "user_id": str(row.user_id),
+        "app_id": str(row.app_id),
+        "role": row.role,
+    }
+
+
+@router.delete(
+    "/organizations/{org_id}/app-roles",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None,
+)
+async def revoke_org_app_role(
+    org_id: uuid.UUID,
+    request: Request,
+    user_id: uuid.UUID = Query(...),
+    app_code: str = Query(...),
+    user: dict = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    await PlatformAppService.revoke_app_role(
+        db, uuid.UUID(user["sub"]), org_id, user_id, app_code, request,
     )
 
 

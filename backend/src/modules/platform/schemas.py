@@ -305,6 +305,89 @@ class AuditLogEntry(BaseModel):
 
 
 # =====================================================================
+# App registry + role catalog
+# =====================================================================
+
+
+class AppRegistryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    code: str
+    name: str
+    description: str | None = None
+    icon: str | None = None
+    color: str | None = None
+    is_active: bool
+    is_external: bool
+
+
+class AppRoleCatalogResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    app_code: str
+    code: str
+    name: str
+    description: str | None = None
+    sort_order: int
+    is_active: bool
+
+
+class OrgAppSummary(BaseModel):
+    """Org view of a single app: whether it's active + the activation row."""
+    app_code: str
+    app_name: str
+    app_icon: str | None = None
+    app_color: str | None = None
+    is_active: bool
+    status: str | None = None  # active / trial / cancelled / null
+    activated_at: datetime | None = None
+    trial_ends_at: datetime | None = None
+    expires_at: datetime | None = None
+
+
+class OrgAppActivateRequest(BaseModel):
+    app_code: str = Field(..., min_length=1, max_length=50)
+
+
+# =====================================================================
+# Organization members + app roles
+# =====================================================================
+
+
+class OrgMemberAppRole(BaseModel):
+    app_code: str
+    app_name: str
+    role: str
+
+
+class OrgMemberSummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    user_id: uuid.UUID
+    name: str
+    email: str
+    membership_id: uuid.UUID
+    membership_role: str
+    joined_at: datetime
+    app_roles: list[OrgMemberAppRole] = []
+
+
+class AssignAppRoleRequest(BaseModel):
+    user_id: uuid.UUID
+    app_code: str = Field(..., min_length=1, max_length=50)
+    role: str = Field(..., min_length=1, max_length=60)
+
+
+class InviteMemberRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+    email: EmailStr
+    password: str = Field(..., min_length=8, max_length=100)
+    membership_role: str = Field(default="member", max_length=50)
+
+
+# =====================================================================
 # Dashboard
 # =====================================================================
 

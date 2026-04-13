@@ -17,9 +17,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.exceptions import ConflictError, NotFoundError, ValidationError
 from src.core.security import hash_password
+from src.modules.apps.models import AppRegistry, AppUserRole, OrganizationApp
 from src.modules.auth.models import User
 from src.modules.organization.models import Membership, Organization
 from src.modules.platform.models import (
+    AppRoleCatalog,
     OrganizationFeatureOverride,
     OrganizationSubscription,
     PlanFeature,
@@ -30,7 +32,10 @@ from src.modules.platform.models import (
     UserPlatformRole,
 )
 from src.modules.platform.schemas import (
+    AssignAppRoleRequest,
     FeatureCreate,
+    InviteMemberRequest,
+    OrgAppActivateRequest,
     OverrideSet,
     PlanCreate,
     PlanFeatureSet,
@@ -962,6 +967,397 @@ class AuditService:
 # =====================================================================
 # Dashboard
 # =====================================================================
+
+
+class PlatformAppService:
+    """Super-admin operations on app registry, org apps, and app roles."""
+
+    # ------------------------------------------------------------------
+    # Registry + catalog (read)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    async def list_apps(db: AsyncSession) -> list[AppRegistry]:
+        result = await db.execute(
+            select(AppRegistry)
+            .where(AppRegistry.is_active.is_(True))
+            .order_by(AppRegistry.name)
+        )
+        return list(result.scalars().all())
+
+    @staticmethod
+    async def list_role_catalog(
+        db: AsyncSession, app_code: str,
+    ) -> list[AppRoleCatalog]:
+        result = await db.execute(
+            select(AppRoleCatalog)
+            .where(
+                AppRoleCatalog.app_code == app_code,
+                AppRoleCatalog.is_active.is_(True),
+            )
+            .order_by(AppRoleCatalog.sort_order, AppRoleCatalog.code)
+        )
+        return list(result.scalars().all())
+
+    # ------------------------------------------------------------------
+    # Per-org app activation
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    async def list_org_apps(
+        db: AsyncSession, org_id: uuid.UUID,
+    ) -> list[dict]:
+        """Return every app in the registry + whether this org has it activated."""
+        apps = await db.execute(
+            select(AppRegistry)
+            .where(AppRegistry.is_active.is_(True))
+            .order_by(AppRegistry.name)
+        )
+        app_rows = list(apps.scalars().all())
+
+        activations = await db.execute(
+            select(OrganizationApp).where(
+                OrganizationApp.organization_id == org_id,
+            )
+        )
+        by_app_id: dict[uuid.UUID, OrganizationApp] = {
+            oa.app_id: oa for oa in activations.scalars().all()
+        }
+
+        result = []
+        for app in app_rows:
+            oa = by_app_id.get(app.id)
+            is_active = oa is not None and oa.status in ("active", "trial")
+            result.append({
+                "app_code": app.code,
+                "app_name": app.name,
+                "app_icon": app.icon,
+                "app_color": app.color,
+                "is_active": is_active,
+                "status": oa.status if oa else None,
+                "activated_at": oa.activated_at if oa else None,
+                "trial_ends_at": oa.trial_ends_at if oa else None,
+                "expires_at": oa.expires_at if oa else None,
+            })
+        return result
+
+    @staticmethod
+    async def activate_org_app(
+        db: AsyncSession, actor_id: uuid.UUID,
+        org_id: uuid.UUID, app_code: str,
+        request: Request | None = None,
+    ) -> OrganizationApp:
+        org = await db.get(Organization, org_id)
+        if org is None or org.deleted_at is not None:
+            raise NotFoundError("Organization not found.")
+        if org.type == "platform":
+            raise ValidationError("Cannot activate apps for the platform owner org.")
+
+        app = await db.scalar(
+            select(AppRegistry).where(
+                AppRegistry.code == app_code,
+                AppRegistry.is_active.is_(True),
+            )
+        )
+        if app is None:
+            raise NotFoundError(f"App '{app_code}' not found.")
+
+        # Existing active row? Re-activate if cancelled; no-op if already on.
+        existing = await db.scalar(
+            select(OrganizationApp).where(
+                OrganizationApp.organization_id == org_id,
+                OrganizationApp.app_id == app.id,
+            )
+        )
+        now = datetime.now(UTC)
+        if existing is not None:
+            if existing.status in ("active", "trial"):
+                return existing
+            existing.status = "active"
+            existing.activated_at = now
+            existing.trial_ends_at = None
+            existing.expires_at = None
+            org_app = existing
+        else:
+            org_app = OrganizationApp(
+                organization_id=org_id,
+                app_id=app.id,
+                status="active",
+                activated_at=now,
+            )
+            db.add(org_app)
+        await db.flush()
+        await db.refresh(org_app)
+
+        await write_audit(
+            db, actor_id, "org_app.activate",
+            "organization", org_id,
+            target_org_id=org_id,
+            payload={"app_code": app_code},
+            request=request,
+        )
+        return org_app
+
+    @staticmethod
+    async def deactivate_org_app(
+        db: AsyncSession, actor_id: uuid.UUID,
+        org_id: uuid.UUID, app_code: str,
+        request: Request | None = None,
+    ) -> None:
+        app = await db.scalar(
+            select(AppRegistry).where(AppRegistry.code == app_code)
+        )
+        if app is None:
+            raise NotFoundError(f"App '{app_code}' not found.")
+
+        org_app = await db.scalar(
+            select(OrganizationApp).where(
+                OrganizationApp.organization_id == org_id,
+                OrganizationApp.app_id == app.id,
+                OrganizationApp.status.in_(("active", "trial")),
+            )
+        )
+        if org_app is None:
+            return
+        org_app.status = "cancelled"
+        await db.flush()
+
+        await write_audit(
+            db, actor_id, "org_app.deactivate",
+            "organization", org_id,
+            target_org_id=org_id,
+            payload={"app_code": app_code},
+            request=request,
+        )
+
+    # ------------------------------------------------------------------
+    # Org members + per-app roles
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    async def list_org_members(
+        db: AsyncSession, org_id: uuid.UUID,
+    ) -> list[dict]:
+        """Members of an org + their roles across apps."""
+        member_rows = await db.execute(
+            select(Membership, User)
+            .join(User, User.id == Membership.user_id)
+            .where(Membership.organization_id == org_id)
+            .order_by(Membership.joined_at)
+        )
+        members = member_rows.all()
+
+        role_rows = await db.execute(
+            select(AppUserRole, AppRegistry.code, AppRegistry.name)
+            .join(AppRegistry, AppRegistry.id == AppUserRole.app_id)
+            .where(AppUserRole.organization_id == org_id)
+        )
+        roles_by_user: dict[uuid.UUID, list[dict]] = {}
+        for aur, app_code, app_name in role_rows.all():
+            roles_by_user.setdefault(aur.user_id, []).append({
+                "app_code": app_code,
+                "app_name": app_name,
+                "role": aur.role,
+            })
+
+        return [
+            {
+                "user_id": u.id,
+                "name": u.name,
+                "email": u.email,
+                "membership_id": m.id,
+                "membership_role": m.role,
+                "joined_at": m.joined_at,
+                "app_roles": roles_by_user.get(u.id, []),
+            }
+            for m, u in members
+        ]
+
+    @staticmethod
+    async def invite_member(
+        db: AsyncSession, actor_id: uuid.UUID,
+        org_id: uuid.UUID, data: InviteMemberRequest,
+        request: Request | None = None,
+    ) -> Membership:
+        org = await db.get(Organization, org_id)
+        if org is None or org.deleted_at is not None:
+            raise NotFoundError("Organization not found.")
+        if org.type == "platform":
+            raise ValidationError("Cannot invite members to the platform owner org.")
+
+        existing = await db.scalar(select(User).where(User.email == data.email))
+        if existing is None:
+            user = User(
+                name=data.name,
+                email=data.email,
+                password_hash=hash_password(data.password),
+            )
+            db.add(user)
+            await db.flush()
+        else:
+            user = existing
+            # Already a member?
+            dup = await db.scalar(
+                select(Membership).where(
+                    Membership.organization_id == org_id,
+                    Membership.user_id == user.id,
+                )
+            )
+            if dup is not None:
+                raise ConflictError("User is already a member of this organization.")
+
+        membership = Membership(
+            organization_id=org_id,
+            user_id=user.id,
+            role=data.membership_role,
+        )
+        db.add(membership)
+        await db.flush()
+        await db.refresh(membership)
+
+        await write_audit(
+            db, actor_id, "member.invite",
+            "user", user.id,
+            target_org_id=org_id,
+            payload={"email": data.email, "role": data.membership_role},
+            request=request,
+        )
+        return membership
+
+    @staticmethod
+    async def remove_member(
+        db: AsyncSession, actor_id: uuid.UUID,
+        org_id: uuid.UUID, user_id: uuid.UUID,
+        request: Request | None = None,
+    ) -> None:
+        membership = await db.scalar(
+            select(Membership).where(
+                Membership.organization_id == org_id,
+                Membership.user_id == user_id,
+            )
+        )
+        if membership is None:
+            raise NotFoundError("Membership not found.")
+        if membership.role == "owner":
+            raise ValidationError("Cannot remove the owner directly. Transfer ownership first.")
+
+        # Also delete app-level roles for this user in the org
+        roles = await db.execute(
+            select(AppUserRole).where(
+                AppUserRole.organization_id == org_id,
+                AppUserRole.user_id == user_id,
+            )
+        )
+        for r in roles.scalars().all():
+            await db.delete(r)
+        await db.delete(membership)
+        await db.flush()
+
+        await write_audit(
+            db, actor_id, "member.remove",
+            "user", user_id,
+            target_org_id=org_id,
+            request=request,
+        )
+
+    @staticmethod
+    async def assign_app_role(
+        db: AsyncSession, actor_id: uuid.UUID,
+        org_id: uuid.UUID, data: AssignAppRoleRequest,
+        request: Request | None = None,
+    ) -> AppUserRole:
+        # Validate target user is a member
+        membership = await db.scalar(
+            select(Membership).where(
+                Membership.organization_id == org_id,
+                Membership.user_id == data.user_id,
+            )
+        )
+        if membership is None:
+            raise NotFoundError("User is not a member of this organization.")
+
+        # Validate app + role catalog
+        app = await db.scalar(
+            select(AppRegistry).where(AppRegistry.code == data.app_code)
+        )
+        if app is None:
+            raise NotFoundError(f"App '{data.app_code}' not found.")
+
+        role_def = await db.scalar(
+            select(AppRoleCatalog).where(
+                AppRoleCatalog.app_code == data.app_code,
+                AppRoleCatalog.code == data.role,
+                AppRoleCatalog.is_active.is_(True),
+            )
+        )
+        if role_def is None:
+            raise ValidationError(
+                f"Role '{data.role}' is not a valid role for app '{data.app_code}'.",
+            )
+
+        # Upsert
+        existing = await db.scalar(
+            select(AppUserRole).where(
+                AppUserRole.organization_id == org_id,
+                AppUserRole.user_id == data.user_id,
+                AppUserRole.app_id == app.id,
+            )
+        )
+        if existing is not None:
+            existing.role = data.role
+            assignment = existing
+        else:
+            assignment = AppUserRole(
+                organization_id=org_id,
+                user_id=data.user_id,
+                app_id=app.id,
+                role=data.role,
+            )
+            db.add(assignment)
+
+        await db.flush()
+        await db.refresh(assignment)
+
+        await write_audit(
+            db, actor_id, "app_role.assign",
+            "user", data.user_id,
+            target_org_id=org_id,
+            payload={"app_code": data.app_code, "role": data.role},
+            request=request,
+        )
+        return assignment
+
+    @staticmethod
+    async def revoke_app_role(
+        db: AsyncSession, actor_id: uuid.UUID,
+        org_id: uuid.UUID, user_id: uuid.UUID, app_code: str,
+        request: Request | None = None,
+    ) -> None:
+        app = await db.scalar(
+            select(AppRegistry).where(AppRegistry.code == app_code)
+        )
+        if app is None:
+            raise NotFoundError(f"App '{app_code}' not found.")
+
+        row = await db.scalar(
+            select(AppUserRole).where(
+                AppUserRole.organization_id == org_id,
+                AppUserRole.user_id == user_id,
+                AppUserRole.app_id == app.id,
+            )
+        )
+        if row is None:
+            return
+        await db.delete(row)
+        await db.flush()
+
+        await write_audit(
+            db, actor_id, "app_role.revoke",
+            "user", user_id,
+            target_org_id=org_id,
+            payload={"app_code": app_code},
+            request=request,
+        )
 
 
 class DashboardService:

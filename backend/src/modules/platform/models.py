@@ -212,6 +212,29 @@ class OrganizationFeatureOverride(BaseMixin, Base):
 # =====================================================================
 
 
+class AppRoleCatalog(Base):
+    """Catalog of valid roles per app (for the platform admin panel)."""
+
+    __tablename__ = "app_role_catalog"
+    __table_args__ = (
+        UniqueConstraint("app_code", "code", name="app_role_catalog_app_code_code_key"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, primary_key=True, default=uuid.uuid4,
+    )
+    app_code: Mapped[str] = mapped_column(String(50), nullable=False)
+    code: Mapped[str] = mapped_column(String(60), nullable=False)
+    name: Mapped[str] = mapped_column(String(150), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    is_system: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False,
+    )
+
+
 class PlatformAuditLog(Base):
     """Append-only audit log of every platform-level action."""
 

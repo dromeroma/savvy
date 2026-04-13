@@ -1,12 +1,12 @@
 # AI_STATE.md — Estado del Proyecto Savvy
 
-> Ultima actualizacion: 2026-04-13 (v0.0.41)
+> Ultima actualizacion: 2026-04-13 (v0.0.42)
 
 ## Resumen
 
 Savvy es una plataforma SaaS multi-tenant modular desarrollada por **Savvitrix Solutions**. El backend es un monolito modular en FastAPI, el frontend es Angular standalone con Tailwind CSS v4, y la base de datos es PostgreSQL vía Supabase.
 
-**Version actual del frontend**: 0.0.41
+**Version actual del frontend**: 0.0.42
 **Git remote**: `git@github-dromeroma:dromeroma/savvy.git`
 **Branch principal**: `main`
 
@@ -43,10 +43,11 @@ backend/src/
 ├── modules/                   # Shared reusable modules
 │   ├── auth/                  # Users, RefreshTokens, register/login/refresh (+ platform_roles in JWT)
 │   ├── organization/          # Organizations, Memberships, Invitations
-│   ├── platform/              # NEW v0.0.41 — Savvy Platform super-admin panel
+│   ├── platform/              # v0.0.41 — Savvy Platform super-admin panel
 │   │                          # PlatformRole, UserPlatformRole, SubscriptionPlan, PlatformFeature,
 │   │                          # PlanFeature, OrganizationSubscription, OrganizationFeatureOverride,
-│   │                          # PlatformAuditLog — 29 endpoints under /api/v1/platform/*
+│   │                          # PlatformAuditLog, AppRoleCatalog (v0.0.42) —
+│   │                          # 39 endpoints under /api/v1/platform/* (+10 for apps/members/roles)
 │   ├── people/                # Person, FamilyRelationship, EmergencyContact
 │   ├── groups/                # OrganizationalScope, GroupType, Group, GroupMember
 │   ├── finance/               # FinanceCategory, FinanceTransaction, PaymentAccount
@@ -269,6 +270,7 @@ docs/
 
 | Version | Descripcion |
 |---------|-------------|
+| 0.0.42 | **Platform v2 — org parametrization**: new `app_role_catalog` table seeded with 50 roles across 11 apps (church: pastor/treasurer/teacher/leader/member; pos: store_manager/cashier/inventory/viewer; accounting: accountant/auditor/assistant; edu, family, credit, crm, parking, condo, health, pay). Backend: 10 new `/platform/*` endpoints for listing apps, role catalog per app, activating/deactivating apps for an org, listing org members with their per-app roles, inviting new users into an org with a starting password, removing members, and assigning/revoking app roles with catalog validation. Frontend: organization-detail now has 3 new tabs — **Apps** (toggle activation per app), **Usuarios & roles** (list + invite + remove + assign per-app roles via catalog dropdown), **Features** (per-org overrides forced ON/OFF with reason). All actions write to `platform_audit_log`. |
 | 0.0.41 | **Savvy Platform super admin**: platform_roles (RBAC over orgs) + plans (starter/pro/enterprise + platform) + subscriptions + features + overrides + audit log. Nuevo modulo backend `src/modules/platform/` con 29 endpoints bajo `/api/v1/platform/*`, guard `require_super_admin` + JWT claim `platform_roles`. Nueva area frontend `src/app/platform/` con layout propio, 7 vistas (dashboard, organizations list/detail/create, plans, subscriptions, users, audit), `superAdminGuard` + redirect al login si super_admin. Rename `Iglesia XYZ` → `Savvytrix` (type=`platform`), sin apps activadas. Nueva org de pruebas `Empresa Demo` (demo@savvytrix.local) con Starter trial 14d. El super_admin NO puede entrar a organizaciones — parametriza todo desde su propio panel. |
 | 0.0.40 | **SavvyChurch v2**: 12 tablas nuevas para pastoral/doctrine/social_aid/rotations + aggregate_offerings + analytics multi-scope con recursive CTE. 4 nuevas vistas frontend. |
 | 0.0.39 | SavvyPOS cloud completo |
