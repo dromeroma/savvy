@@ -5,10 +5,15 @@ from typing import Any
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.dependencies import get_db, get_org_id
+from src.modules.apps.permissions import require_permission
 from src.apps.health.appointments.schemas import AppointmentCreate, AppointmentResponse, AppointmentUpdate
 from src.apps.health.appointments.service import AppointmentService
 
-router = APIRouter(prefix="/appointments", tags=["Health Appointments"])
+router = APIRouter(
+    prefix="/appointments",
+    tags=["Health Appointments"],
+    dependencies=[Depends(require_permission("health", "appointments.write", "appointments.read"))],
+)
 
 @router.get("", response_model=list[AppointmentResponse])
 async def list_appointments(provider_id: uuid.UUID | None = Query(None), patient_id: uuid.UUID | None = Query(None), status_filter: str | None = Query(None, alias="status"), db: AsyncSession = Depends(get_db), org_id: uuid.UUID = Depends(get_org_id)) -> Any:
