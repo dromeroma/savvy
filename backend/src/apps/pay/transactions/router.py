@@ -5,10 +5,15 @@ from typing import Any
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.dependencies import get_db, get_org_id
+from src.modules.apps.permissions import require_permission
 from src.apps.pay.transactions.schemas import *
 from src.apps.pay.transactions.service import TransactionService
 
-router = APIRouter(prefix="/transactions", tags=["Pay Transactions"])
+router = APIRouter(
+    prefix="/transactions",
+    tags=["Pay Transactions"],
+    dependencies=[Depends(require_permission("pay", "transactions.write", "transactions.read"))],
+)
 
 @router.get("", response_model=list[TransactionResponse])
 async def list_transactions(status_filter: str | None = Query(None, alias="status"), tx_type: str | None = Query(None, alias="type"), db: AsyncSession = Depends(get_db), org_id: uuid.UUID = Depends(get_org_id)) -> Any:

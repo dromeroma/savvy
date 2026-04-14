@@ -5,10 +5,15 @@ from typing import Any
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.dependencies import get_db, get_org_id
+from src.modules.apps.permissions import require_permission
 from src.apps.pay.ledger.schemas import *
 from src.apps.pay.ledger.service import LedgerEngine
 
-router = APIRouter(prefix="/ledger", tags=["Pay Ledger"])
+router = APIRouter(
+    prefix="/ledger",
+    tags=["Pay Ledger"],
+    dependencies=[Depends(require_permission("pay", "ledger.write", "reports.view"))],
+)
 
 @router.get("/accounts", response_model=list[AccountResponse])
 async def list_accounts(db: AsyncSession = Depends(get_db), org_id: uuid.UUID = Depends(get_org_id)) -> Any:

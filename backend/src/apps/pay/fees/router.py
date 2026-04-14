@@ -5,10 +5,15 @@ from typing import Any
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.dependencies import get_db, get_org_id
+from src.modules.apps.permissions import require_permission
 from src.apps.pay.fees.schemas import FeeRuleCreate, FeeRuleResponse
 from src.apps.pay.fees.service import FeeService
 
-router = APIRouter(prefix="/fees", tags=["Pay Fees"])
+router = APIRouter(
+    prefix="/fees",
+    tags=["Pay Fees"],
+    dependencies=[Depends(require_permission("pay", "fees.write", "reports.view"))],
+)
 
 @router.get("/rules", response_model=list[FeeRuleResponse])
 async def list_rules(db: AsyncSession = Depends(get_db), org_id: uuid.UUID = Depends(get_org_id)) -> Any:
