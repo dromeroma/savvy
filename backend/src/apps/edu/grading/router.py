@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.dependencies import get_db, get_org_id
+from src.modules.apps.permissions import require_permission
 from src.apps.edu.grading.schemas import (
     BulkGradeCreate,
     EvaluationCreate,
@@ -17,7 +18,11 @@ from src.apps.edu.grading.schemas import (
 )
 from src.apps.edu.grading.service import GradingService
 
-router = APIRouter(prefix="/grading", tags=["Edu Grading"])
+router = APIRouter(
+    prefix="/grading",
+    tags=["Edu Grading"],
+    dependencies=[Depends(require_permission("edu", "grades.write", "students.read"))],
+)
 
 
 # Evaluations

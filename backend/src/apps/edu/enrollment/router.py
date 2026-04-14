@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.dependencies import get_db, get_org_id
+from src.modules.apps.permissions import require_permission
 from src.apps.edu.enrollment.schemas import (
     EnrollmentCreate,
     EnrollmentResponse,
@@ -19,7 +20,11 @@ from src.apps.edu.enrollment.schemas import (
 from src.apps.edu.enrollment.service import EnrollmentService
 from src.apps.edu.enrollment.models import EduEnrollment, EduWaitlist
 
-router = APIRouter(prefix="/enrollment", tags=["Edu Enrollment"])
+router = APIRouter(
+    prefix="/enrollment",
+    tags=["Edu Enrollment"],
+    dependencies=[Depends(require_permission("edu", "enrollment.write", "students.read"))],
+)
 
 
 # Sections

@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.dependencies import get_db, get_org_id
+from src.modules.apps.permissions import require_permission
 from src.apps.edu.attendance.schemas import (
     AttendanceResponse,
     AttendanceSummary,
@@ -15,7 +16,11 @@ from src.apps.edu.attendance.schemas import (
 )
 from src.apps.edu.attendance.service import AttendanceService
 
-router = APIRouter(prefix="/attendance", tags=["Edu Attendance"])
+router = APIRouter(
+    prefix="/attendance",
+    tags=["Edu Attendance"],
+    dependencies=[Depends(require_permission("edu", "attendance.write", "students.read"))],
+)
 
 
 @router.post("/bulk", response_model=list[AttendanceResponse], status_code=status.HTTP_201_CREATED)

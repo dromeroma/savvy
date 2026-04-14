@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.dependencies import get_db, get_org_id
+from src.modules.apps.permissions import require_permission
 from src.apps.edu.students.schemas import (
     GuardianCreate,
     GuardianResponse,
@@ -17,7 +18,11 @@ from src.apps.edu.students.schemas import (
 )
 from src.apps.edu.students.service import StudentService
 
-router = APIRouter(prefix="/students", tags=["Edu Students"])
+router = APIRouter(
+    prefix="/students",
+    tags=["Edu Students"],
+    dependencies=[Depends(require_permission("edu", "students.read", "students.write"))],
+)
 
 
 @router.get("", response_model=dict)
