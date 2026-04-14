@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.dependencies import get_db, get_org_id
+from src.modules.apps.permissions import require_permission
 from src.apps.family.schemas import (
     AnnotationCreate,
     AnnotationResponse,
@@ -23,7 +24,11 @@ from src.apps.family.schemas import (
 )
 from src.apps.family.service import FamilyService
 
-router = APIRouter(prefix="/family", tags=["SavvyFamily"])
+router = APIRouter(
+    prefix="/family",
+    tags=["SavvyFamily"],
+    dependencies=[Depends(require_permission("family", "families.write", "families.read"))],
+)
 
 
 # ---------------------------------------------------------------------------
