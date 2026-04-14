@@ -5,10 +5,14 @@ from typing import Any
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.dependencies import get_db, get_org_id
+from src.modules.apps.permissions import require_permission
 from src.apps.parking.infrastructure.schemas import *
 from src.apps.parking.infrastructure.service import InfrastructureService
 
-router = APIRouter(tags=["Parking Infrastructure"])
+router = APIRouter(
+    tags=["Parking Infrastructure"],
+    dependencies=[Depends(require_permission("parking", "infrastructure.write", "reports.view"))],
+)
 
 @router.get("/locations", response_model=list[LocationResponse])
 async def list_locations(db: AsyncSession = Depends(get_db), org_id: uuid.UUID = Depends(get_org_id)) -> Any:

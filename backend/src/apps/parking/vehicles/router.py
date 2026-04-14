@@ -5,10 +5,15 @@ from typing import Any
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.dependencies import get_db, get_org_id
+from src.modules.apps.permissions import require_permission
 from src.apps.parking.vehicles.schemas import VehicleCreate, VehicleResponse
 from src.apps.parking.vehicles.service import VehicleService
 
-router = APIRouter(prefix="/vehicles", tags=["Parking Vehicles"])
+router = APIRouter(
+    prefix="/vehicles",
+    tags=["Parking Vehicles"],
+    dependencies=[Depends(require_permission("parking", "sessions.write", "sessions.read"))],
+)
 
 @router.get("", response_model=list[VehicleResponse])
 async def list_vehicles(search: str | None = Query(None), db: AsyncSession = Depends(get_db), org_id: uuid.UUID = Depends(get_org_id)) -> Any:

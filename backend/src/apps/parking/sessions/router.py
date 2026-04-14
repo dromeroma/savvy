@@ -5,10 +5,15 @@ from typing import Any
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.dependencies import get_db, get_org_id
+from src.modules.apps.permissions import require_permission
 from src.apps.parking.sessions.schemas import *
 from src.apps.parking.sessions.service import SessionService
 
-router = APIRouter(prefix="/sessions", tags=["Parking Sessions"])
+router = APIRouter(
+    prefix="/sessions",
+    tags=["Parking Sessions"],
+    dependencies=[Depends(require_permission("parking", "sessions.write", "sessions.read"))],
+)
 
 @router.post("/entry", response_model=SessionResponse, status_code=status.HTTP_201_CREATED)
 async def register_entry(data: SessionEntryCreate, db: AsyncSession = Depends(get_db), org_id: uuid.UUID = Depends(get_org_id)) -> Any:

@@ -5,10 +5,15 @@ from typing import Any
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.dependencies import get_db, get_org_id
+from src.modules.apps.permissions import require_permission
 from src.apps.parking.pricing.schemas import *
 from src.apps.parking.pricing.service import PricingService
 
-router = APIRouter(prefix="/pricing", tags=["Parking Pricing"])
+router = APIRouter(
+    prefix="/pricing",
+    tags=["Parking Pricing"],
+    dependencies=[Depends(require_permission("parking", "pricing.write", "reports.view"))],
+)
 
 @router.get("/rules", response_model=list[PricingRuleResponse])
 async def list_rules(db: AsyncSession = Depends(get_db), org_id: uuid.UUID = Depends(get_org_id)) -> Any:
