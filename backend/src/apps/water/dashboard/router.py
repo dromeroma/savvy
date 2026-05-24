@@ -100,6 +100,32 @@ async def get_kpis(
         )
     ) or 0
 
+    # Overdue cartera (past-due unpaid)
+    overdue_invoices = await db.scalar(
+        select(func.count(WaterInvoice.id))
+        .where(
+            WaterInvoice.organization_id == org_id,
+            WaterInvoice.status == "overdue",
+            WaterInvoice.balance > 0,
+        )
+    ) or 0
+    overdue_balance = await db.scalar(
+        select(func.coalesce(func.sum(WaterInvoice.balance), 0))
+        .where(
+            WaterInvoice.organization_id == org_id,
+            WaterInvoice.status == "overdue",
+            WaterInvoice.balance > 0,
+        )
+    ) or 0
+    overdue_subscribers = await db.scalar(
+        select(func.count(func.distinct(WaterInvoice.subscriber_id)))
+        .where(
+            WaterInvoice.organization_id == org_id,
+            WaterInvoice.status == "overdue",
+            WaterInvoice.balance > 0,
+        )
+    ) or 0
+
     return {
         "total_subscribers": int(total_subscribers),
         "by_status": {
@@ -116,4 +142,7 @@ async def get_kpis(
         "pending_balance": _f(pending_balance),
         "paid_this_month": _f(paid_this_month),
         "paid_today": _f(paid_today),
+        "overdue_invoices": int(overdue_invoices),
+        "overdue_balance": _f(overdue_balance),
+        "overdue_subscribers": int(overdue_subscribers),
     }

@@ -75,6 +75,22 @@ import { WaterDashboardKpis } from '../../../core/models/water.model';
           </div>
         </div>
 
+        <!-- Overdue row -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="rounded-2xl border border-red-200 dark:border-red-700/40 bg-red-50/40 dark:bg-red-500/5 p-5">
+            <div class="text-xs uppercase tracking-wider text-red-700 dark:text-red-300">Suscriptores morosos</div>
+            <div class="mt-1 text-2xl font-semibold text-red-700 dark:text-red-300">{{ k.overdue_subscribers }}</div>
+          </div>
+          <div class="rounded-2xl border border-red-200 dark:border-red-700/40 bg-red-50/40 dark:bg-red-500/5 p-5">
+            <div class="text-xs uppercase tracking-wider text-red-700 dark:text-red-300">Facturas vencidas</div>
+            <div class="mt-1 text-2xl font-semibold text-red-700 dark:text-red-300">{{ k.overdue_invoices }}</div>
+          </div>
+          <div class="rounded-2xl border border-red-200 dark:border-red-700/40 bg-red-50/40 dark:bg-red-500/5 p-5">
+            <div class="text-xs uppercase tracking-wider text-red-700 dark:text-red-300">Saldo vencido</div>
+            <div class="mt-1 text-xl font-semibold text-red-700 dark:text-red-300">$ {{ k.overdue_balance | number:'1.0-0' }}</div>
+          </div>
+        </div>
+
         <!-- Meters row -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
@@ -106,6 +122,14 @@ import { WaterDashboardKpis } from '../../../core/models/water.model';
               class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 text-sm font-medium">
               Registrar pago
             </a>
+            <a routerLink="/water/cartera"
+              class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 text-sm font-medium">
+              Ver cartera
+            </a>
+            <a routerLink="/water/routes"
+              class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 text-sm font-medium">
+              Rutas de cobro
+            </a>
             <a routerLink="/water/tariffs"
               class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 text-sm font-medium">
               Tarifas
@@ -117,7 +141,6 @@ import { WaterDashboardKpis } from '../../../core/models/water.model';
         <div class="rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
           <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Próximamente en SavvyWater</h3>
           <ul class="text-sm text-gray-500 dark:text-gray-400 list-disc pl-5 space-y-1">
-            <li>Cartera, mora, suspensiones y reconexiones (Fase 3)</li>
             <li>Tesorería, caja y arqueos (Fase 4)</li>
             <li>Portal del cliente / suscriptor (Fase 5)</li>
             <li>Notificaciones (WhatsApp / email) y reportes ejecutivos (Fase 6)</li>

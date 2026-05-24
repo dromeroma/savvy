@@ -127,6 +127,9 @@ export interface WaterDashboardKpis {
   pending_balance: number;
   paid_this_month: number;
   paid_today: number;
+  overdue_invoices: number;
+  overdue_balance: number;
+  overdue_subscribers: number;
 }
 
 // ---------- Tariffs ----------
@@ -304,4 +307,100 @@ export interface WaterPaymentCreate {
   reference?: string | null;
   notes?: string | null;
   allocations?: { invoice_id: string; amount: string | number }[];
+}
+
+// ---------- Cartera ----------
+export interface CarteraRecalcResult {
+  invoices_marked_overdue: number;
+  invoices_with_interest_applied: number;
+  subscribers_marked_overdue: number;
+  subscribers_recovered: number;
+  total_interest_applied: string;
+}
+
+export interface CarteraAgingBucket {
+  bucket: 'current' | '0_30' | '31_60' | '61_90' | '90_plus';
+  invoices: number;
+  balance: string;
+}
+
+export interface CarteraAgingReport {
+  total_balance: string;
+  buckets: CarteraAgingBucket[];
+}
+
+export interface CarteraOverdueSubscriber {
+  subscriber_id: string;
+  code: string;
+  name: string;
+  phone: string | null;
+  mobile: string | null;
+  status: string;
+  overdue_invoices: number;
+  oldest_due_date: string | null;
+  days_overdue: number;
+  total_balance: string;
+}
+
+// ---------- Routes ----------
+export interface WaterRouteListItem {
+  id: string;
+  code: string;
+  name: string;
+  is_active: boolean;
+  collector_user_id: string | null;
+  collector_name: string | null;
+  subscribers_count: number;
+  open_balance: string;
+}
+
+export interface WaterRoute {
+  id: string;
+  organization_id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  collector_user_id: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WaterRouteCreate {
+  code: string;
+  name: string;
+  description?: string | null;
+  collector_user_id?: string | null;
+  is_active?: boolean;
+}
+
+export interface RouteAssignment {
+  id: string;
+  route_id: string;
+  subscriber_id: string;
+  subscriber_code: string;
+  subscriber_name: string;
+  sort_order: number;
+}
+
+export interface CollectorRouteSummary {
+  route_id: string;
+  route_code: string;
+  route_name: string;
+  subscribers_count: number;
+  overdue_count: number;
+  open_balance: string;
+}
+
+export interface CollectorSubscriberItem {
+  subscriber_id: string;
+  code: string;
+  name: string;
+  address: string | null;
+  mobile: string | null;
+  status: string;
+  sort_order: number;
+  open_balance: string;
+  overdue_invoices: number;
+  oldest_due_date: string | null;
 }

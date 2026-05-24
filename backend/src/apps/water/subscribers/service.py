@@ -3,17 +3,20 @@
 from __future__ import annotations
 
 import uuid
+from datetime import date, timedelta
+from decimal import Decimal
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.apps.water.models import WaterMeter, WaterSubscriber
+from src.apps.water.models import WaterInvoice, WaterMeter, WaterSubscriber
 from src.apps.water.subscribers.schemas import (
     SubscriberCreate,
     SubscriberListItem,
     SubscriberUpdate,
 )
-from src.core.exceptions import ConflictError, NotFoundError
+from src.apps.water.tariffs.service import TariffsService
+from src.core.exceptions import ConflictError, NotFoundError, ValidationError
 
 
 class SubscribersService:
@@ -139,3 +142,108 @@ class SubscribersService:
         sub = await SubscribersService.get_subscriber(db, org_id, sub_id)
         await db.delete(sub)
         await db.flush()
+
+    # ------------------------------------------------------------------
+    # Service actions: suspend & reconnect
+    # ------------------------------------------------------------------
+    @staticmethod
+    async def suspend(
+        db: AsyncSession,
+        org_id: uuid.UUID,
+        sub_id: uuid.UUID,
+        reason: str | None = None,
+        create_fee_invoice: bool = True,
+    ) -> WaterSubscriber:
+        sub = await SubscribersService.get_subscriber(db, org_id, sub_id)
+        if sub.status == "suspended":
+            raise ConflictError("El suscriptor ya está suspendido.")
+        if sub.status == "retired":
+            raise ConflictError("No se puede suspender un suscriptor retirado.")
+        sub.status = "suspended"
+        await db.flush()
+        if create_fee_invoice:
+            await SubscribersService._create_fee_invoice(
+                db, org_id, sub, kind="suspension", notes=reason,
+            )
+        return sub
+
+    @staticmethod
+    async def reconnect(
+        db: AsyncSession,
+        org_id: uuid.UUID,
+        sub_id: uuid.UUID,
+        reason: str | None = None,
+        create_fee_invoice: bool = True,
+    ) -> WaterSubscriber:
+        sub = await SubscribersService.get_subscriber(db, org_id, sub_id)
+        if sub.status != "suspended":
+            raise ConflictError(
+                "Solo se puede reconectar un suscriptor suspendido.",
+            )
+        sub.status = "active"
+        await db.flush()
+        if create_fee_invoice:
+            await SubscribersService._create_fee_invoice(
+                db, org_id, sub, kind="reconnection", notes=reason,
+            )
+        return sub
+
+    @staticmethod
+    async def _create_fee_invoice(
+        db: AsyncSession,
+        org_id: uuid.UUID,
+        sub: WaterSubscriber,
+        kind: str,            # 'suspension' | 'reconnection'
+        notes: str | None = None,
+    ) -> WaterInvoice | None:
+        """Create an adjustment invoice (no consumption) with the suspension
+        or reconnection fee from the applicable tariff. Returns None if the
+        tariff doesn't define a fee."""
+        today = date.today()
+        tariff = await TariffsService.resolve_for_subscriber(
+            db, org_id,
+            subscriber_type=sub.subscriber_type, stratum=sub.stratum,
+            on_date=today,
+        )
+        if tariff is None:
+            raise ValidationError(
+                "No hay tarifa configurada para este suscriptor — no se puede generar la factura de ajuste.",
+            )
+        fee = Decimal(
+            tariff.suspension_fee if kind == "suspension" else tariff.reconnection_fee,
+        )
+        if fee <= 0:
+            return None
+        consec = await db.scalar(
+            select(func.coalesce(func.max(WaterInvoice.consecutive), 0))
+            .where(WaterInvoice.organization_id == org_id)
+        )
+        inv = WaterInvoice(
+            organization_id=org_id,
+            subscriber_id=sub.id,
+            consumption_id=None,
+            consecutive=int(consec) + 1,
+            period_year=today.year,
+            period_month=today.month,
+            issue_date=today,
+            due_date=today + timedelta(days=15),
+            fixed_charge=Decimal("0"),
+            consumption_cubic=Decimal("0"),
+            consumption_charge=Decimal("0"),
+            late_interest=Decimal("0"),
+            surcharges=Decimal("0"),
+            discounts=Decimal("0"),
+            reconnection_fee=fee if kind == "reconnection" else Decimal("0"),
+            suspension_fee=fee if kind == "suspension" else Decimal("0"),
+            total=fee,
+            paid_amount=Decimal("0"),
+            balance=fee,
+            status="pending",
+            notes=notes or (
+                "Factura de ajuste por suspensión" if kind == "suspension"
+                else "Factura de ajuste por reconexión"
+            ),
+        )
+        db.add(inv)
+        await db.flush()
+        return inv

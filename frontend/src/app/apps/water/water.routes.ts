@@ -56,6 +56,27 @@ export const WATER_ROUTES: Routes = [
             (m) => m.PaymentsListComponent,
           ),
       },
+      {
+        path: 'cartera',
+        loadComponent: () =>
+          import('./cartera/cartera.component').then(
+            (m) => m.CarteraComponent,
+          ),
+      },
+      {
+        path: 'routes',
+        loadComponent: () =>
+          import('./routes/routes-list.component').then(
+            (m) => m.RoutesListComponent,
+          ),
+      },
+      {
+        path: 'my-route',
+        loadComponent: () =>
+          import('./routes/my-route.component').then(
+            (m) => m.MyRouteComponent,
+          ),
+      },
     ],
   },
 ];

@@ -88,3 +88,8 @@ class SubscriberListItem(BaseModel):
     status: str
     stratum: int | None
     meter_count: int = 0
+
+
+class ServiceActionRequest(BaseModel):
+    reason: str | None = None
+    create_fee_invoice: bool = True

@@ -168,6 +168,46 @@ export class SubscribersListComponent implements OnInit {
     });
   }
 
+  confirmSuspend(s: WaterSubscriberListItem): void {
+    const reason = prompt(`Suspender a ${s.code} — ${this.displayName(s)}.\nMotivo (opcional):`);
+    if (reason === null) return;
+    this.water.suspendSubscriber(s.id, reason).subscribe({
+      next: () => {
+        this.notify.show({
+          type: 'success', title: 'Suspendido',
+          message: 'Servicio suspendido y factura de ajuste generada (si la tarifa tiene cargo).',
+        });
+        this.load();
+      },
+      error: (err) => {
+        this.notify.show({
+          type: 'error', title: 'Error',
+          message: err?.error?.detail || 'No se pudo suspender.',
+        });
+      },
+    });
+  }
+
+  confirmReconnect(s: WaterSubscriberListItem): void {
+    const reason = prompt(`Reconectar a ${s.code} — ${this.displayName(s)}.\nNota (opcional):`);
+    if (reason === null) return;
+    this.water.reconnectSubscriber(s.id, reason).subscribe({
+      next: () => {
+        this.notify.show({
+          type: 'success', title: 'Reconectado',
+          message: 'Servicio reconectado y factura de ajuste generada (si la tarifa tiene cargo).',
+        });
+        this.load();
+      },
+      error: (err) => {
+        this.notify.show({
+          type: 'error', title: 'Error',
+          message: err?.error?.detail || 'No se pudo reconectar.',
+        });
+      },
+    });
+  }
+
   badgeClass(status: string): string {
     switch (status) {
       case 'active': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300';

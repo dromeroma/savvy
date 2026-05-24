@@ -4,6 +4,12 @@ import { ApiService } from './api.service';
 import {
   BatchGenerateRequest,
   BatchGenerateResult,
+  CarteraAgingReport,
+  CarteraOverdueSubscriber,
+  CarteraRecalcResult,
+  CollectorRouteSummary,
+  CollectorSubscriberItem,
+  RouteAssignment,
   WaterConsumptionCreate,
   WaterConsumptionListItem,
   WaterDashboardKpis,
@@ -15,6 +21,9 @@ import {
   WaterPayment,
   WaterPaymentCreate,
   WaterPaymentListItem,
+  WaterRoute,
+  WaterRouteCreate,
+  WaterRouteListItem,
   WaterSubscriber,
   WaterSubscriberCreate,
   WaterSubscriberListItem,
@@ -194,5 +203,74 @@ export class WaterService {
   }
   registerPayment(data: WaterPaymentCreate): Observable<WaterPayment> {
     return this.api.post<WaterPayment>('/water/payments', data);
+  }
+
+  // ---- Subscribers — service actions ----
+  suspendSubscriber(id: string, reason?: string): Observable<WaterSubscriber> {
+    return this.api.post<WaterSubscriber>(
+      `/water/subscribers/${id}/suspend`,
+      { reason: reason ?? null, create_fee_invoice: true },
+    );
+  }
+  reconnectSubscriber(id: string, reason?: string): Observable<WaterSubscriber> {
+    return this.api.post<WaterSubscriber>(
+      `/water/subscribers/${id}/reconnect`,
+      { reason: reason ?? null, create_fee_invoice: true },
+    );
+  }
+
+  // ---- Cartera ----
+  recalcCartera(): Observable<CarteraRecalcResult> {
+    return this.api.post<CarteraRecalcResult>('/water/cartera/recalculate', {});
+  }
+  carteraAging(): Observable<CarteraAgingReport> {
+    return this.api.get<CarteraAgingReport>('/water/cartera/aging');
+  }
+  carteraOverdue(limit = 100): Observable<CarteraOverdueSubscriber[]> {
+    return this.api.get<CarteraOverdueSubscriber[]>(
+      '/water/cartera/overdue-subscribers', { limit },
+    );
+  }
+
+  // ---- Routes (admin) ----
+  listRoutes(activeOnly = false): Observable<WaterRouteListItem[]> {
+    return this.api.get<WaterRouteListItem[]>(
+      '/water/routes', activeOnly ? { active_only: true } : undefined,
+    );
+  }
+  getRoute(id: string): Observable<WaterRoute> {
+    return this.api.get<WaterRoute>(`/water/routes/${id}`);
+  }
+  createRoute(data: WaterRouteCreate): Observable<WaterRoute> {
+    return this.api.post<WaterRoute>('/water/routes', data);
+  }
+  updateRoute(id: string, data: Partial<WaterRouteCreate>): Observable<WaterRoute> {
+    return this.api.patch<WaterRoute>(`/water/routes/${id}`, data);
+  }
+  deleteRoute(id: string): Observable<void> {
+    return this.api.delete(`/water/routes/${id}`);
+  }
+  listRouteAssignments(routeId: string): Observable<RouteAssignment[]> {
+    return this.api.get<RouteAssignment[]>(`/water/routes/${routeId}/subscribers`);
+  }
+  assignToRoute(routeId: string, subscriberId: string, sortOrder = 0): Observable<RouteAssignment> {
+    return this.api.post<RouteAssignment>(
+      `/water/routes/${routeId}/subscribers`,
+      { subscriber_id: subscriberId, sort_order: sortOrder },
+    );
+  }
+  unassignFromRoute(routeId: string, subscriberId: string): Observable<void> {
+    return this.api.delete(`/water/routes/${routeId}/subscribers/${subscriberId}`);
+  }
+
+  // ---- Routes — collector view ----
+  myRoutes(): Observable<CollectorRouteSummary[]> {
+    return this.api.get<CollectorRouteSummary[]>('/water/routes/me');
+  }
+  routeCollectionView(routeId: string, requireCollector = true): Observable<CollectorSubscriberItem[]> {
+    return this.api.get<CollectorSubscriberItem[]>(
+      `/water/routes/${routeId}/collection-view`,
+      { require_collector: requireCollector },
+    );
   }
 }

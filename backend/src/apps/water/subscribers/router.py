@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.apps.water.subscribers.schemas import (
+    ServiceActionRequest,
     SubscriberCreate,
     SubscriberListItem,
     SubscriberResponse,
@@ -97,3 +98,37 @@ async def delete_subscriber(
     org_id: uuid.UUID = Depends(get_org_id),
 ) -> None:
     await SubscribersService.delete_subscriber(db, org_id, subscriber_id)
+
+
+@router.post(
+    "/{subscriber_id}/suspend",
+    response_model=SubscriberResponse,
+    dependencies=[Depends(require_permission("water", "subscribers.manage", "service.manage"))],
+)
+async def suspend_subscriber(
+    subscriber_id: uuid.UUID,
+    data: ServiceActionRequest,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await SubscribersService.suspend(
+        db, org_id, subscriber_id,
+        reason=data.reason, create_fee_invoice=data.create_fee_invoice,
+    )
+
+
+@router.post(
+    "/{subscriber_id}/reconnect",
+    response_model=SubscriberResponse,
+    dependencies=[Depends(require_permission("water", "subscribers.manage", "service.manage"))],
+)
+async def reconnect_subscriber(
+    subscriber_id: uuid.UUID,
+    data: ServiceActionRequest,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await SubscribersService.reconnect(
+        db, org_id, subscriber_id,
+        reason=data.reason, create_fee_invoice=data.create_fee_invoice,
+    )
