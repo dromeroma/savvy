@@ -32,6 +32,7 @@ const APP_MENUS: Record<string, { icon: string; items: { label: string; route: s
       { label: 'Finanzas', route: '/church/finance' },
       { label: 'Ofrendas Agregadas', route: '/church/aggregate-offerings' },
       { label: 'Reportes', route: '/church/reports' },
+      { label: 'Vista de Zona', route: '/church/zone-overview' },
     ],
   },
   pay: {

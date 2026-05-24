@@ -13,6 +13,7 @@ from src.apps.church.reports.router import router as reports_router
 from src.apps.church.rotations.router import router as rotations_router
 from src.apps.church.social_aid.router import router as social_aid_router
 from src.apps.church.visitors.router import router as visitors_router
+from src.apps.church.zone.router import router as zone_router
 
 router = APIRouter(prefix="/church", tags=["SavvyChurch"])
 
@@ -27,3 +28,4 @@ router.include_router(pastoral_router)
 router.include_router(doctrine_router)
 router.include_router(social_aid_router)
 router.include_router(rotations_router)
+router.include_router(zone_router)

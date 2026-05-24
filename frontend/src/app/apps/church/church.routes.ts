@@ -96,6 +96,13 @@ export const CHURCH_ROUTES: Routes = [
             (m) => m.ChurchAggregateOfferingsComponent,
           ),
       },
+      {
+        path: 'zone-overview',
+        loadComponent: () =>
+          import('./zone-overview/zone-overview.component').then(
+            (m) => m.ZoneOverviewComponent,
+          ),
+      },
     ],
   },
 ];

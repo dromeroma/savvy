@@ -1,0 +1,181 @@
+<div class="p-4 sm:p-6 lg:p-8">
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="flex items-center justify-center py-20">
+      <svg class="animate-spin h-8 w-8 text-brand-500" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+      </svg>
+    </div>
+  }
+
+  <!-- Error / no-access state -->
+  @if (!loading() && error()) {
+    <div class="max-w-2xl mx-auto text-center py-16">
+      <div class="mb-4 inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800">
+        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+        </svg>
+      </div>
+      <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-1">Acceso restringido</h2>
+      <p class="text-sm text-gray-600 dark:text-gray-400">{{ error() }}</p>
+      <p class="text-xs text-gray-400 mt-3">
+        Si crees que esto es un error, contacta a tu super admin para que te asigne como líder de zona.
+      </p>
+    </div>
+  }
+
+  <!-- Success -->
+  @if (!loading() && !error() && data()) {
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
+      <div>
+        <h1 class="text-2xl font-semibold text-gray-800 dark:text-white/90">
+          @if (data()!.selected_zone) {
+            Zona {{ data()!.selected_zone!.number }}
+            @if (data()!.selected_zone!.name) {
+              — {{ data()!.selected_zone!.name }}
+            }
+          } @else {
+            Vista de Zona
+          }
+        </h1>
+        @if (data()!.selected_zone) {
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            {{ data()!.selected_zone!.denomination_name }} ·
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-700 dark:bg-brand-500/20 dark:text-brand-300 capitalize">
+              {{ data()!.selected_zone!.role }}
+            </span>
+          </p>
+        }
+      </div>
+
+      <!-- Zone selector (only when leader of multiple zones) -->
+      @if (data()!.available_zones.length > 1) {
+        <select [ngModel]="selectedZoneId()" (ngModelChange)="onZoneChange($event)"
+          class="h-10 rounded-lg border px-3 py-2 text-sm dark:bg-gray-900 dark:text-white/90 bg-white text-gray-800 border-gray-300 dark:border-gray-700">
+          @for (z of data()!.available_zones; track z.id) {
+            <option [value]="z.id">
+              Zona {{ z.number }}{{ z.name ? ' — ' + z.name : '' }} ({{ z.denomination_name }})
+            </option>
+          }
+        </select>
+      }
+    </div>
+
+    <!-- Zone totals -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
+        <div class="text-xs text-gray-500 dark:text-gray-400">Total iglesias</div>
+        <div class="mt-1 text-2xl font-semibold text-gray-800 dark:text-white/90">{{ data()!.churches.length }}</div>
+      </div>
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
+        <div class="text-xs text-gray-500 dark:text-gray-400">Congregantes activos</div>
+        <div class="mt-1 text-2xl font-semibold text-gray-800 dark:text-white/90">{{ totals().active }}</div>
+      </div>
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
+        <div class="text-xs text-gray-500 dark:text-gray-400">Visitantes (30 días)</div>
+        <div class="mt-1 text-2xl font-semibold text-gray-800 dark:text-white/90">{{ totals().visitors }}</div>
+      </div>
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
+        <div class="text-xs text-gray-500 dark:text-gray-400">Ingresos del mes</div>
+        <div class="mt-1 text-2xl font-semibold text-gray-800 dark:text-white/90">
+          $ {{ totals().income | number:'1.0-0' }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty zone -->
+    @if (data()!.churches.length === 0) {
+      <div class="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 p-10 text-center">
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          Aún no hay iglesias registradas en esta zona.
+        </p>
+      </div>
+    } @else {
+      <!-- Churches table (desktop) -->
+      <div class="hidden sm:block rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 dark:bg-white/[0.02]">
+            <tr class="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <th class="px-4 py-3">Iglesia</th>
+              <th class="px-4 py-3 text-right">Congregantes</th>
+              <th class="px-4 py-3 text-right">Nuevos (mes)</th>
+              <th class="px-4 py-3 text-right">Visitantes (30d)</th>
+              <th class="px-4 py-3 text-right">Eventos (30d)</th>
+              <th class="px-4 py-3 text-right">Ingresos del mes</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
+            @for (c of data()!.churches; track c.id) {
+              <tr class="hover:bg-gray-50 dark:hover:bg-white/[0.02]">
+                <td class="px-4 py-3">
+                  <div class="flex items-center gap-2">
+                    <span class="font-medium text-gray-800 dark:text-white/90">{{ c.name }}</span>
+                    @if (c.is_mine) {
+                      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-700 dark:bg-brand-500/20 dark:text-brand-300">
+                        Tu iglesia
+                      </span>
+                    }
+                  </div>
+                  <div class="text-xs text-gray-400">{{ c.slug }}</div>
+                </td>
+                <td class="px-4 py-3 text-right text-gray-700 dark:text-gray-300">{{ c.metrics.active_congregants }}</td>
+                <td class="px-4 py-3 text-right text-gray-700 dark:text-gray-300">{{ c.metrics.new_congregants_this_month }}</td>
+                <td class="px-4 py-3 text-right text-gray-700 dark:text-gray-300">{{ c.metrics.visitors_last_30d }}</td>
+                <td class="px-4 py-3 text-right text-gray-700 dark:text-gray-300">{{ c.metrics.events_last_30d }}</td>
+                <td class="px-4 py-3 text-right text-gray-700 dark:text-gray-300">
+                  $ {{ +c.metrics.income_this_month | number:'1.0-0' }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Churches cards (mobile) -->
+      <div class="sm:hidden space-y-3">
+        @for (c of data()!.churches; track c.id) {
+          <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <div class="font-medium text-gray-800 dark:text-white/90">{{ c.name }}</div>
+                <div class="text-xs text-gray-400">{{ c.slug }}</div>
+              </div>
+              @if (c.is_mine) {
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-700 dark:bg-brand-500/20 dark:text-brand-300">
+                  Tu iglesia
+                </span>
+              }
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-sm">
+              <div>
+                <div class="text-xs text-gray-400">Congregantes</div>
+                <div class="font-medium text-gray-700 dark:text-gray-300">{{ c.metrics.active_congregants }}</div>
+              </div>
+              <div>
+                <div class="text-xs text-gray-400">Nuevos (mes)</div>
+                <div class="font-medium text-gray-700 dark:text-gray-300">{{ c.metrics.new_congregants_this_month }}</div>
+              </div>
+              <div>
+                <div class="text-xs text-gray-400">Visitantes (30d)</div>
+                <div class="font-medium text-gray-700 dark:text-gray-300">{{ c.metrics.visitors_last_30d }}</div>
+              </div>
+              <div>
+                <div class="text-xs text-gray-400">Eventos (30d)</div>
+                <div class="font-medium text-gray-700 dark:text-gray-300">{{ c.metrics.events_last_30d }}</div>
+              </div>
+              <div class="col-span-2">
+                <div class="text-xs text-gray-400">Ingresos del mes</div>
+                <div class="font-medium text-gray-700 dark:text-gray-300">
+                  $ {{ +c.metrics.income_this_month | number:'1.0-0' }}
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+</div>
