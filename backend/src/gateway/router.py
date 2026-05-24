@@ -4,6 +4,7 @@ from fastapi import APIRouter
 
 # Core modules
 from src.modules.auth.router import router as auth_router
+from src.modules.dashboard.router import router as dashboard_router
 from src.modules.onboarding.router import router as onboarding_router
 from src.modules.organization.router import router as organization_router
 
@@ -35,6 +36,7 @@ api_router = APIRouter(prefix="/api/v1")
 # Core modules
 api_router.include_router(auth_router)
 api_router.include_router(onboarding_router)
+api_router.include_router(dashboard_router)
 api_router.include_router(organization_router)
 
 # Platform admin (must come before shared modules)

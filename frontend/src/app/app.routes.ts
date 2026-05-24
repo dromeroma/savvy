@@ -40,6 +40,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'more-apps',
+        loadComponent: () =>
+          import('./shell/more-apps/more-apps.component').then(
+            (m) => m.MoreAppsComponent,
+          ),
+      },
+      {
         path: 'settings',
         loadComponent: () =>
           import('./shell/settings/organization-settings.component').then(

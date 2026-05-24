@@ -1,185 +1,129 @@
-<div>
-  <h1 class="text-2xl font-bold text-gray-800 dark:text-white/90 mb-1">Mis Aplicaciones</h1>
-  <p class="text-gray-500 dark:text-gray-400 mb-8">Gestiona y accede a las aplicaciones de tu organización.</p>
-
+<div class="space-y-6">
   @if (loading()) {
     <div class="flex items-center justify-center py-20">
       <div class="animate-spin rounded-full h-10 w-10 border-4 border-brand-200 border-t-brand-600"></div>
     </div>
   } @else if (error()) {
-    <div class="p-4 bg-error-50 border border-error-200 text-error-700 dark:bg-error-500/10 dark:border-error-500/30 dark:text-error-400 rounded-lg mb-6">
+    <div class="p-4 bg-error-50 border border-error-200 text-error-700 dark:bg-error-500/10 dark:border-error-500/30 dark:text-error-400 rounded-lg">
       {{ error() }}
     </div>
-  } @else {
+  } @else if (data()) {
+    @let d = data()!;
 
-    <!-- ═══ ACTIVE INTERNAL APPS ═══ -->
-    @if (myInternalApps().length > 0) {
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-        @for (item of myInternalApps(); track item.app.code) {
-          <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-theme-xs hover:shadow-theme-md transition duration-200 overflow-hidden">
-            <div class="h-2" [style.background-color]="item.app.color || '#059669'"></div>
-            <div class="p-6">
-              <div class="flex items-start gap-4 mb-4">
-                <div class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0 bg-brand-50 dark:bg-brand-500/20">
-                  🏛️
-                </div>
-                <div class="flex-1 min-w-0">
-                  <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">{{ item.app.name }}</h3>
-                  <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ item.app.description }}</p>
-                </div>
-              </div>
-              <div class="flex items-center justify-between mt-4">
-                <div class="flex items-center gap-2">
-                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success-700 dark:bg-success-500/20 dark:text-success-400">
-                    {{ item.status === 'trial' ? 'Prueba' : 'Activa' }}
-                  </span>
-                  <span class="text-xs text-gray-400 dark:text-gray-500 capitalize">{{ item.role }}</span>
-                </div>
-                <button (click)="openApp(item)"
-                  class="px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium rounded-lg transition shadow-theme-xs">
-                  Abrir
-                </button>
-              </div>
-            </div>
+    <!-- ORG HEADER -->
+    <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-800 dark:text-white/90">{{ d.organization.name }}</h1>
+          <div class="flex flex-wrap items-center gap-2 mt-2">
+            @if (d.organization.business_type_label) {
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-700 dark:bg-brand-500/20 dark:text-brand-300">
+                {{ d.organization.business_type_label }}
+              </span>
+            }
+            @if (d.organization.denomination_name) {
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                {{ d.organization.denomination_name }}
+              </span>
+            }
+            @if (d.organization.zone_label) {
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                {{ d.organization.zone_label }}
+              </span>
+            }
+            <span class="text-xs text-gray-400">Desde {{ d.organization.created_at | date:'MMM y' }}</span>
           </div>
-        }
-      </div>
-    }
-
-    <!-- ═══ AVAILABLE INTERNAL APPS ═══ -->
-    @if (catalogInternal().length > 0) {
-      <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">
-        @if (myInternalApps().length > 0) { Más aplicaciones disponibles } @else { Activa tu primera aplicación }
-      </h2>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-        @for (app of catalogInternal(); track app.code) {
-          <div class="bg-white dark:bg-gray-800 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-brand-400 dark:hover:border-brand-500 transition duration-200 overflow-hidden">
-            <div class="p-6">
-              <div class="flex items-start gap-4 mb-4">
-                <div class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0 bg-gray-100 dark:bg-gray-700">
-                  🏛️
-                </div>
-                <div class="flex-1 min-w-0">
-                  <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">{{ app.name }}</h3>
-                  <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ app.description }}</p>
-                </div>
-              </div>
-              <div class="flex items-center justify-between mt-4">
-                <span class="text-xs text-gray-400 dark:text-gray-500">14 días gratis</span>
-                <button (click)="activateApp(app.code)"
-                  class="px-4 py-2 bg-white dark:bg-gray-700 border-2 border-brand-500 text-brand-600 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-500/10 text-sm font-semibold rounded-lg transition">
-                  Activar prueba gratuita
-                </button>
-              </div>
-            </div>
+        </div>
+        <div class="flex flex-wrap gap-3">
+          <!-- Member count card -->
+          <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-4 py-2 min-w-[120px]">
+            <div class="text-xs text-gray-500 dark:text-gray-400">Miembros</div>
+            <div class="text-xl font-semibold text-gray-800 dark:text-white/90">{{ d.organization.member_count }}</div>
           </div>
-        }
-      </div>
-    }
-
-    <!-- ═══ EXTERNAL APPS ═══ -->
-    @if (myExternalApps().length > 0 || catalogExternal().length > 0) {
-      <div class="mt-2 mb-4 flex items-center gap-3">
-        <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Apps Externas</h2>
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-light-50 text-blue-light-700 dark:bg-blue-light-500/20 dark:text-blue-light-400">
-          Se abren en nueva pestaña
-        </span>
-      </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-
-        <!-- Active external apps -->
-        @for (item of myExternalApps(); track item.app.code) {
-          <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-theme-xs hover:shadow-theme-md transition duration-200 overflow-hidden">
-            <div class="h-2" [style.background-color]="item.app.color || '#059669'"></div>
-            <div class="p-6">
-              <div class="flex items-start gap-4 mb-4">
-                <div class="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-gray-100 dark:bg-gray-700">
-                  <svg class="w-6 h-6 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
-                </div>
-                <div class="flex-1 min-w-0">
-                  <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">{{ item.app.name }}</h3>
-                  <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ item.app.description }}</p>
-                </div>
-              </div>
-              <div class="flex items-center justify-between mt-4">
-                <span class="text-xs text-gray-400 dark:text-gray-500">App externa</span>
-                <button (click)="openApp(item)"
-                  class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-lg transition">
-                  Ir a la app
-                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-                </button>
-              </div>
-            </div>
+          <!-- Apps count card -->
+          <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-4 py-2 min-w-[120px]">
+            <div class="text-xs text-gray-500 dark:text-gray-400">Apps activas</div>
+            <div class="text-xl font-semibold text-gray-800 dark:text-white/90">{{ d.active_apps.length }}</div>
           </div>
-        }
-
-        <!-- Available external apps -->
-        @for (app of catalogExternal(); track app.code) {
-          <div class="bg-white dark:bg-gray-800 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-blue-light-400 dark:hover:border-blue-light-500 transition duration-200 overflow-hidden">
-            <div class="p-6">
-              <div class="flex items-start gap-4 mb-4">
-                <div class="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-gray-100 dark:bg-gray-700">
-                  <svg class="w-6 h-6 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
-                </div>
-                <div class="flex-1 min-w-0">
-                  <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">{{ app.name }}</h3>
-                  <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ app.description }}</p>
-                </div>
-              </div>
-              <div class="flex items-center justify-between mt-4">
-                <span class="text-xs text-gray-400 dark:text-gray-500">App externa</span>
-                <button (click)="openExternalApp(app)"
-                  class="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 text-sm font-medium rounded-lg transition">
-                  Ir a la app
-                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-                </button>
-              </div>
-            </div>
+          <!-- Plan card -->
+          <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-4 py-2 min-w-[140px]">
+            <div class="text-xs text-gray-500 dark:text-gray-400">Plan</div>
+            @if (d.subscription) {
+              <div class="text-xl font-semibold text-gray-800 dark:text-white/90">{{ d.subscription.plan_name }}</div>
+              <div class="text-[10px] text-gray-400 capitalize">{{ d.subscription.status }}</div>
+            } @else {
+              <div class="text-xl font-semibold text-gray-400">Sin plan</div>
+            }
           </div>
-        }
+        </div>
       </div>
-    }
-
-    <!-- ═══ COMING SOON ═══ -->
-    <div class="mt-2 mb-4 flex items-center gap-3">
-      <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Próximamente</h2>
-      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">
-        En desarrollo
-      </span>
     </div>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-      @for (app of comingSoonApps; track app.name) {
-        <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden opacity-75">
-          <div class="h-2" [style.background-color]="app.color"></div>
-          <div class="p-6">
-            <div class="flex items-start gap-4 mb-4">
-              <div class="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-                [style.background-color]="app.color + '15'"
-                [style.color]="app.color">
-                <span [innerHTML]="app.icon"></span>
+
+    <!-- ACTIVE APPS -->
+    <div>
+      <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">Mis aplicaciones</h2>
+      @if (d.active_apps.length === 0) {
+        <div class="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 text-center">
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            Aún no tienes apps activas. Activa una desde
+            <a routerLink="/more-apps" class="text-brand-500 hover:text-brand-600 font-medium">Más aplicaciones</a>.
+          </p>
+        </div>
+      } @else {
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          @for (app of d.active_apps; track app.code) {
+            <button (click)="openApp(app.code)"
+              class="text-left rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 hover:shadow-theme-md transition flex items-center gap-3">
+              <div class="w-10 h-10 rounded-lg flex items-center justify-center text-white text-lg shrink-0"
+                [style.background-color]="app.color || '#6B7280'">
+                {{ app.name.substring(0, 1) }}
               </div>
               <div class="flex-1 min-w-0">
-                <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">{{ app.name }}</h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ app.description }}</p>
+                <div class="text-sm font-semibold text-gray-800 dark:text-white/90 truncate">{{ app.name }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                  {{ app.status === 'trial' ? 'Prueba' : 'Activa' }}
+                  @if (app.user_role) { · {{ app.user_role }} }
+                </div>
               </div>
-            </div>
-            <div class="flex items-center justify-end mt-4">
-              <span class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 text-sm font-medium rounded-lg cursor-default">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                </svg>
-                Próximamente
-              </span>
-            </div>
-          </div>
+              <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+              </svg>
+            </button>
+          }
         </div>
       }
     </div>
 
-    <!-- Empty state -->
-    @if (myApps().length === 0 && catalog().length === 0) {
-      <div class="text-center py-16">
-        <p class="text-gray-500 dark:text-gray-400 text-lg">No hay aplicaciones disponibles.</p>
+    <!-- METRICS -->
+    @if (d.metrics.length > 0) {
+      <div>
+        <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">Resumen del negocio</h2>
+        <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          @for (m of d.metrics; track m.key) {
+            <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
+              <div class="flex items-center gap-3 mb-2">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0"
+                  [style.background-color]="m.color || '#6B7280'">
+                  {{ m.label.substring(0, 1) }}
+                </div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 leading-tight">{{ m.label }}</div>
+              </div>
+              <div class="text-2xl font-semibold text-gray-800 dark:text-white/90">{{ m.value }}</div>
+              @if (m.app_code) {
+                <div class="text-[10px] text-gray-400 mt-1 uppercase tracking-wider">{{ m.app_code }}</div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    } @else {
+      <div>
+        <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">Resumen del negocio</h2>
+        <div class="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 text-center">
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            Las métricas aparecerán a medida que actives apps y registres datos.
+          </p>
+        </div>
       </div>
     }
   }
