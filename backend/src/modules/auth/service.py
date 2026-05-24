@@ -9,7 +9,7 @@ from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.config import get_settings
-from src.core.exceptions import ConflictError, NotFoundError, UnauthorizedError
+from src.core.exceptions import ConflictError, NotFoundError, UnauthorizedError, ValidationError
 from src.core.security import (
     create_access_token,
     create_refresh_token,
@@ -19,6 +19,11 @@ from src.core.security import (
     verify_token,
 )
 from src.modules.auth.models import RefreshToken, User
+from src.modules.church_hierarchy.models import (
+    ChurchDenomination,
+    ChurchZone,
+    ChurchZoneLeader,
+)
 from src.modules.platform.models import PlatformRole, UserPlatformRole
 from src.modules.auth.schemas import (
     AuthResponse,
@@ -32,7 +37,7 @@ from src.modules.auth.schemas import (
     UserResponse,
     UserUpdate,
 )
-from src.modules.organization.models import Membership, Organization
+from src.modules.organization.models import BusinessTypeCatalog, Membership, Organization
 
 settings = get_settings()
 
@@ -63,7 +68,11 @@ class AuthService:
         db: AsyncSession,
         data: RegisterRequest,
     ) -> AuthResponse:
-        """Create organization, owner user, membership, and initial tokens."""
+        """Create organization, owner user, membership, and initial tokens.
+
+        Wizard-driven fields (business_type, denomination, zone, zone_leader)
+        are honored when present. The vertical's default app is auto-activated.
+        """
         # Check slug uniqueness
         existing_org = await db.scalar(
             select(Organization).where(Organization.slug == data.slug),
@@ -71,21 +80,37 @@ class AuthService:
         if existing_org is not None:
             raise ConflictError("An organization with this slug already exists.")
 
-        # Create organization
-        org = Organization(
-            name=data.org_name,
-            slug=data.slug,
-            type="business",
-        )
-        db.add(org)
-        await db.flush()
-
         # Check email uniqueness (global)
         existing_user = await db.scalar(
             select(User).where(User.email == data.email),
         )
         if existing_user is not None:
             raise ConflictError("A user with this email already exists.")
+
+        # Resolve and validate the business type / denomination / zone selection
+        # before we mutate the DB so we fail fast on bad input.
+        business_type_row = await self._resolve_business_type(db, data.business_type)
+        if data.business_type is not None and data.business_type != "church" and (
+            data.denomination_id or data.denomination_name or data.zone_id or data.claim_zone_leader
+        ):
+            raise ValidationError(
+                "Denomination, zone and zone-leader fields only apply to business_type='church'.",
+            )
+        if data.business_type == "church":
+            if data.denomination_id and data.denomination_name:
+                raise ValidationError(
+                    "Provide either denomination_id (existing) or denomination_name (custom), not both.",
+                )
+
+        # Create organization
+        org = Organization(
+            name=data.org_name,
+            slug=data.slug,
+            type="business",
+            business_type=data.business_type,
+        )
+        db.add(org)
+        await db.flush()  # need org.id for FK-bound rows below
 
         # Create user (no organization FK — users are global)
         user = User(
@@ -105,8 +130,24 @@ class AuthService:
         db.add(membership)
         await db.flush()
 
+        # Apply church-specific wiring (denomination, zone, zone leader)
+        if data.business_type == "church":
+            await self._apply_church_signup(db, org, user, data)
+
+        # Auto-activate the vertical's default app (if any).
+        if business_type_row is not None and business_type_row.default_app_code:
+            # Imported here to avoid circular import at module load.
+            from src.modules.apps.service import AppsService
+
+            try:
+                await AppsService.activate_app(
+                    db, org.id, business_type_row.default_app_code, user.id,
+                )
+            except ConflictError:
+                # Already active (shouldn't happen for a brand-new org, but defensive).
+                pass
+
         # New accounts never have platform roles yet.
-        # Generate tokens
         token_data = {
             "sub": str(user.id),
             "org_id": str(org.id),
@@ -126,6 +167,7 @@ class AuthService:
         )
         db.add(rt)
         await db.flush()
+        await db.refresh(org)
 
         return AuthResponse(
             tokens=TokenResponse(
@@ -135,6 +177,92 @@ class AuthService:
             user=UserResponse.model_validate(user),
             organization=OrganizationResponse.model_validate(org),
         )
+
+    # ------------------------------------------------------------------
+    # Registration helpers
+    # ------------------------------------------------------------------
+    async def _resolve_business_type(
+        self,
+        db: AsyncSession,
+        code: str | None,
+    ) -> BusinessTypeCatalog | None:
+        if not code:
+            return None
+        bt = await db.scalar(
+            select(BusinessTypeCatalog).where(
+                BusinessTypeCatalog.code == code,
+                BusinessTypeCatalog.is_active.is_(True),
+            )
+        )
+        if bt is None:
+            raise ValidationError(f"Unknown business_type: '{code}'.")
+        return bt
+
+    async def _apply_church_signup(
+        self,
+        db: AsyncSession,
+        org: Organization,
+        user: User,
+        data: RegisterRequest,
+    ) -> None:
+        """Attach denomination, zone and (optionally) zone-leader to a church org."""
+        denomination_id: uuid.UUID | None = None
+
+        if data.denomination_id is not None:
+            denom = await db.scalar(
+                select(ChurchDenomination).where(
+                    ChurchDenomination.id == data.denomination_id,
+                    # Either system or owned by this org (org won't own anything yet
+                    # in a fresh signup, but kept for symmetry with later edits).
+                    (ChurchDenomination.created_by_org_id.is_(None))
+                    | (ChurchDenomination.created_by_org_id == org.id),
+                )
+            )
+            if denom is None:
+                raise NotFoundError("Denomination not found or not accessible.")
+            denomination_id = denom.id
+        elif data.denomination_name is not None:
+            # Create a custom denomination owned by the new org.
+            custom_code = (
+                data.denomination_name.lower().replace(" ", "-")[:50] or "custom"
+            )
+            denom = ChurchDenomination(
+                code=custom_code,
+                name=data.denomination_name,
+                is_system=False,
+                created_by_org_id=org.id,
+            )
+            db.add(denom)
+            await db.flush()
+            denomination_id = denom.id
+
+        org.denomination_id = denomination_id
+
+        if data.zone_id is not None:
+            if denomination_id is None:
+                raise ValidationError(
+                    "zone_id requires a denomination (denomination_id or denomination_name).",
+                )
+            zone = await db.scalar(
+                select(ChurchZone).where(
+                    ChurchZone.id == data.zone_id,
+                    ChurchZone.denomination_id == denomination_id,
+                )
+            )
+            if zone is None:
+                raise NotFoundError("Zone not found for the selected denomination.")
+            org.zone_id = zone.id
+
+            if data.claim_zone_leader:
+                leader = ChurchZoneLeader(
+                    user_id=user.id,
+                    zone_id=zone.id,
+                    organization_id=org.id,
+                    role="presbitero",
+                )
+                db.add(leader)
+
+        await db.flush()
 
     # ------------------------------------------------------------------
     # Login

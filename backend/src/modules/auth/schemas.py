@@ -13,7 +13,11 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 # ---------------------------------------------------------------------------
 
 class RegisterRequest(BaseModel):
-    """Payload for registering a new organization and its owner user."""
+    """Payload for registering a new organization and its owner user.
+
+    The wizard fields (business_type and below) are optional for backward
+    compat with clients still on the simple form; the wizard always sends them.
+    """
 
     org_name: str = Field(..., min_length=2, max_length=255)
     slug: str = Field(
@@ -22,6 +26,25 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8, max_length=128)
     name: str = Field(..., min_length=1, max_length=255)
+    # --- Wizard-driven fields ---
+    business_type: str | None = Field(
+        None,
+        max_length=50,
+        description="Vertical code from business_type_catalog (church, supermarket, ...).",
+    )
+    # Church-specific. Exactly one of denomination_id / denomination_name when business_type='church'.
+    denomination_id: uuid.UUID | None = None
+    denomination_name: str | None = Field(
+        None,
+        min_length=2,
+        max_length=255,
+        description="If set, creates a custom denomination owned by the new org.",
+    )
+    zone_id: uuid.UUID | None = None
+    claim_zone_leader: bool = Field(
+        False,
+        description="If true, the new user is recorded as presbitero of zone_id.",
+    )
 
 
 class LoginRequest(BaseModel):
@@ -86,6 +109,9 @@ class OrganizationResponse(BaseModel):
     name: str
     slug: str
     type: str
+    business_type: str | None = None
+    denomination_id: uuid.UUID | None = None
+    zone_id: uuid.UUID | None = None
 
 
 class OrgWithRole(BaseModel):

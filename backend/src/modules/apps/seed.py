@@ -36,11 +36,22 @@ APP_DEFAULT_ROLES: dict[str, list[str]] = {
     "accounting": ["contador", "auditor"],
 }
 
-# Role assigned to the user who activates the app
+# Role assigned to the user who activates the app.
+# 'owner' bypasses per-app permission checks (see modules.apps.permissions),
+# so it's the safe default for apps whose owner role doesn't have a
+# domain-specific name yet.
 APP_OWNER_ROLE: dict[str, str] = {
     "church": "pastor",
     "pos": "gerente",
     "accounting": "contador",
+    "parking": "owner",
+    "condo": "owner",
+    "credit": "owner",
+    "crm": "owner",
+    "edu": "owner",
+    "family": "owner",
+    "health": "owner",
+    "pay": "owner",
 }
 
 
