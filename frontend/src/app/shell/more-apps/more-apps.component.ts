@@ -25,12 +25,6 @@ export class MoreAppsComponent implements OnInit {
       icon: `<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`,
     },
     {
-      name: 'SavvyWater',
-      description: 'Gestión de acueductos y servicios de agua: medidores, consumo, facturación, redes y cortes',
-      color: '#06B6D4',
-      icon: `<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>`,
-    },
-    {
       name: 'SavvyFlow',
       description: 'Automatización de procesos y workflows: flujos de aprobación, tareas, reglas y notificaciones',
       color: '#8B5CF6',

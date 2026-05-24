@@ -151,6 +151,14 @@ const APP_MENUS: Record<string, { icon: string; items: { label: string; route: s
       { label: 'Sucursales', route: '/pos/locations' },
     ],
   },
+  water: {
+    icon: `<svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>`,
+    items: [
+      { label: 'Dashboard', route: '/water/dashboard' },
+      { label: 'Suscriptores', route: '/water/subscribers' },
+      { label: 'Medidores', route: '/water/meters' },
+    ],
+  },
 };
 
 @Component({

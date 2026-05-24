@@ -1,0 +1,233 @@
+<div class="p-4 sm:p-6 lg:p-8">
+  <!-- Header -->
+  <div class="flex items-start justify-between gap-4 flex-wrap mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-800 dark:text-white/90">Suscriptores</h1>
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        Clientes del acueducto: registro, estado, contacto y medidores asociados.
+      </p>
+    </div>
+    <button (click)="openCreate()"
+      class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium shadow-theme-xs">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+      </svg>
+      Nuevo suscriptor
+    </button>
+  </div>
+
+  <!-- Filters -->
+  <div class="flex flex-wrap gap-3 mb-4">
+    <input [(ngModel)]="search" (ngModelChange)="onSearchChange()"
+      placeholder="Buscar por código, nombre, documento..."
+      class="flex-1 sm:max-w-sm h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+    <select [(ngModel)]="filterStatus" (ngModelChange)="load()"
+      class="h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-white/90 px-3 py-2 text-sm">
+      @for (s of statuses; track s.value) {
+        <option [value]="s.value">{{ s.label }}</option>
+      }
+    </select>
+    <select [(ngModel)]="filterType" (ngModelChange)="load()"
+      class="h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-white/90 px-3 py-2 text-sm">
+      @for (t of types; track t.value) {
+        <option [value]="t.value">{{ t.label }}</option>
+      }
+    </select>
+  </div>
+
+  <!-- Table -->
+  @if (loading()) {
+    <div class="flex items-center justify-center py-20">
+      <div class="animate-spin rounded-full h-8 w-8 border-4 border-brand-200 border-t-brand-600"></div>
+    </div>
+  } @else if (subscribers().length === 0) {
+    <div class="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-10 text-center">
+      <p class="text-sm text-gray-500 dark:text-gray-400">Aún no hay suscriptores. Crea el primero con "Nuevo suscriptor".</p>
+    </div>
+  } @else {
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 dark:bg-gray-700/30">
+          <tr class="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <th class="px-4 py-3">Código</th>
+            <th class="px-4 py-3">Nombre</th>
+            <th class="px-4 py-3">Documento</th>
+            <th class="px-4 py-3">Dirección</th>
+            <th class="px-4 py-3">Tipo</th>
+            <th class="px-4 py-3 text-center">Estrato</th>
+            <th class="px-4 py-3 text-center">Medidores</th>
+            <th class="px-4 py-3">Estado</th>
+            <th class="px-4 py-3"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+          @for (s of subscribers(); track s.id) {
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/20">
+              <td class="px-4 py-3 font-mono text-xs text-gray-700 dark:text-gray-300">{{ s.code }}</td>
+              <td class="px-4 py-3">
+                <div class="font-medium text-gray-800 dark:text-white/90">{{ displayName(s) }}</div>
+              </td>
+              <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ s.document_number || '—' }}</td>
+              <td class="px-4 py-3 text-gray-700 dark:text-gray-300">
+                <div>{{ s.address || '—' }}</div>
+                @if (s.neighborhood) {
+                  <div class="text-xs text-gray-400">{{ s.neighborhood }}</div>
+                }
+              </td>
+              <td class="px-4 py-3 text-gray-700 dark:text-gray-300 capitalize">{{ s.subscriber_type }}</td>
+              <td class="px-4 py-3 text-center text-gray-700 dark:text-gray-300">{{ s.stratum || '—' }}</td>
+              <td class="px-4 py-3 text-center text-gray-700 dark:text-gray-300">{{ s.meter_count }}</td>
+              <td class="px-4 py-3">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize"
+                  [ngClass]="badgeClass(s.status)">{{ s.status }}</span>
+              </td>
+              <td class="px-4 py-3 text-right whitespace-nowrap">
+                <button (click)="openEdit(s)" class="text-xs text-brand-500 hover:text-brand-600 font-medium mr-3">Editar</button>
+                <button (click)="confirmDelete(s)" class="text-xs text-red-600 hover:text-red-700 font-medium">Eliminar</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <!-- Modal -->
+  @if (formOpen()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="closeForm()">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto"
+        (click)="$event.stopPropagation()">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-1">
+          {{ editing() ? 'Editar suscriptor' : 'Nuevo suscriptor' }}
+        </h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-5">
+          Datos básicos del cliente del acueducto.
+        </p>
+
+        @if (formError()) {
+          <div class="mb-4 p-3 bg-error-50 border border-error-200 text-error-700 dark:bg-error-500/10 dark:border-error-500/30 dark:text-error-400 rounded-lg text-sm">
+            {{ formError() }}
+          </div>
+        }
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Código *</label>
+            <input [(ngModel)]="form.code" [disabled]="!!editing()"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm disabled:opacity-60" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo *</label>
+            <select [(ngModel)]="form.subscriber_type"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm">
+              <option value="residential">Residencial</option>
+              <option value="commercial">Comercial</option>
+              <option value="industrial">Industrial</option>
+              <option value="official">Oficial</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Nombres *</label>
+            <input [(ngModel)]="form.first_name"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Apellidos</label>
+            <input [(ngModel)]="form.last_name"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+          </div>
+
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Razón social (si aplica)</label>
+            <input [(ngModel)]="form.business_name"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo doc.</label>
+            <select [(ngModel)]="form.document_type"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm">
+              <option [ngValue]="null">—</option>
+              <option value="CC">CC</option>
+              <option value="NIT">NIT</option>
+              <option value="CE">CE</option>
+              <option value="TI">TI</option>
+              <option value="PP">PP</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Documento</label>
+            <input [(ngModel)]="form.document_number"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+            <input type="email" [(ngModel)]="form.email"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Celular</label>
+            <input [(ngModel)]="form.mobile"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+          </div>
+
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Dirección</label>
+            <input [(ngModel)]="form.address"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Barrio / Vereda</label>
+            <input [(ngModel)]="form.neighborhood"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Estrato</label>
+            <select [(ngModel)]="form.stratum"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm">
+              <option [ngValue]="null">—</option>
+              @for (n of [1,2,3,4,5,6]; track n) {
+                <option [ngValue]="n">{{ n }}</option>
+              }
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Estado</label>
+            <select [(ngModel)]="form.status"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm">
+              <option value="active">Activo</option>
+              <option value="suspended">Suspendido</option>
+              <option value="overdue">En mora</option>
+              <option value="retired">Retirado</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha de registro</label>
+            <input type="date" [(ngModel)]="form.registered_at"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+          </div>
+
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Notas</label>
+            <textarea [(ngModel)]="form.notes" rows="2"
+              class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm"></textarea>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 mt-6">
+          <button (click)="closeForm()" [disabled]="saving()"
+            class="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">
+            Cancelar
+          </button>
+          <button (click)="submit()" [disabled]="saving()"
+            class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300">
+            {{ saving() ? 'Guardando…' : (editing() ? 'Actualizar' : 'Crear') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

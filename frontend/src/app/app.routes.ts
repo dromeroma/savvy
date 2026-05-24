@@ -130,6 +130,13 @@ export const routes: Routes = [
         data: { app: 'family' },
         canActivate: [appAccessGuard],
       },
+      {
+        path: 'water',
+        loadChildren: () =>
+          import('./apps/water/water.routes').then((m) => m.WATER_ROUTES),
+        data: { app: 'water' },
+        canActivate: [appAccessGuard],
+      },
     ],
   },
   {

@@ -52,6 +52,7 @@ APP_OWNER_ROLE: dict[str, str] = {
     "family": "owner",
     "health": "owner",
     "pay": "owner",
+    "water": "admin",
 }
 
 
