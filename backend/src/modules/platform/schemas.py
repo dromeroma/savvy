@@ -450,3 +450,49 @@ class FeatureUpdate(BaseModel):
     category: str | None = Field(None, max_length=40)
     default_enabled: bool | None = None
     default_limit: int | None = None
+
+
+# =====================================================================
+# Church zone leadership (super admin only)
+# =====================================================================
+
+
+ZONE_LEADER_ROLE = Literal["presbitero", "lider"]
+
+
+class PlatformZoneSummary(BaseModel):
+    """A zone surfaced to the super admin (for the dropdown)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    number: int
+    name: str | None
+    denomination_id: uuid.UUID
+    denomination_name: str
+    denomination_code: str
+
+
+class ZoneLeaderCreate(BaseModel):
+    user_id: uuid.UUID
+    zone_id: uuid.UUID
+    organization_id: uuid.UUID | None = None
+    role: ZONE_LEADER_ROLE = "presbitero"
+
+
+class ZoneLeaderResponse(BaseModel):
+    """Leader row with denormalized user / zone / org info for the table."""
+
+    id: uuid.UUID
+    user_id: uuid.UUID
+    user_name: str
+    user_email: str
+    zone_id: uuid.UUID
+    zone_number: int
+    zone_name: str | None
+    denomination_id: uuid.UUID
+    denomination_name: str
+    organization_id: uuid.UUID | None
+    organization_name: str | None
+    role: str
+    assigned_at: datetime

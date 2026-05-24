@@ -19,6 +19,11 @@ from src.core.exceptions import ConflictError, NotFoundError, ValidationError
 from src.core.security import hash_password
 from src.modules.apps.models import AppRegistry, AppUserRole, OrganizationApp
 from src.modules.auth.models import User
+from src.modules.church_hierarchy.models import (
+    ChurchDenomination,
+    ChurchZone,
+    ChurchZoneLeader,
+)
 from src.modules.organization.models import Membership, Organization
 from src.modules.platform.models import (
     AppPermissionCatalog,
@@ -46,8 +51,11 @@ from src.modules.platform.schemas import (
     PlanUpdate,
     PlatformOrgCreate,
     PlatformOrgUpdate,
+    PlatformZoneSummary,
     SubscriptionCreate,
     SubscriptionUpdate,
+    ZoneLeaderCreate,
+    ZoneLeaderResponse,
 )
 
 
@@ -1040,6 +1048,183 @@ class AuditService:
             stmt = stmt.where(PlatformAuditLog.target_org_id == target_org_id)
         result = await db.execute(stmt)
         return list(result.scalars().all())
+
+
+# =====================================================================
+# Church zone leadership (super admin only)
+# =====================================================================
+
+
+class ZoneLeadershipService:
+    """Manage the church_zone_leaders table from the platform admin panel."""
+
+    @staticmethod
+    async def list_zones(
+        db: AsyncSession,
+        denomination_id: uuid.UUID | None = None,
+    ) -> list[PlatformZoneSummary]:
+        stmt = (
+            select(
+                ChurchZone.id,
+                ChurchZone.number,
+                ChurchZone.name,
+                ChurchDenomination.id.label("denom_id"),
+                ChurchDenomination.name.label("denom_name"),
+                ChurchDenomination.code.label("denom_code"),
+            )
+            .join(ChurchDenomination, ChurchDenomination.id == ChurchZone.denomination_id)
+            .order_by(ChurchDenomination.name, ChurchZone.number)
+        )
+        if denomination_id is not None:
+            stmt = stmt.where(ChurchZone.denomination_id == denomination_id)
+        rows = await db.execute(stmt)
+        return [
+            PlatformZoneSummary(
+                id=r[0], number=r[1], name=r[2],
+                denomination_id=r[3], denomination_name=r[4],
+                denomination_code=r[5],
+            )
+            for r in rows.all()
+        ]
+
+    @staticmethod
+    async def list_leaders(
+        db: AsyncSession,
+        zone_id: uuid.UUID | None = None,
+        user_id: uuid.UUID | None = None,
+        denomination_id: uuid.UUID | None = None,
+    ) -> list[ZoneLeaderResponse]:
+        stmt = (
+            select(
+                ChurchZoneLeader.id,
+                ChurchZoneLeader.user_id,
+                User.name.label("user_name"),
+                User.email.label("user_email"),
+                ChurchZone.id.label("zone_id"),
+                ChurchZone.number,
+                ChurchZone.name.label("zone_name"),
+                ChurchDenomination.id.label("denom_id"),
+                ChurchDenomination.name.label("denom_name"),
+                ChurchZoneLeader.organization_id,
+                Organization.name.label("org_name"),
+                ChurchZoneLeader.role,
+                ChurchZoneLeader.assigned_at,
+            )
+            .join(User, User.id == ChurchZoneLeader.user_id)
+            .join(ChurchZone, ChurchZone.id == ChurchZoneLeader.zone_id)
+            .join(ChurchDenomination, ChurchDenomination.id == ChurchZone.denomination_id)
+            .outerjoin(Organization, Organization.id == ChurchZoneLeader.organization_id)
+            .order_by(ChurchDenomination.name, ChurchZone.number, User.name)
+        )
+        if zone_id is not None:
+            stmt = stmt.where(ChurchZoneLeader.zone_id == zone_id)
+        if user_id is not None:
+            stmt = stmt.where(ChurchZoneLeader.user_id == user_id)
+        if denomination_id is not None:
+            stmt = stmt.where(ChurchZone.denomination_id == denomination_id)
+        rows = await db.execute(stmt)
+        return [
+            ZoneLeaderResponse(
+                id=r[0], user_id=r[1], user_name=r[2], user_email=r[3],
+                zone_id=r[4], zone_number=r[5], zone_name=r[6],
+                denomination_id=r[7], denomination_name=r[8],
+                organization_id=r[9], organization_name=r[10],
+                role=r[11], assigned_at=r[12],
+            )
+            for r in rows.all()
+        ]
+
+    @staticmethod
+    async def assign_leader(
+        db: AsyncSession,
+        actor_id: uuid.UUID,
+        data: ZoneLeaderCreate,
+        request: Request | None = None,
+    ) -> ZoneLeaderResponse:
+        # Validate the user exists.
+        user = await db.get(User, data.user_id)
+        if user is None or user.deleted_at is not None:
+            raise NotFoundError("User not found.")
+
+        # Validate the zone exists.
+        zone = await db.get(ChurchZone, data.zone_id)
+        if zone is None:
+            raise NotFoundError("Zone not found.")
+
+        # If an org is provided, validate it exists.
+        if data.organization_id is not None:
+            org = await db.get(Organization, data.organization_id)
+            if org is None or org.deleted_at is not None:
+                raise NotFoundError("Organization not found.")
+
+        # Check uniqueness — same user can't lead the same zone twice.
+        existing = await db.scalar(
+            select(ChurchZoneLeader).where(
+                ChurchZoneLeader.user_id == data.user_id,
+                ChurchZoneLeader.zone_id == data.zone_id,
+            )
+        )
+        if existing is not None:
+            raise ConflictError(
+                "This user is already a leader of this zone.",
+            )
+
+        row = ChurchZoneLeader(
+            user_id=data.user_id,
+            zone_id=data.zone_id,
+            organization_id=data.organization_id,
+            role=data.role,
+        )
+        db.add(row)
+        await db.flush()
+
+        await write_audit(
+            db, actor_id,
+            action="zone_leader.assigned",
+            resource_type="church_zone_leader",
+            resource_id=row.id,
+            target_org_id=data.organization_id,
+            payload={
+                "user_id": str(data.user_id),
+                "zone_id": str(data.zone_id),
+                "role": data.role,
+            },
+            request=request,
+        )
+
+        # Return enriched response
+        leaders = await ZoneLeadershipService.list_leaders(db, zone_id=data.zone_id, user_id=data.user_id)
+        return leaders[0]
+
+    @staticmethod
+    async def revoke_leader(
+        db: AsyncSession,
+        actor_id: uuid.UUID,
+        leader_id: uuid.UUID,
+        request: Request | None = None,
+    ) -> None:
+        row = await db.get(ChurchZoneLeader, leader_id)
+        if row is None:
+            raise NotFoundError("Zone leader assignment not found.")
+
+        snapshot = {
+            "user_id": str(row.user_id),
+            "zone_id": str(row.zone_id),
+            "role": row.role,
+        }
+        org_id = row.organization_id
+        await db.delete(row)
+        await db.flush()
+
+        await write_audit(
+            db, actor_id,
+            action="zone_leader.revoked",
+            resource_type="church_zone_leader",
+            resource_id=leader_id,
+            target_org_id=org_id,
+            payload=snapshot,
+            request=request,
+        )
 
 
 # =====================================================================

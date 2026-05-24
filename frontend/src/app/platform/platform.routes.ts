@@ -66,6 +66,13 @@ export const PLATFORM_ROUTES: Routes = [
         loadComponent: () =>
           import('./audit/audit-log.component').then((m) => m.AuditLogComponent),
       },
+      {
+        path: 'zone-leaders',
+        loadComponent: () =>
+          import('./zone-leaders/zone-leaders.component').then(
+            (m) => m.ZoneLeadersComponent,
+          ),
+      },
     ],
   },
 ];

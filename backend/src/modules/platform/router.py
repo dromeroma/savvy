@@ -45,12 +45,15 @@ from src.modules.platform.schemas import (
     PlatformOrgUpdate,
     PlatformRoleResponse,
     PlatformUserSummary,
+    PlatformZoneSummary,
     ResetPasswordRequest,
     SubscriptionCreate,
     SubscriptionResponse,
     SubscriptionUpdate,
     TimeseriesPoint,
     UserPlatformRoleResponse,
+    ZoneLeaderCreate,
+    ZoneLeaderResponse,
 )
 from src.modules.platform.service import (
     AuditService,
@@ -63,6 +66,7 @@ from src.modules.platform.service import (
     PlatformRoleService,
     PlatformUserService,
     SubscriptionService,
+    ZoneLeadershipService,
 )
 
 router = APIRouter(
@@ -805,4 +809,65 @@ async def list_audit(
 ) -> Any:
     return await AuditService.list_entries(
         db, actor_id, action, target_org_id, limit,
+    )
+
+
+# =====================================================================
+# Church zone leadership
+# =====================================================================
+
+
+@router.get("/zones", response_model=list[PlatformZoneSummary])
+async def list_zones(
+    denomination_id: uuid.UUID | None = Query(None),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """List all zones for the dropdown — optionally filtered by denomination."""
+    return await ZoneLeadershipService.list_zones(db, denomination_id)
+
+
+@router.get("/zone-leaders", response_model=list[ZoneLeaderResponse])
+async def list_zone_leaders(
+    zone_id: uuid.UUID | None = Query(None),
+    user_id: uuid.UUID | None = Query(None),
+    denomination_id: uuid.UUID | None = Query(None),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """List zone leaders (presbiteros/lideres) with optional filters."""
+    return await ZoneLeadershipService.list_leaders(
+        db, zone_id=zone_id, user_id=user_id, denomination_id=denomination_id,
+    )
+
+
+@router.post(
+    "/zone-leaders",
+    response_model=ZoneLeaderResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def assign_zone_leader(
+    data: ZoneLeaderCreate,
+    request: Request,
+    user: dict = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """Assign a user as presbitero/lider of a zone."""
+    return await ZoneLeadershipService.assign_leader(
+        db, uuid.UUID(user["sub"]), data, request,
+    )
+
+
+@router.delete(
+    "/zone-leaders/{leader_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None,
+)
+async def revoke_zone_leader(
+    leader_id: uuid.UUID,
+    request: Request,
+    user: dict = Depends(require_super_admin),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """Revoke a zone leader assignment."""
+    await ZoneLeadershipService.revoke_leader(
+        db, uuid.UUID(user["sub"]), leader_id, request,
     )
