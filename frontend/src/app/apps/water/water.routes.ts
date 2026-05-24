@@ -28,6 +28,34 @@ export const WATER_ROUTES: Routes = [
             (m) => m.MetersListComponent,
           ),
       },
+      {
+        path: 'tariffs',
+        loadComponent: () =>
+          import('./tariffs/tariffs-list.component').then(
+            (m) => m.TariffsListComponent,
+          ),
+      },
+      {
+        path: 'consumptions',
+        loadComponent: () =>
+          import('./consumptions/consumptions-list.component').then(
+            (m) => m.ConsumptionsListComponent,
+          ),
+      },
+      {
+        path: 'invoices',
+        loadComponent: () =>
+          import('./invoices/invoices-list.component').then(
+            (m) => m.InvoicesListComponent,
+          ),
+      },
+      {
+        path: 'payments',
+        loadComponent: () =>
+          import('./payments/payments-list.component').then(
+            (m) => m.PaymentsListComponent,
+          ),
+      },
     ],
   },
 ];

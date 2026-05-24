@@ -1,12 +1,12 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { WaterService } from '../../../core/services/water.service';
 import { WaterDashboardKpis } from '../../../core/models/water.model';
 
 @Component({
   selector: 'app-water-dashboard',
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, DecimalPipe],
   template: `
     <div class="p-4 sm:p-6 lg:p-8 space-y-6">
       <div class="flex items-center justify-between">
@@ -51,6 +51,30 @@ import { WaterDashboardKpis } from '../../../core/models/water.model';
           </div>
         </div>
 
+        <!-- Billing + treasury row -->
+        <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
+            <div class="text-xs uppercase tracking-wider text-gray-400">Facturas del mes</div>
+            <div class="mt-1 text-2xl font-semibold text-gray-800 dark:text-white/90">{{ k.invoices_this_month }}</div>
+          </div>
+          <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
+            <div class="text-xs uppercase tracking-wider text-gray-400">Facturado del mes</div>
+            <div class="mt-1 text-xl font-semibold text-gray-800 dark:text-white/90">$ {{ k.billed_this_month | number:'1.0-0' }}</div>
+          </div>
+          <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
+            <div class="text-xs uppercase tracking-wider text-gray-400">Cartera pendiente</div>
+            <div class="mt-1 text-xl font-semibold text-red-600">$ {{ k.pending_balance | number:'1.0-0' }}</div>
+          </div>
+          <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
+            <div class="text-xs uppercase tracking-wider text-gray-400">Recaudo del mes</div>
+            <div class="mt-1 text-xl font-semibold text-emerald-700">$ {{ k.paid_this_month | number:'1.0-0' }}</div>
+          </div>
+          <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
+            <div class="text-xs uppercase tracking-wider text-gray-400">Recaudo de hoy</div>
+            <div class="mt-1 text-xl font-semibold text-emerald-700">$ {{ k.paid_today | number:'1.0-0' }}</div>
+          </div>
+        </div>
+
         <!-- Meters row -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
@@ -70,13 +94,21 @@ import { WaterDashboardKpis } from '../../../core/models/water.model';
         <!-- Quick actions -->
         <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
           <div class="flex flex-wrap gap-3">
-            <a routerLink="/water/subscribers"
+            <a routerLink="/water/consumptions"
               class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">
-              Gestionar suscriptores
+              Registrar lecturas
             </a>
-            <a routerLink="/water/meters"
+            <a routerLink="/water/invoices"
               class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 text-sm font-medium">
-              Gestionar medidores
+              Generar facturas del mes
+            </a>
+            <a routerLink="/water/payments"
+              class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 text-sm font-medium">
+              Registrar pago
+            </a>
+            <a routerLink="/water/tariffs"
+              class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 text-sm font-medium">
+              Tarifas
             </a>
           </div>
         </div>
@@ -85,7 +117,6 @@ import { WaterDashboardKpis } from '../../../core/models/water.model';
         <div class="rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
           <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Próximamente en SavvyWater</h3>
           <ul class="text-sm text-gray-500 dark:text-gray-400 list-disc pl-5 space-y-1">
-            <li>Lectura mensual y facturación automática (Fase 2)</li>
             <li>Cartera, mora, suspensiones y reconexiones (Fase 3)</li>
             <li>Tesorería, caja y arqueos (Fase 4)</li>
             <li>Portal del cliente / suscriptor (Fase 5)</li>

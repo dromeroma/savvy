@@ -2,13 +2,24 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
 import {
+  BatchGenerateRequest,
+  BatchGenerateResult,
+  WaterConsumptionCreate,
+  WaterConsumptionListItem,
   WaterDashboardKpis,
+  WaterInvoice,
+  WaterInvoiceListItem,
   WaterMeter,
   WaterMeterCreate,
   WaterMeterListItem,
+  WaterPayment,
+  WaterPaymentCreate,
+  WaterPaymentListItem,
   WaterSubscriber,
   WaterSubscriberCreate,
   WaterSubscriberListItem,
+  WaterTariff,
+  WaterTariffCreate,
 } from '../models/water.model';
 
 @Injectable({ providedIn: 'root' })
@@ -86,5 +97,102 @@ export class WaterService {
 
   deleteMeter(id: string): Observable<void> {
     return this.api.delete(`/water/meters/${id}`);
+  }
+
+  // ---- Tariffs ----
+  listTariffs(activeOnly = false): Observable<WaterTariff[]> {
+    return this.api.get<WaterTariff[]>('/water/tariffs', activeOnly ? { active_only: true } : undefined);
+  }
+  getTariff(id: string): Observable<WaterTariff> {
+    return this.api.get<WaterTariff>(`/water/tariffs/${id}`);
+  }
+  createTariff(data: WaterTariffCreate): Observable<WaterTariff> {
+    return this.api.post<WaterTariff>('/water/tariffs', data);
+  }
+  updateTariff(id: string, data: Partial<WaterTariffCreate>): Observable<WaterTariff> {
+    return this.api.patch<WaterTariff>(`/water/tariffs/${id}`, data);
+  }
+  deleteTariff(id: string): Observable<void> {
+    return this.api.delete(`/water/tariffs/${id}`);
+  }
+
+  // ---- Consumptions ----
+  listConsumptions(params?: {
+    period_year?: number;
+    period_month?: number;
+    meter_id?: string;
+    subscriber_id?: string;
+    limit?: number;
+    offset?: number;
+  }): Observable<WaterConsumptionListItem[]> {
+    const clean: Record<string, string | number | boolean> = {};
+    if (params?.period_year !== undefined) clean['period_year'] = params.period_year;
+    if (params?.period_month !== undefined) clean['period_month'] = params.period_month;
+    if (params?.meter_id) clean['meter_id'] = params.meter_id;
+    if (params?.subscriber_id) clean['subscriber_id'] = params.subscriber_id;
+    if (params?.limit !== undefined) clean['limit'] = params.limit;
+    if (params?.offset !== undefined) clean['offset'] = params.offset;
+    return this.api.get<WaterConsumptionListItem[]>('/water/consumptions', clean);
+  }
+  createConsumption(data: WaterConsumptionCreate): Observable<any> {
+    return this.api.post<any>('/water/consumptions', data);
+  }
+  deleteConsumption(id: string): Observable<void> {
+    return this.api.delete(`/water/consumptions/${id}`);
+  }
+
+  // ---- Invoices ----
+  listInvoices(params?: {
+    status?: string;
+    period_year?: number;
+    period_month?: number;
+    subscriber_id?: string;
+    unpaid_only?: boolean;
+    limit?: number;
+    offset?: number;
+  }): Observable<WaterInvoiceListItem[]> {
+    const clean: Record<string, string | number | boolean> = {};
+    if (params?.status) clean['status'] = params.status;
+    if (params?.period_year !== undefined) clean['period_year'] = params.period_year;
+    if (params?.period_month !== undefined) clean['period_month'] = params.period_month;
+    if (params?.subscriber_id) clean['subscriber_id'] = params.subscriber_id;
+    if (params?.unpaid_only) clean['unpaid_only'] = true;
+    if (params?.limit !== undefined) clean['limit'] = params.limit;
+    if (params?.offset !== undefined) clean['offset'] = params.offset;
+    return this.api.get<WaterInvoiceListItem[]>('/water/invoices', clean);
+  }
+  getInvoice(id: string): Observable<WaterInvoice> {
+    return this.api.get<WaterInvoice>(`/water/invoices/${id}`);
+  }
+  batchGenerateInvoices(data: BatchGenerateRequest): Observable<BatchGenerateResult> {
+    return this.api.post<BatchGenerateResult>('/water/invoices/batch-generate', data);
+  }
+  annulInvoice(id: string): Observable<WaterInvoice> {
+    return this.api.post<WaterInvoice>(`/water/invoices/${id}/annul`, {});
+  }
+
+  // ---- Payments ----
+  listPayments(params?: {
+    subscriber_id?: string;
+    date_from?: string;
+    date_to?: string;
+    method?: string;
+    limit?: number;
+    offset?: number;
+  }): Observable<WaterPaymentListItem[]> {
+    const clean: Record<string, string | number | boolean> = {};
+    if (params?.subscriber_id) clean['subscriber_id'] = params.subscriber_id;
+    if (params?.date_from) clean['date_from'] = params.date_from;
+    if (params?.date_to) clean['date_to'] = params.date_to;
+    if (params?.method) clean['method'] = params.method;
+    if (params?.limit !== undefined) clean['limit'] = params.limit;
+    if (params?.offset !== undefined) clean['offset'] = params.offset;
+    return this.api.get<WaterPaymentListItem[]>('/water/payments', clean);
+  }
+  getPayment(id: string): Observable<WaterPayment> {
+    return this.api.get<WaterPayment>(`/water/payments/${id}`);
+  }
+  registerPayment(data: WaterPaymentCreate): Observable<WaterPayment> {
+    return this.api.post<WaterPayment>('/water/payments', data);
   }
 }

@@ -157,6 +157,10 @@ const APP_MENUS: Record<string, { icon: string; items: { label: string; route: s
       { label: 'Dashboard', route: '/water/dashboard' },
       { label: 'Suscriptores', route: '/water/subscribers' },
       { label: 'Medidores', route: '/water/meters' },
+      { label: 'Tarifas', route: '/water/tariffs' },
+      { label: 'Lecturas', route: '/water/consumptions' },
+      { label: 'Facturación', route: '/water/invoices' },
+      { label: 'Pagos', route: '/water/payments' },
     ],
   },
 };

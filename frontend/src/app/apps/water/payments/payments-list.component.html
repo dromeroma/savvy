@@ -1,0 +1,190 @@
+<div class="p-4 sm:p-6 lg:p-8">
+  <div class="flex items-start justify-between gap-4 flex-wrap mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-800 dark:text-white/90">Pagos</h1>
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        Registro de pagos del acueducto. Cada pago se aplica automáticamente
+        a las facturas más antiguas del suscriptor.
+      </p>
+    </div>
+    <button (click)="openCreate()"
+      class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium shadow-theme-xs">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+      </svg>
+      Registrar pago
+    </button>
+  </div>
+
+  <!-- Filters -->
+  <div class="flex flex-wrap items-center gap-3 mb-4">
+    <select [(ngModel)]="filterMethod" (ngModelChange)="load()"
+      class="h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-white/90 px-3 py-2 text-sm">
+      @for (m of methods; track m.v) { <option [value]="m.v">{{ m.n }}</option> }
+    </select>
+    <div class="flex items-center gap-2">
+      <span class="text-xs text-gray-500">Desde</span>
+      <input type="date" [(ngModel)]="filterDateFrom" (ngModelChange)="load()"
+        class="h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="text-xs text-gray-500">Hasta</span>
+      <input type="date" [(ngModel)]="filterDateTo" (ngModelChange)="load()"
+        class="h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="flex items-center justify-center py-20">
+      <div class="animate-spin rounded-full h-8 w-8 border-4 border-brand-200 border-t-brand-600"></div>
+    </div>
+  } @else if (payments().length === 0) {
+    <div class="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-10 text-center">
+      <p class="text-sm text-gray-500 dark:text-gray-400">No hay pagos registrados.</p>
+    </div>
+  } @else {
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 dark:bg-gray-700/30">
+          <tr class="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <th class="px-4 py-3">Fecha</th>
+            <th class="px-4 py-3">Suscriptor</th>
+            <th class="px-4 py-3 text-right">Monto</th>
+            <th class="px-4 py-3">Método</th>
+            <th class="px-4 py-3">Recibo</th>
+            <th class="px-4 py-3 text-center">Facturas aplicadas</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+          @for (p of payments(); track p.id) {
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/20">
+              <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ p.payment_date }}</td>
+              <td class="px-4 py-3">
+                <div class="text-gray-800 dark:text-white/90">{{ p.subscriber_name }}</div>
+                <div class="text-xs font-mono text-gray-400">{{ p.subscriber_code }}</div>
+              </td>
+              <td class="px-4 py-3 text-right font-semibold text-emerald-700 dark:text-emerald-400">$ {{ p.amount }}</td>
+              <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ methodLabel(p.method) }}</td>
+              <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ p.receipt_number || '—' }}</td>
+              <td class="px-4 py-3 text-center text-gray-700 dark:text-gray-300">{{ p.invoices_count }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <!-- Form modal -->
+  @if (formOpen()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="closeForm()">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-xl w-full p-6 max-h-[90vh] overflow-y-auto"
+        (click)="$event.stopPropagation()">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-1">Registrar pago</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-5">
+          El monto se aplicará a las facturas pendientes más antiguas primero.
+        </p>
+
+        @if (formError()) {
+          <div class="mb-4 p-3 bg-error-50 border border-error-200 text-error-700 dark:bg-error-500/10 dark:border-error-500/30 dark:text-error-400 rounded-lg text-sm">
+            {{ formError() }}
+          </div>
+        }
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Suscriptor *</label>
+            <select [ngModel]="form.subscriber_id" (ngModelChange)="onSubscriberChange($event)"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm">
+              <option value="">— Selecciona suscriptor —</option>
+              @for (s of subscribers(); track s.id) {
+                <option [value]="s.id">{{ s.code }} · {{ s.business_name || (s.first_name + ' ' + (s.last_name || '')) }}</option>
+              }
+            </select>
+          </div>
+
+          @if (form.subscriber_id) {
+            <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3">
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-gray-500">Saldo pendiente del suscriptor:</span>
+                <span class="font-semibold text-gray-800 dark:text-white/90">$ {{ subscriberOpenBalance | number:'1.0-0' }}</span>
+              </div>
+              <div class="text-xs text-gray-400 mt-1">
+                {{ subscriberInvoices().length }} factura(s) pendiente(s).
+              </div>
+            </div>
+          }
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Monto *</label>
+              <input type="number" step="0.01" [(ngModel)]="form.amount"
+                class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha *</label>
+              <input type="date" [(ngModel)]="form.payment_date"
+                class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Método</label>
+              <select [(ngModel)]="form.method"
+                class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm">
+                <option value="cash">Efectivo</option>
+                <option value="transfer">Transferencia</option>
+                <option value="card">Tarjeta</option>
+                <option value="check">Cheque</option>
+                <option value="online">Online</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Recibo</label>
+              <input [(ngModel)]="form.receipt_number"
+                class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Referencia / Notas</label>
+            <input [(ngModel)]="form.reference"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+          </div>
+
+          <!-- Allocation preview -->
+          @if (allocationPreview().length > 0) {
+            <div class="rounded-lg border border-emerald-200 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-500/5 p-3">
+              <div class="text-xs font-semibold text-emerald-800 dark:text-emerald-300 mb-2">Distribución del pago</div>
+              <div class="space-y-1 text-sm">
+                @for (a of allocationPreview(); track a.invoice.id) {
+                  <div class="flex justify-between text-gray-700 dark:text-gray-300">
+                    <span>Factura #{{ a.invoice.consecutive }} ({{ a.invoice.period_year }}-{{ a.invoice.period_month }})</span>
+                    <span class="font-mono">$ {{ a.amount | number:'1.0-2' }}</span>
+                  </div>
+                }
+                @if (allocationLeftover() > 0) {
+                  <div class="flex justify-between text-amber-700 dark:text-amber-400 border-t border-emerald-200/50 dark:border-emerald-700/30 pt-1 mt-1">
+                    <span>Sin aplicar (saldo a favor)</span>
+                    <span class="font-mono">$ {{ allocationLeftover() | number:'1.0-2' }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="flex justify-end gap-2 mt-6">
+          <button (click)="closeForm()" [disabled]="saving()"
+            class="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">
+            Cancelar
+          </button>
+          <button (click)="submit()" [disabled]="saving()"
+            class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300">
+            {{ saving() ? 'Guardando…' : 'Registrar pago' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>
