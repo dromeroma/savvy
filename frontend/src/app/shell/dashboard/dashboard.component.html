@@ -35,17 +35,14 @@
           </div>
         </div>
         <div class="flex flex-wrap gap-3">
-          <!-- Member count card -->
           <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-4 py-2 min-w-[120px]">
             <div class="text-xs text-gray-500 dark:text-gray-400">Miembros</div>
             <div class="text-xl font-semibold text-gray-800 dark:text-white/90">{{ d.organization.member_count }}</div>
           </div>
-          <!-- Apps count card -->
           <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-4 py-2 min-w-[120px]">
             <div class="text-xs text-gray-500 dark:text-gray-400">Apps activas</div>
             <div class="text-xl font-semibold text-gray-800 dark:text-white/90">{{ d.active_apps.length }}</div>
           </div>
-          <!-- Plan card -->
           <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-4 py-2 min-w-[140px]">
             <div class="text-xs text-gray-500 dark:text-gray-400">Plan</div>
             @if (d.subscription) {
@@ -59,10 +56,16 @@
       </div>
     </div>
 
-    <!-- ACTIVE APPS -->
+    <!-- APPS AS RICH CARDS (each card = launcher + headline KPIs + drill-in) -->
     <div>
-      <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">Mis aplicaciones</h2>
-      @if (d.active_apps.length === 0) {
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Tus apps</h2>
+        <a routerLink="/more-apps" class="text-xs font-medium text-brand-500 hover:text-brand-600">
+          + Activar más apps
+        </a>
+      </div>
+
+      @if (appsWithMetrics().length === 0) {
         <div class="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 text-center">
           <p class="text-sm text-gray-500 dark:text-gray-400">
             Aún no tienes apps activas. Activa una desde
@@ -70,61 +73,55 @@
           </p>
         </div>
       } @else {
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          @for (app of d.active_apps; track app.code) {
-            <button (click)="openApp(app.code)"
-              class="text-left rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 hover:shadow-theme-md transition flex items-center gap-3">
-              <div class="w-10 h-10 rounded-lg flex items-center justify-center text-white text-lg shrink-0"
-                [style.background-color]="app.color || '#6B7280'">
-                {{ app.name.substring(0, 1) }}
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="text-sm font-semibold text-gray-800 dark:text-white/90 truncate">{{ app.name }}</div>
-                <div class="text-xs text-gray-500 dark:text-gray-400 capitalize">
-                  {{ app.status === 'trial' ? 'Prueba' : 'Activa' }}
-                  @if (app.user_role) { · {{ app.user_role }} }
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          @for (app of appsWithMetrics(); track app.code) {
+            <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden hover:shadow-theme-md transition flex flex-col">
+              <div class="h-1.5" [style.background-color]="app.color || '#6B7280'"></div>
+              <div class="p-5 flex-1 flex flex-col">
+                <!-- Header -->
+                <div class="flex items-center gap-3 mb-4">
+                  <div class="w-10 h-10 rounded-lg flex items-center justify-center text-white text-lg font-semibold shrink-0"
+                    [style.background-color]="app.color || '#6B7280'">
+                    {{ app.name.substring(0, 1) }}
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-sm font-semibold text-gray-800 dark:text-white/90 truncate">{{ app.name }}</div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                      {{ app.status === 'trial' ? 'Prueba' : 'Activa' }}
+                      @if (app.user_role) { · {{ app.user_role }} }
+                    </div>
+                  </div>
                 </div>
+
+                <!-- Headline metrics -->
+                @if (app.metrics.length > 0) {
+                  <div class="grid grid-cols-2 gap-3 mb-4">
+                    @for (m of app.metrics; track m.key) {
+                      <div>
+                        <div class="text-[10px] uppercase tracking-wider text-gray-400">{{ m.label }}</div>
+                        <div class="text-xl font-semibold text-gray-800 dark:text-white/90 mt-0.5">{{ m.value }}</div>
+                      </div>
+                    }
+                  </div>
+                } @else {
+                  <div class="text-xs text-gray-400 italic mb-4">
+                    Sin métricas todavía para esta app.
+                  </div>
+                }
+
+                <!-- Action -->
+                <button (click)="openApp(app.code)"
+                  class="mt-auto w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-gray-50 dark:bg-gray-700/40 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                  Ver dashboard
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                  </svg>
+                </button>
               </div>
-              <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-              </svg>
-            </button>
+            </div>
           }
         </div>
       }
     </div>
-
-    <!-- METRICS -->
-    @if (d.metrics.length > 0) {
-      <div>
-        <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">Resumen del negocio</h2>
-        <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          @for (m of d.metrics; track m.key) {
-            <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
-              <div class="flex items-center gap-3 mb-2">
-                <div class="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0"
-                  [style.background-color]="m.color || '#6B7280'">
-                  {{ m.label.substring(0, 1) }}
-                </div>
-                <div class="text-xs text-gray-500 dark:text-gray-400 leading-tight">{{ m.label }}</div>
-              </div>
-              <div class="text-2xl font-semibold text-gray-800 dark:text-white/90">{{ m.value }}</div>
-              @if (m.app_code) {
-                <div class="text-[10px] text-gray-400 mt-1 uppercase tracking-wider">{{ m.app_code }}</div>
-              }
-            </div>
-          }
-        </div>
-      </div>
-    } @else {
-      <div>
-        <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">Resumen del negocio</h2>
-        <div class="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 text-center">
-          <p class="text-sm text-gray-500 dark:text-gray-400">
-            Las métricas aparecerán a medida que actives apps y registres datos.
-          </p>
-        </div>
-      </div>
-    }
   }
 </div>

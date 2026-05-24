@@ -3,15 +3,13 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date, timedelta
+from datetime import date
 from decimal import Decimal
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.apps.church.congregants.models import ChurchCongregant
-from src.apps.church.events.models import ChurchEvent
-from src.apps.church.visitors.models import ChurchVisitor
 from src.core.exceptions import NotFoundError
 from src.modules.apps.models import AppRegistry, AppUserRole, OrganizationApp
 from src.modules.church_hierarchy.models import ChurchDenomination, ChurchZone
@@ -210,9 +208,9 @@ class DashboardService:
     async def _church_metrics(
         db: AsyncSession, org_id: uuid.UUID,
     ) -> list[DashboardMetric]:
+        """Two headline KPIs only — full detail lives in /church/dashboard."""
         today = date.today()
         first_of_month = today.replace(day=1)
-        thirty_days_ago = today - timedelta(days=30)
 
         active = await db.scalar(
             select(func.count(ChurchCongregant.id))
@@ -223,42 +221,11 @@ class DashboardService:
             )
         ) or 0
 
-        new_this_month = await db.scalar(
-            select(func.count(ChurchCongregant.id)).where(
-                ChurchCongregant.organization_id == org_id,
-                func.date(ChurchCongregant.created_at) >= first_of_month,
-            )
-        ) or 0
-
-        visitors = await db.scalar(
-            select(func.count(ChurchVisitor.id)).where(
-                ChurchVisitor.organization_id == org_id,
-                ChurchVisitor.visit_date >= thirty_days_ago,
-            )
-        ) or 0
-
-        events = await db.scalar(
-            select(func.count(ChurchEvent.id)).where(
-                ChurchEvent.organization_id == org_id,
-                ChurchEvent.date >= first_of_month,
-            )
-        ) or 0
-
         income = await db.scalar(
             select(func.coalesce(func.sum(FinanceTransaction.amount), 0)).where(
                 FinanceTransaction.organization_id == org_id,
                 FinanceTransaction.app_code == "church",
                 FinanceTransaction.type == "income",
-                FinanceTransaction.date >= first_of_month,
-                FinanceTransaction.date <= today,
-            )
-        ) or 0
-
-        expenses = await db.scalar(
-            select(func.coalesce(func.sum(FinanceTransaction.amount), 0)).where(
-                FinanceTransaction.organization_id == org_id,
-                FinanceTransaction.app_code == "church",
-                FinanceTransaction.type == "expense",
                 FinanceTransaction.date >= first_of_month,
                 FinanceTransaction.date <= today,
             )
@@ -275,48 +242,12 @@ class DashboardService:
                 app_code="church",
             ),
             DashboardMetric(
-                key="church.new_this_month",
-                label="Nuevos congregantes (mes)",
-                value=_fmt_int(int(new_this_month)),
-                raw_value=float(new_this_month),
-                icon="user-plus",
-                color="#0891B2",
-                app_code="church",
-            ),
-            DashboardMetric(
-                key="church.visitors_30d",
-                label="Visitantes (30 días)",
-                value=_fmt_int(int(visitors)),
-                raw_value=float(visitors),
-                icon="user-check",
-                color="#EA580C",
-                app_code="church",
-            ),
-            DashboardMetric(
-                key="church.events_this_month",
-                label="Eventos del mes",
-                value=_fmt_int(int(events)),
-                raw_value=float(events),
-                icon="calendar",
-                color="#DC2626",
-                app_code="church",
-            ),
-            DashboardMetric(
                 key="church.income_this_month",
                 label="Ingresos del mes",
                 value=_fmt_money(income),
                 raw_value=float(income),
                 icon="trending-up",
                 color="#059669",
-                app_code="church",
-            ),
-            DashboardMetric(
-                key="church.net_this_month",
-                label="Neto del mes",
-                value=_fmt_money(Decimal(str(income)) - Decimal(str(expenses))),
-                raw_value=float(income) - float(expenses),
-                icon="balance",
-                color="#2563EB",
                 app_code="church",
             ),
         ]
