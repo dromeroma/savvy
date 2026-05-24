@@ -1,0 +1,142 @@
+<div class="p-4 sm:p-6 lg:p-8">
+  <div class="flex items-start justify-between gap-4 flex-wrap mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-800 dark:text-white/90">Cuentas de tesorería</h1>
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        Cajas y cuentas bancarias del acueducto. Una cuenta marcada como predeterminada recibe los pagos automáticamente.
+      </p>
+    </div>
+    <button (click)="openCreate()"
+      class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium shadow-theme-xs">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+      </svg>
+      Nueva cuenta
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="flex items-center justify-center py-20">
+      <div class="animate-spin rounded-full h-8 w-8 border-4 border-brand-200 border-t-brand-600"></div>
+    </div>
+  } @else if (accounts().length === 0) {
+    <div class="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-10 text-center">
+      <p class="text-sm text-gray-500 dark:text-gray-400">Aún no hay cuentas. Crea al menos una (ej: "Caja Principal").</p>
+    </div>
+  } @else {
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 dark:bg-gray-700/30">
+          <tr class="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <th class="px-4 py-3">Código</th>
+            <th class="px-4 py-3">Nombre</th>
+            <th class="px-4 py-3">Tipo</th>
+            <th class="px-4 py-3 text-right">Saldo inicial</th>
+            <th class="px-4 py-3 text-right">Saldo actual</th>
+            <th class="px-4 py-3 text-center">Movimientos</th>
+            <th class="px-4 py-3">Default</th>
+            <th class="px-4 py-3">Activa</th>
+            <th class="px-4 py-3"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+          @for (a of accounts(); track a.id) {
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/20">
+              <td class="px-4 py-3 font-mono text-xs">{{ a.code }}</td>
+              <td class="px-4 py-3 text-gray-800 dark:text-white/90 font-medium">{{ a.name }}</td>
+              <td class="px-4 py-3">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize"
+                  [ngClass]="typeBadge(a.type)">{{ a.type }}</span>
+              </td>
+              <td class="px-4 py-3 text-right text-gray-500">$ {{ +a.initial_balance | number:'1.0-0' }}</td>
+              <td class="px-4 py-3 text-right font-semibold" [ngClass]="+a.current_balance >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-600'">
+                $ {{ +a.current_balance | number:'1.0-0' }}
+              </td>
+              <td class="px-4 py-3 text-center text-gray-700 dark:text-gray-300">{{ a.movement_count }}</td>
+              <td class="px-4 py-3">
+                @if (a.is_default) {
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-700 dark:bg-brand-500/20 dark:text-brand-300">Sí</span>
+                } @else {
+                  <span class="text-xs text-gray-400">—</span>
+                }
+              </td>
+              <td class="px-4 py-3">
+                @if (a.is_active) {
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">Activa</span>
+                } @else {
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">Inactiva</span>
+                }
+              </td>
+              <td class="px-4 py-3 text-right whitespace-nowrap">
+                <button (click)="openEdit(a)" class="text-xs text-brand-500 hover:text-brand-600 font-medium mr-3">Editar</button>
+                <button (click)="confirmDelete(a)" class="text-xs text-red-600 hover:text-red-700 font-medium">Eliminar</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  @if (formOpen()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="closeForm()">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-lg w-full p-6" (click)="$event.stopPropagation()">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-1">
+          {{ editing() ? 'Editar cuenta' : 'Nueva cuenta de tesorería' }}
+        </h3>
+        @if (formError()) {
+          <div class="mb-4 p-3 bg-error-50 border border-error-200 text-error-700 dark:bg-error-500/10 dark:border-error-500/30 dark:text-error-400 rounded-lg text-sm">
+            {{ formError() }}
+          </div>
+        }
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Código *</label>
+            <input [(ngModel)]="form.code" [disabled]="!!editing()"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm disabled:opacity-60" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre *</label>
+            <input [(ngModel)]="form.name"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo</label>
+            <select [(ngModel)]="form.type"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm">
+              @for (t of types; track t.v) { <option [value]="t.v">{{ t.n }}</option> }
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Saldo inicial</label>
+            <input type="number" step="0.01" [(ngModel)]="form.initial_balance"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Notas</label>
+            <textarea [(ngModel)]="form.notes" rows="2"
+              class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm"></textarea>
+          </div>
+          <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+            <input type="checkbox" [(ngModel)]="form.is_default" class="rounded text-brand-500" />
+            Cuenta predeterminada (recibe los pagos por defecto)
+          </label>
+          <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+            <input type="checkbox" [(ngModel)]="form.is_active" class="rounded text-brand-500" /> Activa
+          </label>
+        </div>
+
+        <div class="flex justify-end gap-2 mt-6">
+          <button (click)="closeForm()" [disabled]="saving()"
+            class="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">
+            Cancelar
+          </button>
+          <button (click)="submit()" [disabled]="saving()"
+            class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300">
+            {{ saving() ? 'Guardando…' : (editing() ? 'Actualizar' : 'Crear') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

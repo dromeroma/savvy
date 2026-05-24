@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { WaterService } from '../../../core/services/water.service';
 import {
   PaymentMethod,
+  WaterCashAccountListItem,
   WaterInvoiceListItem,
   WaterPaymentCreate,
   WaterPaymentListItem,
@@ -23,6 +24,7 @@ export class PaymentsListComponent implements OnInit {
   loading = signal(true);
   payments = signal<WaterPaymentListItem[]>([]);
   subscribers = signal<WaterSubscriberListItem[]>([]);
+  cashAccounts = signal<WaterCashAccountListItem[]>([]);
 
   // Filters
   filterMethod = '';
@@ -72,6 +74,9 @@ export class PaymentsListComponent implements OnInit {
     this.water.listSubscribers({ limit: 500 }).subscribe({
       next: (data) => this.subscribers.set(data),
     });
+    this.water.listCashAccounts(true).subscribe({
+      next: (data) => this.cashAccounts.set(data),
+    });
     this.load();
   }
 
@@ -92,6 +97,9 @@ export class PaymentsListComponent implements OnInit {
 
   openCreate(): void {
     this.form = this.emptyForm();
+    // pre-select default cash account if any
+    const def = this.cashAccounts().find((a) => a.is_default && a.is_active);
+    if (def) this.form.cash_account_id = def.id;
     this.subscriberInvoices.set([]);
     this.formError.set('');
     this.formOpen.set(true);

@@ -288,6 +288,9 @@ class WaterPayment(BaseMixin, OrgMixin, Base):
     collector_user_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
     )
+    cash_account_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("water_cash_accounts.id", ondelete="SET NULL"), nullable=True,
+    )
 
 
 class WaterPaymentInvoice(Base):
@@ -306,3 +309,85 @@ class WaterPaymentInvoice(Base):
         Uuid, ForeignKey("water_invoices.id", ondelete="CASCADE"), nullable=False,
     )
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+
+
+# =====================================================================
+# Treasury (Phase 4)
+# =====================================================================
+
+
+class WaterCashAccount(BaseMixin, OrgMixin, Base):
+    """A cash/bank account for the water utility treasury."""
+
+    __tablename__ = "water_cash_accounts"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "code", name="uq_water_cash_org_code"),
+        CheckConstraint("type IN ('cash','bank','other')", name="chk_water_cash_type"),
+    )
+
+    code: Mapped[str] = mapped_column(String(40), nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    type: Mapped[str] = mapped_column(String(20), default="cash", nullable=False)
+    initial_balance: Mapped[Decimal] = mapped_column(
+        Numeric(14, 2), default=Decimal("0"), nullable=False,
+    )
+    is_default: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class WaterTreasuryMovement(BaseMixin, OrgMixin, Base):
+    """Income or expense movement against a cash account. Payments from
+    /water/payments auto-create an `income` movement with category='water_payment'
+    and payment_id linked, so the cash account balance stays in sync."""
+
+    __tablename__ = "water_treasury_movements"
+    __table_args__ = (
+        CheckConstraint("type IN ('income','expense')", name="chk_water_treas_type"),
+        CheckConstraint("amount > 0", name="chk_water_treas_amount"),
+    )
+
+    cash_account_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("water_cash_accounts.id", ondelete="CASCADE"), nullable=False,
+    )
+    movement_date: Mapped[date] = mapped_column(Date, nullable=False)
+    type: Mapped[str] = mapped_column(String(20), nullable=False)
+    category: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    reference: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    payment_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("water_payments.id", ondelete="SET NULL"), nullable=True,
+    )
+    recorded_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+    )
+
+
+class WaterCashClosing(Base):
+    """A cash closing (arqueo): expected vs counted balance for a given day."""
+
+    __tablename__ = "water_cash_closings"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("organizations.id", ondelete="CASCADE"),
+        index=True, nullable=False,
+    )
+    cash_account_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("water_cash_accounts.id", ondelete="CASCADE"), nullable=False,
+    )
+    closing_date: Mapped[date] = mapped_column(Date, nullable=False)
+    expected_balance: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
+    counted_balance: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
+    difference: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    closed_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+    )
+    closed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False,
+    )

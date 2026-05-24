@@ -91,6 +91,25 @@ import { WaterDashboardKpis } from '../../../core/models/water.model';
           </div>
         </div>
 
+        <!-- Treasury row -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="rounded-2xl border border-emerald-200 dark:border-emerald-700/40 bg-emerald-50/40 dark:bg-emerald-500/5 p-5">
+            <div class="text-xs uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Efectivo total en caja</div>
+            <div class="mt-1 text-2xl font-semibold text-emerald-700 dark:text-emerald-300">$ {{ k.cash_on_hand | number:'1.0-0' }}</div>
+            <div class="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1">{{ k.cash_accounts_count }} cuenta(s) de tesorería</div>
+          </div>
+          <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 flex items-center justify-between">
+            <div>
+              <div class="text-xs uppercase tracking-wider text-gray-400">Tesorería</div>
+              <div class="mt-1 text-sm text-gray-600 dark:text-gray-300">Ver saldos, movimientos y arqueos</div>
+            </div>
+            <a routerLink="/water/treasury"
+              class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">
+              Abrir →
+            </a>
+          </div>
+        </div>
+
         <!-- Meters row -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
@@ -141,9 +160,9 @@ import { WaterDashboardKpis } from '../../../core/models/water.model';
         <div class="rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
           <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Próximamente en SavvyWater</h3>
           <ul class="text-sm text-gray-500 dark:text-gray-400 list-disc pl-5 space-y-1">
-            <li>Tesorería, caja y arqueos (Fase 4)</li>
             <li>Portal del cliente / suscriptor (Fase 5)</li>
             <li>Notificaciones (WhatsApp / email) y reportes ejecutivos (Fase 6)</li>
+            <li>Integración con SavvyAccounting (futuro)</li>
           </ul>
         </div>
       }

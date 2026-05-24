@@ -77,6 +77,20 @@ export const WATER_ROUTES: Routes = [
             (m) => m.MyRouteComponent,
           ),
       },
+      {
+        path: 'cash-accounts',
+        loadComponent: () =>
+          import('./cash-accounts/cash-accounts-list.component').then(
+            (m) => m.CashAccountsListComponent,
+          ),
+      },
+      {
+        path: 'treasury',
+        loadComponent: () =>
+          import('./treasury/treasury.component').then(
+            (m) => m.TreasuryComponent,
+          ),
+      },
     ],
   },
 ];

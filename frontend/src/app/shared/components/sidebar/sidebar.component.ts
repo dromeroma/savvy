@@ -164,6 +164,8 @@ const APP_MENUS: Record<string, { icon: string; items: { label: string; route: s
       { label: 'Cartera', route: '/water/cartera' },
       { label: 'Rutas', route: '/water/routes' },
       { label: 'Mi ruta (móvil)', route: '/water/my-route' },
+      { label: 'Cuentas de tesorería', route: '/water/cash-accounts' },
+      { label: 'Tesorería', route: '/water/treasury' },
     ],
   },
 };

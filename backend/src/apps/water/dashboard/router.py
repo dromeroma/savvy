@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.apps.water.cash_accounts.service import CashAccountsService
 from src.apps.water.models import WaterInvoice, WaterMeter, WaterPayment, WaterSubscriber
 from src.core.dependencies import get_db, get_org_id
 from src.modules.apps.permissions import require_permission
@@ -126,6 +127,11 @@ async def get_kpis(
         )
     ) or 0
 
+    # Treasury — total cash on hand across all accounts
+    accounts = await CashAccountsService.list_accounts(db, org_id, active_only=False)
+    cash_total = sum((Decimal(a.current_balance) for a in accounts), start=Decimal("0"))
+    cash_accounts_count = len(accounts)
+
     return {
         "total_subscribers": int(total_subscribers),
         "by_status": {
@@ -145,4 +151,6 @@ async def get_kpis(
         "overdue_invoices": int(overdue_invoices),
         "overdue_balance": _f(overdue_balance),
         "overdue_subscribers": int(overdue_subscribers),
+        "cash_on_hand": _f(cash_total),
+        "cash_accounts_count": int(cash_accounts_count),
     }

@@ -26,6 +26,8 @@ class PaymentCreate(BaseModel):
     receipt_number: str | None = Field(None, max_length=40)
     reference: str | None = Field(None, max_length=100)
     notes: str | None = None
+    # Cash account to credit. If null, uses the org's default account.
+    cash_account_id: uuid.UUID | None = None
     # Optional explicit allocations. If empty, service auto-allocates to
     # the oldest pending invoices.
     allocations: list[PaymentAllocationInput] = []
@@ -52,6 +54,7 @@ class PaymentResponse(BaseModel):
     reference: str | None
     notes: str | None
     collector_user_id: uuid.UUID | None
+    cash_account_id: uuid.UUID | None
     created_at: datetime
     updated_at: datetime
     allocations: list[PaymentAllocationResponse] = []
@@ -70,3 +73,4 @@ class PaymentListItem(BaseModel):
     subscriber_code: str
     subscriber_name: str
     invoices_count: int
+    cash_account_name: str | None = None

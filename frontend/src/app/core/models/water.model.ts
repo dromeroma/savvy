@@ -130,6 +130,8 @@ export interface WaterDashboardKpis {
   overdue_invoices: number;
   overdue_balance: number;
   overdue_subscribers: number;
+  cash_on_hand: number;
+  cash_accounts_count: number;
 }
 
 // ---------- Tariffs ----------
@@ -274,6 +276,7 @@ export interface WaterPaymentListItem {
   subscriber_code: string;
   subscriber_name: string;
   invoices_count: number;
+  cash_account_name: string | null;
 }
 
 export interface WaterPaymentAllocation {
@@ -306,6 +309,7 @@ export interface WaterPaymentCreate {
   receipt_number?: string | null;
   reference?: string | null;
   notes?: string | null;
+  cash_account_id?: string | null;
   allocations?: { invoice_id: string; amount: string | number }[];
 }
 
@@ -403,4 +407,119 @@ export interface CollectorSubscriberItem {
   open_balance: string;
   overdue_invoices: number;
   oldest_due_date: string | null;
+}
+
+// ---------- Treasury — Cash accounts ----------
+export type CashAccountType = 'cash' | 'bank' | 'other';
+
+export interface WaterCashAccountListItem {
+  id: string;
+  code: string;
+  name: string;
+  type: CashAccountType;
+  is_default: boolean;
+  is_active: boolean;
+  initial_balance: string;
+  current_balance: string;
+  movement_count: number;
+}
+
+export interface WaterCashAccount {
+  id: string;
+  organization_id: string;
+  code: string;
+  name: string;
+  type: CashAccountType;
+  initial_balance: string;
+  is_default: boolean;
+  is_active: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WaterCashAccountCreate {
+  code: string;
+  name: string;
+  type?: CashAccountType;
+  initial_balance?: string | number;
+  is_default?: boolean;
+  is_active?: boolean;
+  notes?: string | null;
+}
+
+// ---------- Treasury — Movements ----------
+export type MovementType = 'income' | 'expense';
+
+export interface WaterTreasuryMovementListItem {
+  id: string;
+  movement_date: string;
+  type: MovementType;
+  category: string | null;
+  amount: string;
+  description: string;
+  reference: string | null;
+  cash_account_id: string;
+  cash_account_name: string;
+  payment_id: string | null;
+}
+
+export interface WaterTreasuryMovementCreate {
+  cash_account_id: string;
+  movement_date: string;
+  type: MovementType;
+  category?: string | null;
+  amount: string | number;
+  description: string;
+  reference?: string | null;
+}
+
+// ---------- Treasury — Closings (arqueos) ----------
+export interface ClosingPreview {
+  cash_account_id: string;
+  closing_date: string;
+  initial_balance: string;
+  movements_income: string;
+  movements_expense: string;
+  expected_balance: string;
+}
+
+export interface ClosingCreate {
+  cash_account_id: string;
+  closing_date: string;
+  counted_balance: string | number;
+  notes?: string | null;
+}
+
+export interface ClosingResponse {
+  id: string;
+  organization_id: string;
+  cash_account_id: string;
+  cash_account_name: string;
+  closing_date: string;
+  expected_balance: string;
+  counted_balance: string;
+  difference: string;
+  notes: string | null;
+  closed_by: string | null;
+  closed_at: string;
+}
+
+// ---------- Treasury — Dashboard ----------
+export interface CashAccountBalance {
+  cash_account_id: string;
+  code: string;
+  name: string;
+  type: string;
+  current_balance: string;
+}
+
+export interface TreasuryDashboard {
+  total_balance: string;
+  income_today: string;
+  expense_today: string;
+  income_this_month: string;
+  expense_this_month: string;
+  net_this_month: string;
+  balances: CashAccountBalance[];
 }

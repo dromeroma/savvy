@@ -8,11 +8,14 @@ from decimal import Decimal
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.apps.water.cash_accounts.service import CashAccountsService
 from src.apps.water.models import (
+    WaterCashAccount,
     WaterInvoice,
     WaterPayment,
     WaterPaymentInvoice,
     WaterSubscriber,
+    WaterTreasuryMovement,
 )
 from src.apps.water.payments.schemas import (
     PaymentAllocationResponse,
@@ -58,9 +61,11 @@ class PaymentsService:
                     ),
                 ).label("sub_name"),
                 func.coalesce(invoices_count_sq.c.n, 0).label("inv_count"),
+                WaterCashAccount.name.label("acc_name"),
             )
             .join(WaterSubscriber, WaterSubscriber.id == WaterPayment.subscriber_id)
             .outerjoin(invoices_count_sq, invoices_count_sq.c.payment_id == WaterPayment.id)
+            .outerjoin(WaterCashAccount, WaterCashAccount.id == WaterPayment.cash_account_id)
             .where(WaterPayment.organization_id == org_id)
             .order_by(WaterPayment.payment_date.desc(), WaterPayment.created_at.desc())
             .limit(limit)
@@ -81,6 +86,7 @@ class PaymentsService:
                 receipt_number=r[4], reference=r[5], subscriber_id=r[6],
                 subscriber_code=r[7], subscriber_name=(r[8].strip() if r[8] else ""),
                 invoices_count=int(r[9]),
+                cash_account_name=r[10],
             )
             for r in rows.all()
         ]
@@ -138,6 +144,21 @@ class PaymentsService:
                     f"del pago ({data.amount}).",
                 )
 
+        # Resolve cash account: explicit > default. None is OK (just no auto-movement).
+        cash_account_id: uuid.UUID | None = data.cash_account_id
+        if cash_account_id is not None:
+            acc = await db.scalar(
+                select(WaterCashAccount).where(
+                    WaterCashAccount.id == cash_account_id,
+                    WaterCashAccount.organization_id == org_id,
+                )
+            )
+            if acc is None:
+                raise NotFoundError("Cash account not found.")
+        else:
+            default = await CashAccountsService.get_default(db, org_id)
+            cash_account_id = default.id if default else None
+
         payment = WaterPayment(
             organization_id=org_id,
             subscriber_id=subscriber.id,
@@ -148,9 +169,30 @@ class PaymentsService:
             reference=data.reference,
             notes=data.notes,
             collector_user_id=collector_user_id,
+            cash_account_id=cash_account_id,
         )
         db.add(payment)
         await db.flush()
+
+        # Auto-create treasury movement to keep cash account balances in sync.
+        if cash_account_id is not None:
+            movement = WaterTreasuryMovement(
+                organization_id=org_id,
+                cash_account_id=cash_account_id,
+                movement_date=data.payment_date,
+                type="income",
+                category="water_payment",
+                amount=Decimal(data.amount),
+                description=(
+                    f"Pago suscriptor {subscriber.code}"
+                    + (f" · recibo {data.receipt_number}" if data.receipt_number else "")
+                ),
+                reference=data.receipt_number,
+                payment_id=payment.id,
+                recorded_by=collector_user_id,
+            )
+            db.add(movement)
+            await db.flush()
 
         # Apply allocations
         if data.allocations:

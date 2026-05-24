@@ -7,9 +7,16 @@ import {
   CarteraAgingReport,
   CarteraOverdueSubscriber,
   CarteraRecalcResult,
+  ClosingCreate,
+  ClosingPreview,
+  ClosingResponse,
   CollectorRouteSummary,
   CollectorSubscriberItem,
   RouteAssignment,
+  TreasuryDashboard,
+  WaterCashAccount,
+  WaterCashAccountCreate,
+  WaterCashAccountListItem,
   WaterConsumptionCreate,
   WaterConsumptionListItem,
   WaterDashboardKpis,
@@ -29,6 +36,8 @@ import {
   WaterSubscriberListItem,
   WaterTariff,
   WaterTariffCreate,
+  WaterTreasuryMovementCreate,
+  WaterTreasuryMovementListItem,
 } from '../models/water.model';
 
 @Injectable({ providedIn: 'root' })
@@ -272,5 +281,70 @@ export class WaterService {
       `/water/routes/${routeId}/collection-view`,
       { require_collector: requireCollector },
     );
+  }
+
+  // ---- Cash accounts ----
+  listCashAccounts(activeOnly = false): Observable<WaterCashAccountListItem[]> {
+    return this.api.get<WaterCashAccountListItem[]>(
+      '/water/cash-accounts', activeOnly ? { active_only: true } : undefined,
+    );
+  }
+  getCashAccount(id: string): Observable<WaterCashAccount> {
+    return this.api.get<WaterCashAccount>(`/water/cash-accounts/${id}`);
+  }
+  createCashAccount(data: WaterCashAccountCreate): Observable<WaterCashAccount> {
+    return this.api.post<WaterCashAccount>('/water/cash-accounts', data);
+  }
+  updateCashAccount(id: string, data: Partial<WaterCashAccountCreate>): Observable<WaterCashAccount> {
+    return this.api.patch<WaterCashAccount>(`/water/cash-accounts/${id}`, data);
+  }
+  deleteCashAccount(id: string): Observable<void> {
+    return this.api.delete(`/water/cash-accounts/${id}`);
+  }
+
+  // ---- Treasury dashboard ----
+  treasuryDashboard(): Observable<TreasuryDashboard> {
+    return this.api.get<TreasuryDashboard>('/water/treasury/dashboard');
+  }
+
+  // ---- Treasury movements ----
+  listTreasuryMovements(params?: {
+    cash_account_id?: string;
+    type?: string;
+    date_from?: string;
+    date_to?: string;
+    limit?: number;
+    offset?: number;
+  }): Observable<WaterTreasuryMovementListItem[]> {
+    const clean: Record<string, string | number | boolean> = {};
+    if (params?.cash_account_id) clean['cash_account_id'] = params.cash_account_id;
+    if (params?.type) clean['type'] = params.type;
+    if (params?.date_from) clean['date_from'] = params.date_from;
+    if (params?.date_to) clean['date_to'] = params.date_to;
+    if (params?.limit !== undefined) clean['limit'] = params.limit;
+    if (params?.offset !== undefined) clean['offset'] = params.offset;
+    return this.api.get<WaterTreasuryMovementListItem[]>('/water/treasury/movements', clean);
+  }
+  createTreasuryMovement(data: WaterTreasuryMovementCreate): Observable<any> {
+    return this.api.post<any>('/water/treasury/movements', data);
+  }
+  deleteTreasuryMovement(id: string): Observable<void> {
+    return this.api.delete(`/water/treasury/movements/${id}`);
+  }
+
+  // ---- Treasury closings (arqueos) ----
+  closingPreview(cashAccountId: string, closingDate: string): Observable<ClosingPreview> {
+    return this.api.get<ClosingPreview>('/water/treasury/closings/preview', {
+      cash_account_id: cashAccountId, closing_date: closingDate,
+    });
+  }
+  listClosings(cashAccountId?: string): Observable<ClosingResponse[]> {
+    return this.api.get<ClosingResponse[]>(
+      '/water/treasury/closings',
+      cashAccountId ? { cash_account_id: cashAccountId } : undefined,
+    );
+  }
+  createClosing(data: ClosingCreate): Observable<ClosingResponse> {
+    return this.api.post<ClosingResponse>('/water/treasury/closings', data);
   }
 }
