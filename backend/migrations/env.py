@@ -12,7 +12,17 @@ from src.core.database import Base
 
 # Import ALL models so Alembic can detect them for autogenerate.
 from src.modules.auth.models import User, RefreshToken  # noqa: F401
-from src.modules.organization.models import Organization, Membership, Invitation  # noqa: F401
+from src.modules.organization.models import (  # noqa: F401
+    BusinessTypeCatalog,
+    Organization,
+    Membership,
+    Invitation,
+)
+from src.modules.church_hierarchy.models import (  # noqa: F401
+    ChurchDenomination,
+    ChurchZone,
+    ChurchZoneLeader,
+)
 
 config = context.config
 
