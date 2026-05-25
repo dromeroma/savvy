@@ -9,6 +9,8 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.apps.water.subscribers.schemas import (
+    InvitePortalRequest,
+    InvitePortalResponse,
     ServiceActionRequest,
     SubscriberCreate,
     SubscriberListItem,
@@ -132,3 +134,17 @@ async def reconnect_subscriber(
         db, org_id, subscriber_id,
         reason=data.reason, create_fee_invoice=data.create_fee_invoice,
     )
+
+
+@router.post(
+    "/{subscriber_id}/invite-portal",
+    response_model=InvitePortalResponse,
+    dependencies=[Depends(require_permission("water", "subscribers.manage", "portal.manage"))],
+)
+async def invite_subscriber_portal(
+    subscriber_id: uuid.UUID,
+    data: InvitePortalRequest,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await SubscribersService.invite_portal(db, org_id, subscriber_id, data)

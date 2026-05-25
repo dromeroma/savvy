@@ -391,3 +391,42 @@ class WaterCashClosing(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False,
     )
+
+
+# =====================================================================
+# PQRS (Phase 5) — Peticiones, Quejas, Reclamos, Sugerencias
+# =====================================================================
+
+
+class WaterPqrs(BaseMixin, OrgMixin, Base):
+    __tablename__ = "water_pqrs"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "code", name="uq_water_pqrs_org_code"),
+        CheckConstraint(
+            "type IN ('peticion','queja','reclamo','sugerencia')",
+            name="chk_water_pqrs_type",
+        ),
+        CheckConstraint(
+            "status IN ('open','in_progress','resolved','closed')",
+            name="chk_water_pqrs_status",
+        ),
+    )
+
+    subscriber_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("water_subscribers.id", ondelete="CASCADE"), nullable=False,
+    )
+    code: Mapped[str] = mapped_column(String(30), nullable=False)
+    type: Mapped[str] = mapped_column(String(20), nullable=False)
+    subject: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="open", nullable=False)
+    response: Mapped[str | None] = mapped_column(Text, nullable=True)
+    responded_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+    )
+    responded_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True,
+    )
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+    )

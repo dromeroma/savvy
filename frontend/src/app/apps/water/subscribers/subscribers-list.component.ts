@@ -2,6 +2,7 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WaterService } from '../../../core/services/water.service';
+import { PortalService } from '../../../core/services/portal.service';
 import {
   SubscriberStatus,
   SubscriberType,
@@ -17,6 +18,7 @@ import { NotificationService } from '../../../shared/services/notification.servi
 })
 export class SubscribersListComponent implements OnInit {
   private readonly water = inject(WaterService);
+  private readonly portalSvc = inject(PortalService);
   private readonly notify = inject(NotificationService);
 
   loading = signal(true);
@@ -183,6 +185,36 @@ export class SubscribersListComponent implements OnInit {
         this.notify.show({
           type: 'error', title: 'Error',
           message: err?.error?.detail || 'No se pudo suspender.',
+        });
+      },
+    });
+  }
+
+  invitePortal(s: WaterSubscriberListItem): void {
+    const email = prompt(`Invitar a ${this.displayName(s)} al portal del suscriptor.\n\nEmail del usuario:`);
+    if (!email) return;
+    const password = prompt('Contraseña inicial (compártela con el suscriptor):');
+    if (!password || password.length < 8) {
+      this.notify.show({
+        type: 'error', title: 'Contraseña inválida',
+        message: 'La contraseña debe tener al menos 8 caracteres.',
+      });
+      return;
+    }
+    this.portalSvc.invitePortal(s.id, { email, password }).subscribe({
+      next: (res) => {
+        this.notify.show({
+          type: 'success', title: 'Suscriptor invitado',
+          message: res.created_new_user
+            ? `Cuenta creada. Comparte: ${res.email} / ${password}`
+            : `Usuario existente ${res.email} vinculado como cliente.`,
+        });
+        this.load();
+      },
+      error: (err) => {
+        this.notify.show({
+          type: 'error', title: 'Error',
+          message: err?.error?.detail || 'No se pudo invitar al portal.',
         });
       },
     });

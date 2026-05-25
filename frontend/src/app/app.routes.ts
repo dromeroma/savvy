@@ -16,6 +16,16 @@ const superAdminRedirectGuard = () => {
   if (auth.isAuthenticated() && auth.isSuperAdmin()) {
     return router.createUrlTree(['/platform']);
   }
+  // Customers (subscribers of an app's portal) go to the portal instead of the admin dashboard
+  const token = auth.getToken();
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload?.role === 'customer') {
+        return router.createUrlTree(['/portal/water']);
+      }
+    } catch { /* ignore */ }
+  }
   return true;
 };
 
@@ -144,6 +154,12 @@ export const routes: Routes = [
     canActivate: [authGuard, superAdminGuard],
     loadChildren: () =>
       import('./platform/platform.routes').then((m) => m.PLATFORM_ROUTES),
+  },
+  {
+    path: 'portal',
+    canActivate: [authGuard],
+    loadChildren: () =>
+      import('./portal/portal.routes').then((m) => m.PORTAL_ROUTES),
   },
   { path: '**', redirectTo: 'dashboard' },
 ];

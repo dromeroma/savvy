@@ -91,6 +91,13 @@ export const WATER_ROUTES: Routes = [
             (m) => m.TreasuryComponent,
           ),
       },
+      {
+        path: 'pqrs',
+        loadComponent: () =>
+          import('./pqrs/pqrs-list.component').then(
+            (m) => m.PqrsListComponent,
+          ),
+      },
     ],
   },
 ];

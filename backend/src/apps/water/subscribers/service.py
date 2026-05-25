@@ -11,12 +11,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.apps.water.models import WaterInvoice, WaterMeter, WaterSubscriber
 from src.apps.water.subscribers.schemas import (
+    InvitePortalRequest,
+    InvitePortalResponse,
     SubscriberCreate,
     SubscriberListItem,
     SubscriberUpdate,
 )
 from src.apps.water.tariffs.service import TariffsService
 from src.core.exceptions import ConflictError, NotFoundError, ValidationError
+from src.core.security import hash_password
+from src.modules.apps.models import AppRegistry, AppUserRole
+from src.modules.auth.models import User
+from src.modules.organization.models import Membership
 
 
 class SubscribersService:
@@ -247,3 +253,86 @@ class SubscribersService:
         db.add(inv)
         await db.flush()
         return inv
+
+    # ------------------------------------------------------------------
+    # Portal invitation
+    # ------------------------------------------------------------------
+    @staticmethod
+    async def invite_portal(
+        db: AsyncSession,
+        org_id: uuid.UUID,
+        sub_id: uuid.UUID,
+        data: InvitePortalRequest,
+    ) -> InvitePortalResponse:
+        """Link a subscriber to a Savvy user with the 'customer' role on
+        the water app, so they can log into the portal."""
+        sub = await SubscribersService.get_subscriber(db, org_id, sub_id)
+        if sub.user_id is not None:
+            existing = await db.get(User, sub.user_id)
+            if existing is not None:
+                raise ConflictError(
+                    f"Este suscriptor ya está vinculado al usuario {existing.email}.",
+                )
+
+        email = data.email.lower().strip()
+        # Re-use existing user if email matches; otherwise create one.
+        user = await db.scalar(select(User).where(User.email == email))
+        created_new_user = False
+        if user is None:
+            display_name = (
+                data.name
+                or sub.business_name
+                or f"{sub.first_name} {sub.last_name or ''}".strip()
+            )
+            user = User(
+                name=display_name,
+                email=email,
+                password_hash=hash_password(data.password),
+            )
+            db.add(user)
+            await db.flush()
+            created_new_user = True
+
+        # Org membership: needed so the JWT carries org_id at login.
+        membership = await db.scalar(
+            select(Membership).where(
+                Membership.organization_id == org_id,
+                Membership.user_id == user.id,
+            )
+        )
+        if membership is None:
+            db.add(Membership(
+                organization_id=org_id, user_id=user.id, role="customer",
+            ))
+
+        # Water app role 'customer'.
+        water_app = await db.scalar(
+            select(AppRegistry).where(AppRegistry.code == "water")
+        )
+        if water_app is None:
+            raise ValidationError("La app 'water' no está registrada en el sistema.")
+        app_role = await db.scalar(
+            select(AppUserRole).where(
+                AppUserRole.organization_id == org_id,
+                AppUserRole.user_id == user.id,
+                AppUserRole.app_id == water_app.id,
+            )
+        )
+        if app_role is None:
+            db.add(AppUserRole(
+                organization_id=org_id, user_id=user.id,
+                app_id=water_app.id, role="customer",
+            ))
+        else:
+            app_role.role = "customer"
+
+        # Link subscriber.
+        sub.user_id = user.id
+        await db.flush()
+
+        return InvitePortalResponse(
+            user_id=user.id,
+            email=user.email,
+            name=user.name,
+            created_new_user=created_new_user,
+        )

@@ -93,3 +93,21 @@ class SubscriberListItem(BaseModel):
 class ServiceActionRequest(BaseModel):
     reason: str | None = None
     create_fee_invoice: bool = True
+
+
+class InvitePortalRequest(BaseModel):
+    """Admin invites a subscriber to the customer portal.
+
+    Creates a Savvy user (or reuses the existing one) and assigns the
+    'customer' role on the water app, linking water_subscribers.user_id.
+    """
+    email: str  # used as login
+    password: str  # initial password the admin will share
+    name: str | None = None  # optional override of the user display name
+
+
+class InvitePortalResponse(BaseModel):
+    user_id: uuid.UUID
+    email: str
+    name: str
+    created_new_user: bool
