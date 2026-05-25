@@ -119,6 +119,13 @@ export const WATER_ROUTES: Routes = [
             (m) => m.WaterNotificationsComponent,
           ),
       },
+      {
+        path: 'imports',
+        loadComponent: () =>
+          import('./imports/imports.component').then(
+            (m) => m.WaterImportsComponent,
+          ),
+      },
     ],
   },
 ];

@@ -523,3 +523,40 @@ export interface TreasuryDashboard {
   net_this_month: string;
   balances: CashAccountBalance[];
 }
+
+// ---- CSV Imports ----
+export interface ImportRowError {
+  field: string;
+  message: string;
+}
+
+export interface ImportRowPreview {
+  row_number: number;
+  action: 'create' | 'update' | 'error';
+  data: Record<string, unknown>;
+  errors: ImportRowError[];
+  existing_id: string | null;
+}
+
+export interface ImportPreviewResponse {
+  rows: ImportRowPreview[];
+  total_rows: number;
+  total_valid: number;
+  total_errors: number;
+  total_create: number;
+  total_update: number;
+}
+
+export interface ImportCommitRow {
+  row_number: number;
+  action: 'create' | 'update';
+  data: Record<string, unknown>;
+  existing_id?: string | null;
+}
+
+export interface ImportCommitResponse {
+  created: number;
+  updated: number;
+  failed: number;
+  errors: ImportRowError[];
+}

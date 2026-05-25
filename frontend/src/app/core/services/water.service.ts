@@ -12,6 +12,9 @@ import {
   ClosingResponse,
   CollectorRouteSummary,
   CollectorSubscriberItem,
+  ImportCommitResponse,
+  ImportCommitRow,
+  ImportPreviewResponse,
   RouteAssignment,
   TreasuryDashboard,
   WaterCashAccount,
@@ -333,6 +336,34 @@ export class WaterService {
   }
   deleteTreasuryMovement(id: string): Observable<void> {
     return this.api.delete(`/water/treasury/movements/${id}`);
+  }
+
+  // ---- CSV Imports ----
+  previewSubscribersImport(file: File): Observable<ImportPreviewResponse> {
+    return this.api.postFile<ImportPreviewResponse>(
+      '/water/imports/subscribers/preview', file,
+    );
+  }
+  commitSubscribersImport(rows: ImportCommitRow[]): Observable<ImportCommitResponse> {
+    return this.api.post<ImportCommitResponse>(
+      '/water/imports/subscribers/commit', { rows },
+    );
+  }
+  downloadSubscribersTemplate(): Observable<{ blob: Blob; filename: string | null }> {
+    return this.api.getBlob('/water/imports/subscribers/template');
+  }
+  previewMetersImport(file: File): Observable<ImportPreviewResponse> {
+    return this.api.postFile<ImportPreviewResponse>(
+      '/water/imports/meters/preview', file,
+    );
+  }
+  commitMetersImport(rows: ImportCommitRow[]): Observable<ImportCommitResponse> {
+    return this.api.post<ImportCommitResponse>(
+      '/water/imports/meters/commit', { rows },
+    );
+  }
+  downloadMetersTemplate(): Observable<{ blob: Blob; filename: string | null }> {
+    return this.api.getBlob('/water/imports/meters/template');
   }
 
   // ---- Treasury closings (arqueos) ----

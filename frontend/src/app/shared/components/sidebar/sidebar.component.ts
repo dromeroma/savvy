@@ -170,6 +170,7 @@ const APP_MENUS: Record<string, { icon: string; items: { label: string; route: s
       { label: 'Analytics', route: '/water/analytics' },
       { label: 'Auditoría', route: '/water/audit' },
       { label: 'Notificaciones', route: '/water/notifications' },
+      { label: 'Importar datos', route: '/water/imports' },
     ],
   },
 };

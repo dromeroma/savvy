@@ -43,6 +43,13 @@ export class ApiService {
     return this.http.delete<void>(`${this.baseUrl}${path}`, { params: httpParams });
   }
 
+  /** POST a multipart/form-data upload with a single file field. */
+  postFile<T>(path: string, file: File, fieldName = 'file'): Observable<T> {
+    const fd = new FormData();
+    fd.append(fieldName, file);
+    return this.http.post<T>(`${this.baseUrl}${path}`, fd);
+  }
+
   /** GET a binary file (PDF, Excel, etc). Returns the blob + the suggested
    * filename pulled from Content-Disposition when present. */
   getBlob(path: string): Observable<{ blob: Blob; filename: string | null }> {
