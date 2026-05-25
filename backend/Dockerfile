@@ -3,6 +3,15 @@ FROM python:3.12-slim AS builder
 
 WORKDIR /build
 
+# Build deps required to compile pycairo (transitive dep of xhtml2pdf via
+# svglib → rlpycairo). pycairo has no manylinux wheel — must be built from
+# source against the system cairo headers.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        gcc \
+        pkg-config \
+        libcairo2-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY pyproject.toml ./
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir --prefix=/install .
@@ -13,6 +22,12 @@ COPY src ./src
 FROM python:3.12-slim AS runtime
 
 WORKDIR /app
+
+# Runtime cairo shared library (NOT the -dev headers — just the .so files
+# pycairo loads via ctypes at import time).
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libcairo2 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy installed packages from builder
 COPY --from=builder /install /usr/local
