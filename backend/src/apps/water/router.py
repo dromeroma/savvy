@@ -2,12 +2,15 @@
 
 from fastapi import APIRouter
 
+from src.apps.water.analytics.router import router as analytics_router
+from src.apps.water.audit.router import router as audit_router
 from src.apps.water.cartera.router import router as cartera_router
 from src.apps.water.cash_accounts.router import router as cash_accounts_router
 from src.apps.water.consumptions.router import router as consumptions_router
 from src.apps.water.dashboard.router import router as dashboard_router
 from src.apps.water.invoices.router import router as invoices_router
 from src.apps.water.meters.router import router as meters_router
+from src.apps.water.notifications.router import router as notifications_router
 from src.apps.water.payments.router import router as payments_router
 from src.apps.water.portal.router import router as portal_router
 from src.apps.water.pqrs.router import router as pqrs_router
@@ -31,3 +34,6 @@ router.include_router(cash_accounts_router)
 router.include_router(treasury_router)
 router.include_router(pqrs_router)
 router.include_router(portal_router)
+router.include_router(notifications_router)
+router.include_router(audit_router)
+router.include_router(analytics_router)

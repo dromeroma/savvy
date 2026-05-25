@@ -98,6 +98,27 @@ export const WATER_ROUTES: Routes = [
             (m) => m.PqrsListComponent,
           ),
       },
+      {
+        path: 'analytics',
+        loadComponent: () =>
+          import('./analytics/analytics.component').then(
+            (m) => m.WaterAnalyticsComponent,
+          ),
+      },
+      {
+        path: 'audit',
+        loadComponent: () =>
+          import('./audit/audit.component').then(
+            (m) => m.WaterAuditComponent,
+          ),
+      },
+      {
+        path: 'notifications',
+        loadComponent: () =>
+          import('./notifications/notifications.component').then(
+            (m) => m.WaterNotificationsComponent,
+          ),
+      },
     ],
   },
 ];

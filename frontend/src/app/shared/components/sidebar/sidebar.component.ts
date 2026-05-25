@@ -167,6 +167,9 @@ const APP_MENUS: Record<string, { icon: string; items: { label: string; route: s
       { label: 'Cuentas de tesorería', route: '/water/cash-accounts' },
       { label: 'Tesorería', route: '/water/treasury' },
       { label: 'PQRS', route: '/water/pqrs' },
+      { label: 'Analytics', route: '/water/analytics' },
+      { label: 'Auditoría', route: '/water/audit' },
+      { label: 'Notificaciones', route: '/water/notifications' },
     ],
   },
 };

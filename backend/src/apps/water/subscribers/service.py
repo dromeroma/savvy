@@ -17,6 +17,8 @@ from src.apps.water.subscribers.schemas import (
     SubscriberListItem,
     SubscriberUpdate,
 )
+from src.apps.water.audit.service import write_audit
+from src.apps.water.notifications.service import NotificationsService
 from src.apps.water.tariffs.service import TariffsService
 from src.core.exceptions import ConflictError, NotFoundError, ValidationError
 from src.core.security import hash_password
@@ -171,6 +173,20 @@ class SubscribersService:
             await SubscribersService._create_fee_invoice(
                 db, org_id, sub, kind="suspension", notes=reason,
             )
+        await write_audit(
+            db, org_id, None,
+            action="subscriber.suspended",
+            resource_type="water_subscriber", resource_id=sub.id,
+            details={"code": sub.code, "reason": reason},
+        )
+        if sub.user_id:
+            await NotificationsService.emit(
+                db, org_id, sub.user_id,
+                type_="service_suspended",
+                title="Servicio suspendido",
+                body=(reason or "Tu servicio de acueducto fue suspendido. Contacta a la administración."),
+                link="/portal/water/dashboard",
+            )
         return sub
 
     @staticmethod
@@ -191,6 +207,20 @@ class SubscribersService:
         if create_fee_invoice:
             await SubscribersService._create_fee_invoice(
                 db, org_id, sub, kind="reconnection", notes=reason,
+            )
+        await write_audit(
+            db, org_id, None,
+            action="subscriber.reconnected",
+            resource_type="water_subscriber", resource_id=sub.id,
+            details={"code": sub.code, "reason": reason},
+        )
+        if sub.user_id:
+            await NotificationsService.emit(
+                db, org_id, sub.user_id,
+                type_="service_reconnected",
+                title="Servicio reconectado",
+                body="Tu servicio de acueducto fue reconectado. ¡Bienvenido de vuelta!",
+                link="/portal/water/dashboard",
             )
         return sub
 

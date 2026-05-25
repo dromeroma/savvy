@@ -8,7 +8,9 @@ from datetime import UTC, datetime
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.apps.water.audit.service import write_audit
 from src.apps.water.models import WaterPqrs, WaterSubscriber
+from src.apps.water.notifications.service import NotificationsService
 from src.apps.water.pqrs.schemas import (
     AdminPqrsCreate,
     PqrsCreate,
@@ -134,6 +136,27 @@ class PqrsService:
         p.responded_at = datetime.now(UTC)
         await db.flush()
         await db.refresh(p)
+
+        # Audit
+        await write_audit(
+            db, org_id, responded_by,
+            action="pqrs.responded",
+            resource_type="water_pqrs",
+            resource_id=p.id,
+            details={"code": p.code, "status": p.status},
+        )
+        # Notify the subscriber if linked
+        sub = await db.scalar(
+            select(WaterSubscriber).where(WaterSubscriber.id == p.subscriber_id)
+        )
+        if sub and sub.user_id:
+            await NotificationsService.emit(
+                db, org_id, sub.user_id,
+                type_="pqrs_responded",
+                title=f"Respuesta a tu PQRS {p.code}",
+                body=(p.subject + " — " + (data.response[:160] if data.response else "")),
+                link="/portal/water/pqrs",
+            )
         return p
 
     @staticmethod

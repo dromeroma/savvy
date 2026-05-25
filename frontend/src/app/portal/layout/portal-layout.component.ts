@@ -5,10 +5,11 @@ import { AuthService } from '../../core/services/auth.service';
 import { PortalService } from '../../core/services/portal.service';
 import { PortalMe } from '../../core/models/portal.model';
 import { ThemeToggleComponent } from '../../shared/components/common/theme-toggle/theme-toggle.component';
+import { NotificationBellComponent } from '../../shared/components/notification-bell/notification-bell.component';
 
 @Component({
   selector: 'app-portal-layout',
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, ThemeToggleComponent],
+  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, ThemeToggleComponent, NotificationBellComponent],
   template: `
     <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
       <!-- Top bar -->
@@ -28,6 +29,7 @@ import { ThemeToggleComponent } from '../../shared/components/common/theme-toggl
             </div>
           </div>
           <div class="flex items-center gap-2">
+            <app-notification-bell />
             <app-theme-toggle />
             <button (click)="logout()" class="text-xs text-gray-500 hover:text-red-600 dark:hover:text-red-400 px-2 py-1">
               Cerrar sesión

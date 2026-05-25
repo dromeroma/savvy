@@ -8,10 +8,11 @@ import { SidebarComponent } from '../../shared/components/sidebar/sidebar.compon
 import { AlertComponent } from '../../shared/components/ui/alert/alert.component';
 import { ThemeToggleComponent } from '../../shared/components/common/theme-toggle/theme-toggle.component';
 import { ConfirmDialogComponent } from '../../shared/components/ui/confirm-dialog/confirm-dialog.component';
+import { NotificationBellComponent } from '../../shared/components/notification-bell/notification-bell.component';
 
 @Component({
   selector: 'app-layout',
-  imports: [CommonModule, RouterOutlet, SidebarComponent, AlertComponent, ThemeToggleComponent, ConfirmDialogComponent],
+  imports: [CommonModule, RouterOutlet, SidebarComponent, AlertComponent, ThemeToggleComponent, ConfirmDialogComponent, NotificationBellComponent],
   templateUrl: './layout.component.html',
 })
 export class LayoutComponent implements OnInit {

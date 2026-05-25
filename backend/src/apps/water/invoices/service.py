@@ -9,6 +9,7 @@ from decimal import Decimal
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.apps.water.audit.service import write_audit
 from src.apps.water.invoices.schemas import (
     BatchGenerateRequest,
     BatchGenerateResult,
@@ -21,6 +22,7 @@ from src.apps.water.models import (
     WaterSubscriber,
     WaterTariff,
 )
+from src.apps.water.notifications.service import NotificationsService
 from src.apps.water.tariffs.service import TariffsService
 from src.core.exceptions import ConflictError, NotFoundError, ValidationError
 
@@ -233,8 +235,33 @@ class InvoicesService:
             db.add(invoice)
             result.generated += 1
             result.invoice_ids.append(invoice.id)
+            # Notify subscriber if linked
+            if subscriber.user_id:
+                await NotificationsService.emit(
+                    db, org_id, subscriber.user_id,
+                    type_="invoice_generated",
+                    title=f"Tu factura #{invoice.consecutive} está lista",
+                    body=(
+                        f"Total: $ {invoice.total} · "
+                        f"Consumo: {invoice.consumption_cubic} m³ · "
+                        f"Vence: {invoice.due_date}"
+                    ),
+                    link="/portal/water/invoices",
+                )
 
         await db.flush()
+
+        await write_audit(
+            db, org_id, None,  # actor_user_id resolved in endpoint, omitted here
+            action="invoices.batch_generated",
+            resource_type="water_invoice_batch",
+            details={
+                "period": f"{data.period_year}-{data.period_month:02d}",
+                "generated": result.generated,
+                "skipped_existing": result.skipped_existing,
+                "skipped_no_tariff": result.skipped_no_tariff,
+            },
+        )
         return result
 
     # ------------------------------------------------------------------

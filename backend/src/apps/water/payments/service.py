@@ -8,6 +8,7 @@ from decimal import Decimal
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.apps.water.audit.service import write_audit
 from src.apps.water.cash_accounts.service import CashAccountsService
 from src.apps.water.models import (
     WaterCashAccount,
@@ -17,6 +18,7 @@ from src.apps.water.models import (
     WaterSubscriber,
     WaterTreasuryMovement,
 )
+from src.apps.water.notifications.service import NotificationsService
 from src.apps.water.payments.schemas import (
     PaymentAllocationResponse,
     PaymentCreate,
@@ -237,6 +239,30 @@ class PaymentsService:
             subscriber.status = "active"
 
         await db.flush()
+
+        # Audit
+        await write_audit(
+            db, org_id, collector_user_id,
+            action="payment.registered",
+            resource_type="water_payment",
+            resource_id=payment.id,
+            details={
+                "subscriber_code": subscriber.code,
+                "amount": str(payment.amount),
+                "method": payment.method,
+                "receipt": payment.receipt_number,
+            },
+        )
+        # Notify the subscriber (if linked to a user)
+        if subscriber.user_id:
+            await NotificationsService.emit(
+                db, org_id, subscriber.user_id,
+                type_="payment_received",
+                title="Pago registrado",
+                body=f"Recibimos tu pago de $ {payment.amount}. ¡Gracias!",
+                link="/portal/water/payments",
+            )
+
         return await PaymentsService.get_payment(db, org_id, payment.id)
 
     @staticmethod
