@@ -1,6 +1,7 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
 import {
   DashboardMetric,
   DashboardService,
@@ -17,6 +18,12 @@ interface AppWithMetrics {
   metrics: DashboardMetric[];
 }
 
+interface DashboardError {
+  message: string;
+  status: number | null;
+  detail: string | null;
+}
+
 @Component({
   selector: 'app-dashboard',
   imports: [CommonModule, DatePipe, RouterLink],
@@ -27,7 +34,7 @@ export class DashboardComponent implements OnInit {
   private readonly router = inject(Router);
 
   loading = signal(true);
-  error = signal('');
+  error = signal<DashboardError | null>(null);
   data = signal<DashboardSummaryResponse | null>(null);
 
   /** Apps merged with their headline metrics, ready to render as rich cards. */
@@ -57,15 +64,38 @@ export class DashboardComponent implements OnInit {
 
   load(): void {
     this.loading.set(true);
-    this.error.set('');
+    this.error.set(null);
     this.dashboard.getSummary().subscribe({
       next: (res) => {
         this.data.set(res);
         this.loading.set(false);
       },
-      error: (err) => {
+      error: (err: HttpErrorResponse | unknown) => {
         this.loading.set(false);
-        this.error.set(err?.error?.detail || 'No se pudo cargar el resumen.');
+        const e = err as HttpErrorResponse;
+        let detail: string | null = null;
+        if (e?.error) {
+          if (typeof e.error === 'string') {
+            detail = e.error.slice(0, 300);
+          } else if (typeof e.error === 'object' && 'detail' in e.error) {
+            detail = String((e.error as { detail: unknown }).detail);
+          }
+        }
+        let message = 'No se pudo cargar el resumen.';
+        if (e?.status === 0) {
+          message = 'No hay conexión con el backend. Verifica que el servidor esté corriendo.';
+        } else if (e?.status === 401) {
+          message = 'Sesión expirada o inválida. Vuelve a iniciar sesión.';
+        } else if (e?.status === 403) {
+          message = 'No tienes permiso para ver el resumen de esta organización.';
+        } else if (e?.status && e.status >= 500) {
+          message = 'El servidor falló al generar el resumen.';
+        }
+        this.error.set({
+          message,
+          status: e?.status ?? null,
+          detail,
+        });
       },
     });
   }

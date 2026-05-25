@@ -3,9 +3,28 @@
     <div class="flex items-center justify-center py-20">
       <div class="animate-spin rounded-full h-10 w-10 border-4 border-brand-200 border-t-brand-600"></div>
     </div>
-  } @else if (error()) {
-    <div class="p-4 bg-error-50 border border-error-200 text-error-700 dark:bg-error-500/10 dark:border-error-500/30 dark:text-error-400 rounded-lg">
-      {{ error() }}
+  } @else if (error(); as err) {
+    <div class="p-5 bg-error-50 border border-error-200 dark:bg-error-500/10 dark:border-error-500/30 rounded-xl">
+      <div class="flex items-start gap-3">
+        <svg class="w-5 h-5 text-error-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+        </svg>
+        <div class="flex-1 min-w-0">
+          <h3 class="text-sm font-semibold text-error-700 dark:text-error-400">
+            {{ err.message }}
+          </h3>
+          @if (err.status || err.detail) {
+            <p class="text-xs text-error-600 dark:text-error-400/80 mt-1 font-mono break-all">
+              @if (err.status) { HTTP {{ err.status }} }
+              @if (err.status && err.detail) { · }
+              @if (err.detail) { {{ err.detail }} }
+            </p>
+          }
+        </div>
+        <button (click)="load()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-error-500 hover:bg-error-600 text-white shrink-0">
+          Reintentar
+        </button>
+      </div>
     </div>
   } @else if (data()) {
     @let d = data()!;
