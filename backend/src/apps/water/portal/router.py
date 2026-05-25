@@ -10,7 +10,7 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.apps.water.portal.schemas import (
@@ -139,4 +139,30 @@ async def create_my_pqrs(
 ) -> Any:
     return await PortalService.create_my_pqrs(
         db, org_id, uuid.UUID(user["sub"]), data,
+    )
+
+
+@router.get(
+    "/invoices/{invoice_id}/pdf",
+    response_class=Response,
+    dependencies=[Depends(require_permission("water", "portal.view"))],
+)
+async def my_invoice_pdf(
+    invoice_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+    user: dict = Depends(get_current_user),
+) -> Response:
+    """Customer downloads their own invoice as PDF (only if it belongs to them)."""
+    sub = await PortalService.get_subscriber_for_user(
+        db, org_id, uuid.UUID(user["sub"]),
+    )
+    from src.apps.water.invoices.pdf import render_invoice_pdf
+    pdf_bytes, filename = await render_invoice_pdf(
+        db, org_id, invoice_id, subscriber_id=sub.id,
+    )
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="{filename}"'},
     )

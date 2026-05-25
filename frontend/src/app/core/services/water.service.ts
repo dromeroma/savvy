@@ -188,6 +188,9 @@ export class WaterService {
   annulInvoice(id: string): Observable<WaterInvoice> {
     return this.api.post<WaterInvoice>(`/water/invoices/${id}/annul`, {});
   }
+  downloadInvoicePdf(id: string): Observable<{ blob: Blob; filename: string | null }> {
+    return this.api.getBlob(`/water/invoices/${id}/pdf`);
+  }
 
   // ---- Payments ----
   listPayments(params?: {

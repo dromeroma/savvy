@@ -137,6 +137,23 @@ export class InvoicesListComponent implements OnInit {
     });
   }
 
+  downloadPdf(id: string, ev?: Event): void {
+    ev?.stopPropagation();
+    this.water.downloadInvoicePdf(id).subscribe({
+      next: ({ blob, filename }) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename || `factura-${id}.pdf`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      },
+      error: () => this.notify.show({
+        type: 'error', title: 'Error', message: 'No se pudo descargar el PDF.',
+      }),
+    });
+  }
+
   badgeClass(s: string): string {
     switch (s) {
       case 'pending': return 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300';

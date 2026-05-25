@@ -5,9 +5,10 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.apps.water.invoices.pdf import render_invoice_pdf
 from src.apps.water.invoices.schemas import (
     BatchGenerateRequest,
     BatchGenerateResult,
@@ -97,3 +98,22 @@ async def annul_invoice(
     org_id: uuid.UUID = Depends(get_org_id),
 ) -> Any:
     return await InvoicesService.annul_invoice(db, org_id, invoice_id)
+
+
+@router.get(
+    "/{invoice_id}/pdf",
+    response_class=Response,
+    dependencies=[Depends(require_permission("water", "invoices.read", "invoices.manage"))],
+)
+async def download_invoice_pdf(
+    invoice_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Response:
+    """Render the invoice as a PDF document."""
+    pdf_bytes, filename = await render_invoice_pdf(db, org_id, invoice_id)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+    )

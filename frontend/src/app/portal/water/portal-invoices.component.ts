@@ -2,6 +2,7 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PortalService } from '../../core/services/portal.service';
 import { PortalInvoiceItem } from '../../core/models/portal.model';
+import { NotificationService } from '../../shared/services/notification.service';
 
 @Component({
   selector: 'app-portal-invoices',
@@ -53,6 +54,10 @@ import { PortalInvoiceItem } from '../../core/models/portal.model';
                   }
                 </div>
               </div>
+              <button (click)="downloadPdf(i.id)"
+                class="mt-3 w-full px-3 py-2 rounded-lg text-xs font-medium bg-sky-500 hover:bg-sky-600 text-white">
+                Descargar PDF
+              </button>
             </div>
           }
         </div>
@@ -62,6 +67,7 @@ import { PortalInvoiceItem } from '../../core/models/portal.model';
 })
 export class PortalInvoicesComponent implements OnInit {
   private readonly portal = inject(PortalService);
+  private readonly notify = inject(NotificationService);
 
   loading = signal(true);
   invoices = signal<PortalInvoiceItem[]>([]);
@@ -70,6 +76,22 @@ export class PortalInvoicesComponent implements OnInit {
     this.portal.invoices().subscribe({
       next: (data) => { this.invoices.set(data); this.loading.set(false); },
       error: () => this.loading.set(false),
+    });
+  }
+
+  downloadPdf(id: string): void {
+    this.portal.downloadMyInvoicePdf(id).subscribe({
+      next: ({ blob, filename }) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename || `factura-${id}.pdf`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      },
+      error: () => this.notify.show({
+        type: 'error', title: 'Error', message: 'No se pudo descargar el PDF.',
+      }),
     });
   }
 

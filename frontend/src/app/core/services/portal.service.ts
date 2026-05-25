@@ -46,6 +46,9 @@ export class PortalService {
   createMyPqrs(data: PqrsCreate): Observable<PortalPqrsDetail> {
     return this.api.post<PortalPqrsDetail>('/water/portal/pqrs', data);
   }
+  downloadMyInvoicePdf(id: string): Observable<{ blob: Blob; filename: string | null }> {
+    return this.api.getBlob(`/water/portal/invoices/${id}/pdf`);
+  }
 
   // ---- Admin: PQRS ----
   adminListPqrs(params?: { status?: string; type?: string; subscriber_id?: string }): Observable<AdminPqrsListItem[]> {

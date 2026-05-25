@@ -42,4 +42,23 @@ export class ApiService {
     }
     return this.http.delete<void>(`${this.baseUrl}${path}`, { params: httpParams });
   }
+
+  /** GET a binary file (PDF, Excel, etc). Returns the blob + the suggested
+   * filename pulled from Content-Disposition when present. */
+  getBlob(path: string): Observable<{ blob: Blob; filename: string | null }> {
+    return new Observable((subscriber) => {
+      const sub = this.http
+        .get(`${this.baseUrl}${path}`, { responseType: 'blob', observe: 'response' })
+        .subscribe({
+          next: (res) => {
+            const cd = res.headers.get('Content-Disposition') || '';
+            const m = cd.match(/filename="?([^"]+)"?/i);
+            subscriber.next({ blob: res.body as Blob, filename: m ? m[1] : null });
+            subscriber.complete();
+          },
+          error: (err) => subscriber.error(err),
+        });
+      return () => sub.unsubscribe();
+    });
+  }
 }
