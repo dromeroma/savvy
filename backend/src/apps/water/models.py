@@ -176,12 +176,17 @@ class WaterRoute(BaseMixin, OrgMixin, Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
 
-class WaterRouteSubscriber(BaseMixin, OrgMixin, Base):
+class WaterRouteSubscriber(OrgMixin, Base):
+    """Pure association table — no updated_at (delete + re-insert to reorder)."""
+
     __tablename__ = "water_route_subscribers"
     __table_args__ = (
         UniqueConstraint("route_id", "subscriber_id", name="uq_water_rs"),
     )
 
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, primary_key=True, default=uuid.uuid4,
+    )
     route_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("water_routes.id", ondelete="CASCADE"), nullable=False,
     )
@@ -189,6 +194,9 @@ class WaterRouteSubscriber(BaseMixin, OrgMixin, Base):
         Uuid, ForeignKey("water_subscribers.id", ondelete="CASCADE"), nullable=False,
     )
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False,
+    )
 
 
 # =====================================================================
