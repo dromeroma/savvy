@@ -39,6 +39,13 @@ STATUS_LABELS = {
     "annulled": "ANULADA",
 }
 
+# Régimen tributario labels
+REGIME_LABELS = {
+    "simplificado": "Régimen simplificado",
+    "comun": "Régimen común",
+    "no_responsable": "No responsable de IVA",
+}
+
 
 INVOICE_HTML = """<!DOCTYPE html>
 <html>
@@ -97,13 +104,34 @@ INVOICE_HTML = """<!DOCTYPE html>
   <!-- Header -->
   <table class="header-table">
     <tr>
-      <td style="width: 60%;">
-        <div class="org-name">{{ org.name }}</div>
-        <div class="muted">Servicio de acueducto</div>
-        {% if org_settings.nit %}<div class="muted">NIT: {{ org_settings.nit }}</div>{% endif %}
-        {% if org_settings.address %}<div class="muted">{{ org_settings.address }}</div>{% endif %}
+      {% if logo_data_url %}
+      <td style="width: 80pt; vertical-align: top;">
+        <img src="{{ logo_data_url }}" style="max-width: 70pt; max-height: 70pt;" />
       </td>
-      <td style="width: 40%; text-align: right;">
+      {% endif %}
+      <td style="vertical-align: top;">
+        <div class="org-name">{{ fiscal.legal_name or org.name }}</div>
+        <div class="muted">Servicio de acueducto</div>
+        {% if fiscal.nit %}
+        <div class="muted">NIT: {{ fiscal.nit }}{% if fiscal.dv %}-{{ fiscal.dv }}{% endif %}</div>
+        {% endif %}
+        {% if fiscal.address %}
+        <div class="muted">
+          {{ fiscal.address }}{% if fiscal.city %}, {{ fiscal.city }}{% endif %}{% if fiscal.department %}, {{ fiscal.department }}{% endif %}
+        </div>
+        {% endif %}
+        {% if fiscal.phone or fiscal.email %}
+        <div class="muted">
+          {% if fiscal.phone %}Tel: {{ fiscal.phone }}{% endif %}
+          {% if fiscal.phone and fiscal.email %} · {% endif %}
+          {% if fiscal.email %}{{ fiscal.email }}{% endif %}
+        </div>
+        {% endif %}
+        {% if fiscal.tax_regime %}
+        <div class="muted">Régimen: {{ regime_label }}</div>
+        {% endif %}
+      </td>
+      <td style="width: 35%; text-align: right; vertical-align: top;">
         <h1>FACTURA #{{ inv.consecutive }}</h1>
         <div class="muted">Periodo {{ inv.period_year }}-{{ '%02d' % inv.period_month }}</div>
         <div style="margin-top: 6pt;">
@@ -112,6 +140,12 @@ INVOICE_HTML = """<!DOCTYPE html>
       </td>
     </tr>
   </table>
+
+  {% if fiscal.dian_resolution %}
+  <div class="muted" style="margin-top: 4pt; font-size: 8pt; font-style: italic;">
+    {{ fiscal.dian_resolution }}
+  </div>
+  {% endif %}
 
   <!-- Subscriber + Invoice metadata -->
   <table style="margin-top: 14pt;">
@@ -355,12 +389,19 @@ async def render_invoice_pdf(
         for r in pay_rows.all()
     ]
 
+    fiscal = org_settings.get("fiscal_info") or {}
+    logo_data_url = org_settings.get("logo_data_url")
+    regime_label = REGIME_LABELS.get(fiscal.get("tax_regime", ""), "")
+
     template = Template(INVOICE_HTML)
     html = template.render(
         inv=inv,
         sub=sub,
         org=org,
         org_settings=org_settings,
+        fiscal=fiscal,
+        logo_data_url=logo_data_url,
+        regime_label=regime_label,
         cons=cons,
         meter_serial=meter_serial,
         subscriber_name=_subscriber_display(sub),

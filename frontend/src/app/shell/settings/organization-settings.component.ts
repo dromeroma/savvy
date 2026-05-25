@@ -5,6 +5,19 @@ import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { NotificationService } from '../../shared/services/notification.service';
 
+interface FiscalInfo {
+  legal_name?: string;
+  nit?: string;
+  dv?: string;
+  tax_regime?: 'simplificado' | 'comun' | 'no_responsable';
+  address?: string;
+  city?: string;
+  department?: string;
+  phone?: string;
+  email?: string;
+  dian_resolution?: string;
+}
+
 interface OrgResponse {
   id: string;
   name: string;
@@ -90,6 +103,104 @@ type TabId = 'organization' | 'account' | 'custom_roles';
                 <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Slug</label>
                 <input type="text" [value]="orgSlug()" disabled
                   class="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-500" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Información fiscal + logo -->
+          <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 mb-6">
+            <h3 class="text-base font-semibold text-gray-800 dark:text-white/90 mb-1">Información fiscal y logo</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-5">Aparecen en las facturas PDF y demás documentos que emite la organización.</p>
+
+            <!-- Logo -->
+            <div class="mb-5">
+              <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Logo</label>
+              <div class="flex items-start gap-4">
+                <div class="w-24 h-24 rounded-lg border border-gray-200 dark:border-gray-700 flex items-center justify-center overflow-hidden bg-gray-50 dark:bg-gray-900 shrink-0">
+                  @if (logoDataUrl()) {
+                    <img [src]="logoDataUrl()" alt="logo" class="max-w-full max-h-full object-contain" />
+                  } @else {
+                    <svg class="w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                  }
+                </div>
+                <div class="flex-1 min-w-0">
+                  <input id="logo-file-input" type="file" accept="image/png,image/jpeg,image/webp" class="hidden" (change)="onLogoSelected($event)" />
+                  <div class="flex gap-2 flex-wrap">
+                    <label for="logo-file-input"
+                      class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-xs font-medium cursor-pointer">
+                      {{ logoDataUrl() ? 'Cambiar logo' : 'Subir logo' }}
+                    </label>
+                    @if (logoDataUrl()) {
+                      <button type="button" (click)="removeLogo()"
+                        class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-red-300 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 text-xs font-medium">
+                        Quitar
+                      </button>
+                    }
+                  </div>
+                  <p class="text-[11px] text-gray-500 mt-2">PNG, JPG o WebP. Máximo 200 KB. Se mostrará en las facturas PDF.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Razón social</label>
+                <input type="text" [(ngModel)]="fiscal.legal_name" placeholder="Acueducto Comunal Lorica S.A.S."
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-2.5 text-sm text-gray-800 dark:text-white/90" />
+              </div>
+              <div class="grid grid-cols-3 gap-2">
+                <div class="col-span-2">
+                  <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">NIT</label>
+                  <input type="text" [(ngModel)]="fiscal.nit" placeholder="900.123.456"
+                    class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-2.5 text-sm" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">DV</label>
+                  <input type="text" [(ngModel)]="fiscal.dv" placeholder="7" maxlength="1"
+                    class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-2.5 text-sm text-center" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Régimen tributario</label>
+                <select [(ngModel)]="fiscal.tax_regime"
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-2.5 text-sm">
+                  <option [ngValue]="undefined">—</option>
+                  <option value="simplificado">Régimen simplificado</option>
+                  <option value="comun">Régimen común</option>
+                  <option value="no_responsable">No responsable de IVA</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Teléfono</label>
+                <input type="text" [(ngModel)]="fiscal.phone" placeholder="(60) 4 555 5555"
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-2.5 text-sm" />
+              </div>
+              <div class="sm:col-span-2">
+                <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Dirección fiscal</label>
+                <input type="text" [(ngModel)]="fiscal.address" placeholder="Calle 12 # 34-56"
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-2.5 text-sm" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Ciudad</label>
+                <input type="text" [(ngModel)]="fiscal.city" placeholder="Lorica"
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-2.5 text-sm" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Departamento</label>
+                <input type="text" [(ngModel)]="fiscal.department" placeholder="Córdoba"
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-2.5 text-sm" />
+              </div>
+              <div class="sm:col-span-2">
+                <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Email fiscal / Contacto</label>
+                <input type="email" [(ngModel)]="fiscal.email" placeholder="facturacion@acueducto.com"
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-2.5 text-sm" />
+              </div>
+              <div class="sm:col-span-2">
+                <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Resolución DIAN (opcional)</label>
+                <input type="text" [(ngModel)]="fiscal.dian_resolution" placeholder="Resolución 18760 del 28 de marzo de 2026 — autoriza del 1 al 5000"
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-2.5 text-sm" />
               </div>
             </div>
           </div>
@@ -324,6 +435,10 @@ export class OrganizationSettingsComponent implements OnInit {
   fiscalMode = signal<'per_app' | 'unified'>('per_app');
   private currentSettings: Record<string, unknown> = {};
 
+  // Fiscal info + logo
+  fiscal: FiscalInfo = {};
+  logoDataUrl = signal<string | null>(null);
+
   // Account tab
   changingPassword = signal(false);
   passwordForm = { current_password: '', new_password: '', confirm: '' };
@@ -368,6 +483,10 @@ export class OrganizationSettingsComponent implements OnInit {
         this.fiscalMode.set(
           (this.currentSettings['fiscal_period_mode'] as 'per_app' | 'unified') || 'per_app',
         );
+        this.fiscal = { ...(this.currentSettings['fiscal_info'] as FiscalInfo || {}) };
+        this.logoDataUrl.set(
+          (this.currentSettings['logo_data_url'] as string) || null,
+        );
         this.loadingOrg.set(false);
       },
       error: () => {
@@ -377,9 +496,61 @@ export class OrganizationSettingsComponent implements OnInit {
     });
   }
 
+  onLogoSelected(ev: Event): void {
+    const input = ev.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    if (file.size > 200 * 1024) {
+      this.notify.show({
+        type: 'error', title: 'Logo demasiado grande',
+        message: 'El logo debe pesar menos de 200 KB.',
+      });
+      input.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.logoDataUrl.set(reader.result as string);
+    };
+    reader.onerror = () => {
+      this.notify.show({
+        type: 'error', title: 'Error', message: 'No se pudo leer el archivo.',
+      });
+    };
+    reader.readAsDataURL(file);
+    // Allow re-selecting the same file later
+    input.value = '';
+  }
+
+  removeLogo(): void {
+    this.logoDataUrl.set(null);
+  }
+
+  private cleanFiscal(): FiscalInfo {
+    const out: FiscalInfo = {};
+    (Object.keys(this.fiscal) as (keyof FiscalInfo)[]).forEach((k) => {
+      const v = this.fiscal[k];
+      if (v !== undefined && v !== null && String(v).trim() !== '') {
+        (out as Record<string, unknown>)[k] = String(v).trim();
+      }
+    });
+    return out;
+  }
+
   saveOrg(): void {
     this.savingOrg.set(true);
-    const merged = { ...this.currentSettings, fiscal_period_mode: this.fiscalMode() };
+    const fiscalClean = this.cleanFiscal();
+    const merged: Record<string, unknown> = {
+      ...this.currentSettings,
+      fiscal_period_mode: this.fiscalMode(),
+      fiscal_info: fiscalClean,
+    };
+    const logo = this.logoDataUrl();
+    if (logo) {
+      merged['logo_data_url'] = logo;
+    } else {
+      delete merged['logo_data_url'];
+    }
     this.api.patch<OrgResponse>('/organizations/me', {
       name: this.orgName,
       settings: merged,
