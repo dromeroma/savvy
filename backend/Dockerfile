@@ -28,4 +28,8 @@ USER savvy
 
 EXPOSE 8000
 
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+# 1 worker keeps memory under Render's 512MB starter tier limit.
+# Uvicorn handles concurrency via asyncio inside the single worker — for a
+# small SaaS with light traffic, 1 worker is plenty. Scale via instance size
+# or worker count once traffic justifies it.
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
