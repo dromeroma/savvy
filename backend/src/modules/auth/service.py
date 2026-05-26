@@ -297,14 +297,45 @@ class AuthService:
         )
         memberships = result.all()
 
-        if not memberships:
-            raise UnauthorizedError("No organization found for this user.")
-
         # Always attach platform roles to the returned user so the
         # frontend can redirect super admins to /platform right after login.
         platform_roles = await _get_platform_role_codes(db, user.id)
         user_response = UserResponse.model_validate(user)
         user_response.platform_roles = platform_roles
+
+        # Super admins can log in without any org membership — they go
+        # straight to /platform. Issue a token without org_id so the JWT
+        # is still valid but no org-scoped endpoint can be hit.
+        if not memberships:
+            if "super_admin" in platform_roles:
+                token_data = {
+                    "sub": str(user.id),
+                    "org_id": None,
+                    "role": "super_admin",
+                    "platform_roles": platform_roles,
+                }
+                user.last_login_at = datetime.now(UTC)
+                await db.flush()
+                access_token = create_access_token(token_data)
+                refresh_token_str = create_refresh_token(token_data)
+                family_id = uuid.uuid4()
+                rt = RefreshToken(
+                    user_id=user.id,
+                    token_hash=hash_token(refresh_token_str),
+                    family_id=family_id,
+                    expires_at=datetime.now(UTC) + timedelta(days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS),
+                )
+                db.add(rt)
+                await db.flush()
+                return LoginResponse(
+                    tokens=TokenResponse(
+                        access_token=access_token,
+                        refresh_token=refresh_token_str,
+                    ),
+                    user=user_response,
+                    organization=None,
+                )
+            raise UnauthorizedError("No organization found for this user.")
 
         # Multiple orgs and no org_id specified → return list
         if len(memberships) > 1 and data.org_id is None:
