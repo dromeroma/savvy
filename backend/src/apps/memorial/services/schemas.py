@@ -217,6 +217,14 @@ class DashboardKpis(BaseModel):
     total_affiliates: int = 0     # beneficiarios sin removed_at en contratos activos
     plans_active: int = 0
 
+    # Fase 3 — financiero
+    billed_this_month: Decimal = Decimal("0")
+    paid_this_month: Decimal = Decimal("0")
+    pending_balance: Decimal = Decimal("0")
+    overdue_balance: Decimal = Decimal("0")
+    overdue_invoices: int = 0
+    overdue_contracts: int = 0
+
 
 class LinkContractRequest(BaseModel):
     """Vincular (o desvincular) un contrato exequial a un servicio."""

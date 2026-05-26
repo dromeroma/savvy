@@ -15,6 +15,8 @@ from src.apps.memorial.models import (
     MemorialExequialBeneficiary,
     MemorialExequialContract,
     MemorialExequialPlan,
+    MemorialInvoice,
+    MemorialPayment,
     MemorialService,
     MemorialServiceEvent,
     MemorialServiceFamily,
@@ -475,6 +477,48 @@ class MemorialServicesService:
             )
         ) or 0
 
+        # Fase 3 — KPIs financieros
+        from datetime import date as _date
+        first_of_month = _date.today().replace(day=1)
+
+        billed_month = await db.scalar(
+            select(func.coalesce(func.sum(MemorialInvoice.total), 0)).where(
+                MemorialInvoice.organization_id == org_id,
+                MemorialInvoice.issue_date >= first_of_month,
+                MemorialInvoice.status != "annulled",
+            )
+        ) or Decimal("0")
+        paid_month = await db.scalar(
+            select(func.coalesce(func.sum(MemorialPayment.amount), 0)).where(
+                MemorialPayment.organization_id == org_id,
+                MemorialPayment.payment_date >= first_of_month,
+            )
+        ) or Decimal("0")
+        pending_balance = await db.scalar(
+            select(func.coalesce(func.sum(MemorialInvoice.balance), 0)).where(
+                MemorialInvoice.organization_id == org_id,
+                MemorialInvoice.status.in_(("pending", "partial", "overdue")),
+            )
+        ) or Decimal("0")
+        overdue_balance = await db.scalar(
+            select(func.coalesce(func.sum(MemorialInvoice.balance), 0)).where(
+                MemorialInvoice.organization_id == org_id,
+                MemorialInvoice.status == "overdue",
+            )
+        ) or Decimal("0")
+        overdue_invoices = await db.scalar(
+            select(func.count(MemorialInvoice.id)).where(
+                MemorialInvoice.organization_id == org_id,
+                MemorialInvoice.status == "overdue",
+            )
+        ) or 0
+        overdue_contracts = await db.scalar(
+            select(func.count(MemorialExequialContract.id)).where(
+                MemorialExequialContract.organization_id == org_id,
+                MemorialExequialContract.status == "suspended",
+            )
+        ) or 0
+
         return DashboardKpis(
             services_total=total,
             services_active=active,
@@ -484,6 +528,12 @@ class MemorialServicesService:
             active_contracts=int(active_contracts),
             plans_active=int(plans_active),
             total_affiliates=int(total_affiliates),
+            billed_this_month=Decimal(str(billed_month)),
+            paid_this_month=Decimal(str(paid_month)),
+            pending_balance=Decimal(str(pending_balance)),
+            overdue_balance=Decimal(str(overdue_balance)),
+            overdue_invoices=int(overdue_invoices),
+            overdue_contracts=int(overdue_contracts),
         )
 
     @staticmethod

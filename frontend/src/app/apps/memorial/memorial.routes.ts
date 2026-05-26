@@ -49,6 +49,27 @@ export const MEMORIAL_ROUTES: Routes = [
             (m) => m.MemorialContractDetailComponent,
           ),
       },
+      {
+        path: 'invoices',
+        loadComponent: () =>
+          import('./invoices/invoices-list.component').then(
+            (m) => m.MemorialInvoicesListComponent,
+          ),
+      },
+      {
+        path: 'payments',
+        loadComponent: () =>
+          import('./payments/payments-list.component').then(
+            (m) => m.MemorialPaymentsListComponent,
+          ),
+      },
+      {
+        path: 'cartera',
+        loadComponent: () =>
+          import('./cartera/cartera.component').then(
+            (m) => m.MemorialCarteraComponent,
+          ),
+      },
     ],
   },
 ];

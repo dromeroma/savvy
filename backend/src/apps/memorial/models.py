@@ -332,6 +332,121 @@ class MemorialExequialBeneficiary(BaseMixin, OrgMixin, Base):
     )
 
 
+# ---------------------------------------------------------------- Phase 3: Invoices + Payments
+
+
+class MemorialInvoice(BaseMixin, OrgMixin, Base):
+    """Factura. Cubre tanto cuotas exequiales (source_type='exequial_dues')
+    como cobro por servicio funerario (source_type='service')."""
+
+    __tablename__ = "memorial_invoices"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "consecutive", name="uq_memorial_invoices_org_consec"),
+        UniqueConstraint("organization_id", "code", name="uq_memorial_invoices_org_code"),
+        CheckConstraint(
+            "source_type IN ('exequial_dues','service')",
+            name="chk_memorial_invoices_source",
+        ),
+        CheckConstraint(
+            "status IN ('pending','partial','paid','overdue','annulled')",
+            name="chk_memorial_invoices_status",
+        ),
+    )
+
+    consecutive: Mapped[int] = mapped_column(Integer, nullable=False)
+    code: Mapped[str] = mapped_column(String(20), nullable=False)
+    source_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    contract_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("memorial_exequial_contracts.id", ondelete="SET NULL"), nullable=True,
+    )
+    service_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("memorial_services.id", ondelete="SET NULL"), nullable=True,
+    )
+
+    responsible_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    responsible_document: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    responsible_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    responsible_phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    responsible_address: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    period_start: Mapped[date | None] = mapped_column(Date, nullable=True)
+    period_end: Mapped[date | None] = mapped_column(Date, nullable=True)
+
+    issue_date: Mapped[date] = mapped_column(Date, nullable=False)
+    due_date: Mapped[date] = mapped_column(Date, nullable=False)
+
+    subtotal: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0"), nullable=False)
+    late_interest: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0"), nullable=False)
+    surcharges: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0"), nullable=False)
+    discounts: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0"), nullable=False)
+    total: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0"), nullable=False)
+    paid_amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0"), nullable=False)
+    balance: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0"), nullable=False)
+
+    status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+    )
+
+
+class MemorialPayment(BaseMixin, OrgMixin, Base):
+    """Pago realizado por un titular o familiar responsable."""
+
+    __tablename__ = "memorial_payments"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "consecutive", name="uq_memorial_payments_org_consec"),
+        UniqueConstraint("organization_id", "code", name="uq_memorial_payments_org_code"),
+        CheckConstraint(
+            "method IN ('cash','transfer','card','check','online')",
+            name="chk_memorial_payments_method",
+        ),
+    )
+
+    consecutive: Mapped[int] = mapped_column(Integer, nullable=False)
+    code: Mapped[str] = mapped_column(String(20), nullable=False)
+    contract_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("memorial_exequial_contracts.id", ondelete="SET NULL"), nullable=True,
+    )
+    service_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("memorial_services.id", ondelete="SET NULL"), nullable=True,
+    )
+
+    payer_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    payer_document: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    payer_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    payer_phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
+
+    payment_date: Mapped[date] = mapped_column(Date, nullable=False)
+    amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
+    method: Mapped[str] = mapped_column(String(30), default="cash", nullable=False)
+    receipt_number: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    reference: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    recorded_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+    )
+
+
+class MemorialPaymentInvoice(Base):
+    """Allocation: cuánto del pago se aplicó a cuál factura."""
+
+    __tablename__ = "memorial_payment_invoices"
+    __table_args__ = (
+        UniqueConstraint("payment_id", "invoice_id", name="uq_memorial_pi"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    payment_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("memorial_payments.id", ondelete="CASCADE"), nullable=False,
+    )
+    invoice_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("memorial_invoices.id", ondelete="CASCADE"), nullable=False,
+    )
+    amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
+
+
 # ---------------------------------------------------------------- Audit (back to original)
 
 

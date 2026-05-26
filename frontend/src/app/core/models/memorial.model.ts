@@ -157,6 +157,14 @@ export interface MemorialDashboardKpis {
   active_contracts: number;
   total_affiliates: number;
   plans_active: number;
+
+  // Phase 3 — financiero
+  billed_this_month: string;
+  paid_this_month: string;
+  pending_balance: string;
+  overdue_balance: string;
+  overdue_invoices: number;
+  overdue_contracts: number;
 }
 
 // ===================== Phase 2: Plans + Contracts =====================
@@ -332,3 +340,165 @@ export interface CoverageLookupResult {
   coverage_amount: string;
   status: string;
 }
+
+// ===================== Phase 3: Invoices + Payments + Cartera =====================
+
+export type MemorialInvoiceSource = 'exequial_dues' | 'service';
+export type MemorialInvoiceStatus =
+  | 'pending' | 'partial' | 'paid' | 'overdue' | 'annulled';
+export type MemorialPaymentMethod = 'cash' | 'transfer' | 'card' | 'check' | 'online';
+
+export interface MemorialInvoiceListItem {
+  id: string;
+  code: string;
+  consecutive: number;
+  source_type: MemorialInvoiceSource;
+  contract_id: string | null;
+  service_id: string | null;
+  responsible_name: string;
+  issue_date: string;
+  due_date: string;
+  total: string;
+  paid_amount: string;
+  balance: string;
+  status: MemorialInvoiceStatus;
+  description: string | null;
+}
+
+export interface MemorialInvoice {
+  id: string;
+  organization_id: string;
+  code: string;
+  consecutive: number;
+  source_type: MemorialInvoiceSource;
+  contract_id: string | null;
+  service_id: string | null;
+  responsible_name: string;
+  responsible_document: string | null;
+  responsible_email: string | null;
+  responsible_phone: string | null;
+  responsible_address: string | null;
+  period_start: string | null;
+  period_end: string | null;
+  issue_date: string;
+  due_date: string;
+  subtotal: string;
+  late_interest: string;
+  surcharges: string;
+  discounts: string;
+  total: string;
+  paid_amount: string;
+  balance: string;
+  status: MemorialInvoiceStatus;
+  description: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BatchGenerateDuesResult {
+  generated: number;
+  skipped_no_fee: number;
+  invoice_ids: string[];
+}
+
+export interface GenerateServiceInvoiceRequest {
+  service_id: string;
+  due_days?: number;
+  surcharges?: string | number;
+  discounts?: string | number;
+  description?: string | null;
+  notes?: string | null;
+}
+
+export interface MemorialPaymentAllocation {
+  invoice_id: string;
+  invoice_code: string;
+  amount: string;
+}
+
+export interface MemorialPaymentListItem {
+  id: string;
+  code: string;
+  consecutive: number;
+  payment_date: string;
+  amount: string;
+  method: MemorialPaymentMethod;
+  receipt_number: string | null;
+  payer_name: string;
+  contract_id: string | null;
+  service_id: string | null;
+  invoices_count: number;
+}
+
+export interface MemorialPayment {
+  id: string;
+  organization_id: string;
+  code: string;
+  consecutive: number;
+  contract_id: string | null;
+  service_id: string | null;
+  payer_name: string;
+  payer_document: string | null;
+  payer_email: string | null;
+  payer_phone: string | null;
+  payment_date: string;
+  amount: string;
+  method: MemorialPaymentMethod;
+  receipt_number: string | null;
+  reference: string | null;
+  notes: string | null;
+  recorded_by: string | null;
+  created_at: string;
+  updated_at: string;
+  allocations: MemorialPaymentAllocation[];
+}
+
+export interface MemorialPaymentCreate {
+  contract_id?: string | null;
+  service_id?: string | null;
+  payer_name: string;
+  payer_document?: string | null;
+  payer_email?: string | null;
+  payer_phone?: string | null;
+  payment_date: string;
+  amount: string | number;
+  method?: MemorialPaymentMethod;
+  receipt_number?: string | null;
+  reference?: string | null;
+  notes?: string | null;
+  allocations?: { invoice_id: string; amount: string | number }[];
+}
+
+export interface MemorialCarteraRecalcResult {
+  invoices_marked_overdue: number;
+  invoices_with_interest_applied: number;
+  contracts_suspended: number;
+  total_interest_applied: string;
+}
+
+export interface MemorialAgingBucket {
+  bucket: 'current' | '0_30' | '31_60' | '61_90' | '90_plus';
+  invoices: number;
+  balance: string;
+}
+
+export interface MemorialAgingReport {
+  total_balance: string;
+  buckets: MemorialAgingBucket[];
+}
+
+export interface MemorialOverdueDebtor {
+  contract_id: string | null;
+  service_id: string | null;
+  code: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  overdue_invoices: number;
+  oldest_due_date: string | null;
+  days_overdue: number;
+  total_balance: string;
+}
+

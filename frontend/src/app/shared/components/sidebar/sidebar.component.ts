@@ -158,6 +158,9 @@ const APP_MENUS: Record<string, { icon: string; items: { label: string; route: s
       { label: 'Servicios funerarios', route: '/memorial/services' },
       { label: 'Planes exequiales', route: '/memorial/plans' },
       { label: 'Contratos', route: '/memorial/contracts' },
+      { label: 'Facturación', route: '/memorial/invoices' },
+      { label: 'Pagos', route: '/memorial/payments' },
+      { label: 'Cartera', route: '/memorial/cartera' },
     ],
   },
   water: {

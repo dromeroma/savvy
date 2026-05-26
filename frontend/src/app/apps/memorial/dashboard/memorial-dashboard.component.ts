@@ -75,6 +75,29 @@ import { MemorialDashboardKpis } from '../../../core/models/memorial.model';
           </div>
         </div>
 
+        <!-- Tercera fila: financieros -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
+            <div class="text-[11px] uppercase tracking-wider text-gray-400">Facturado mes</div>
+            <div class="text-2xl font-semibold text-gray-800 dark:text-white/90 mt-1 font-mono">$ {{ (+k.billed_this_month) | number:'1.0-0' }}</div>
+          </div>
+          <div class="rounded-2xl border border-emerald-200 dark:border-emerald-700/40 bg-emerald-50/60 dark:bg-emerald-500/10 p-5">
+            <div class="text-[11px] uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Recaudado mes</div>
+            <div class="text-2xl font-semibold text-emerald-700 dark:text-emerald-300 mt-1 font-mono">$ {{ (+k.paid_this_month) | number:'1.0-0' }}</div>
+          </div>
+          <div class="rounded-2xl border border-amber-200 dark:border-amber-700/40 bg-amber-50/60 dark:bg-amber-500/10 p-5">
+            <div class="text-[11px] uppercase tracking-wider text-amber-700 dark:text-amber-400">Saldo pendiente</div>
+            <div class="text-2xl font-semibold text-amber-700 dark:text-amber-300 mt-1 font-mono">$ {{ (+k.pending_balance) | number:'1.0-0' }}</div>
+          </div>
+          <div class="rounded-2xl border border-red-200 dark:border-red-700/40 bg-red-50/60 dark:bg-red-500/10 p-5">
+            <div class="text-[11px] uppercase tracking-wider text-red-700 dark:text-red-400">Cartera vencida</div>
+            <div class="text-2xl font-semibold text-red-700 dark:text-red-300 mt-1 font-mono">$ {{ (+k.overdue_balance) | number:'1.0-0' }}</div>
+            <div class="text-xs text-red-700/80 dark:text-red-400/80 mt-1">
+              {{ k.overdue_invoices }} factura(s) · {{ k.overdue_contracts }} contrato(s) suspendido(s)
+            </div>
+          </div>
+        </div>
+
         <!-- Quick links -->
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <a routerLink="/memorial/services"
@@ -84,18 +107,18 @@ import { MemorialDashboardKpis } from '../../../core/models/memorial.model';
               Crear, ver y gestionar servicios. Estados, familiares, ejecución.
             </div>
           </a>
-          <a routerLink="/memorial/plans"
+          <a routerLink="/memorial/invoices"
             class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 hover:border-brand-400 transition">
-            <div class="text-sm font-semibold text-gray-800 dark:text-white/90">Planes exequiales</div>
+            <div class="text-sm font-semibold text-gray-800 dark:text-white/90">Facturación</div>
             <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Catálogo de planes con tarifa y cobertura.
+              Cuotas exequiales y facturas de servicio. PDF descargable.
             </div>
           </a>
-          <a routerLink="/memorial/contracts"
+          <a routerLink="/memorial/cartera"
             class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 hover:border-brand-400 transition">
-            <div class="text-sm font-semibold text-gray-800 dark:text-white/90">Contratos</div>
+            <div class="text-sm font-semibold text-gray-800 dark:text-white/90">Cartera</div>
             <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Afiliados, beneficiarios y cobertura.
+              Aging por antigüedad y lista de morosos.
             </div>
           </a>
         </div>

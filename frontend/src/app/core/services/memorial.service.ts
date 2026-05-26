@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
 import {
+  BatchGenerateDuesResult,
   ContractStatus,
   CoverageLookupResult,
   ExequialBeneficiary,
@@ -12,9 +13,18 @@ import {
   ExequialPlan,
   ExequialPlanCreate,
   ExequialPlanListItem,
+  GenerateServiceInvoiceRequest,
+  MemorialAgingReport,
+  MemorialCarteraRecalcResult,
   MemorialDashboardKpis,
   MemorialFamilyMember,
   MemorialFamilyMemberCreate,
+  MemorialInvoice,
+  MemorialInvoiceListItem,
+  MemorialOverdueDebtor,
+  MemorialPayment,
+  MemorialPaymentCreate,
+  MemorialPaymentListItem,
   MemorialService,
   MemorialServiceCreate,
   MemorialServiceEvent,
@@ -157,5 +167,76 @@ export class MemorialApiService {
       '/memorial/contracts/coverage-lookup',
       { document_number: documentNumber },
     );
+  }
+
+  // ---- Invoices ----
+  listInvoices(params?: {
+    source_type?: string; status?: string;
+    contract_id?: string; service_id?: string;
+    unpaid_only?: boolean; limit?: number; offset?: number;
+  }): Observable<MemorialInvoiceListItem[]> {
+    const clean: Record<string, string | number | boolean> = {};
+    if (params?.source_type) clean['source_type'] = params.source_type;
+    if (params?.status) clean['status'] = params.status;
+    if (params?.contract_id) clean['contract_id'] = params.contract_id;
+    if (params?.service_id) clean['service_id'] = params.service_id;
+    if (params?.unpaid_only) clean['unpaid_only'] = true;
+    if (params?.limit !== undefined) clean['limit'] = params.limit;
+    if (params?.offset !== undefined) clean['offset'] = params.offset;
+    return this.api.get<MemorialInvoiceListItem[]>('/memorial/invoices', clean);
+  }
+  getInvoice(id: string): Observable<MemorialInvoice> {
+    return this.api.get<MemorialInvoice>(`/memorial/invoices/${id}`);
+  }
+  batchGenerateDues(asOfDate?: string): Observable<BatchGenerateDuesResult> {
+    return this.api.post<BatchGenerateDuesResult>(
+      '/memorial/invoices/batch-generate-dues',
+      { as_of_date: asOfDate ?? null },
+    );
+  }
+  generateInvoiceForService(data: GenerateServiceInvoiceRequest): Observable<MemorialInvoice> {
+    return this.api.post<MemorialInvoice>(
+      '/memorial/invoices/generate-for-service', data,
+    );
+  }
+  annulInvoice(id: string): Observable<MemorialInvoice> {
+    return this.api.post<MemorialInvoice>(`/memorial/invoices/${id}/annul`, {});
+  }
+  downloadInvoicePdf(id: string): Observable<{ blob: Blob; filename: string | null }> {
+    return this.api.getBlob(`/memorial/invoices/${id}/pdf`);
+  }
+
+  // ---- Payments ----
+  listPayments(params?: {
+    contract_id?: string; service_id?: string;
+    date_from?: string; date_to?: string; method?: string;
+    limit?: number; offset?: number;
+  }): Observable<MemorialPaymentListItem[]> {
+    const clean: Record<string, string | number | boolean> = {};
+    if (params?.contract_id) clean['contract_id'] = params.contract_id;
+    if (params?.service_id) clean['service_id'] = params.service_id;
+    if (params?.date_from) clean['date_from'] = params.date_from;
+    if (params?.date_to) clean['date_to'] = params.date_to;
+    if (params?.method) clean['method'] = params.method;
+    if (params?.limit !== undefined) clean['limit'] = params.limit;
+    if (params?.offset !== undefined) clean['offset'] = params.offset;
+    return this.api.get<MemorialPaymentListItem[]>('/memorial/payments', clean);
+  }
+  getPayment(id: string): Observable<MemorialPayment> {
+    return this.api.get<MemorialPayment>(`/memorial/payments/${id}`);
+  }
+  registerPayment(data: MemorialPaymentCreate): Observable<MemorialPayment> {
+    return this.api.post<MemorialPayment>('/memorial/payments', data);
+  }
+
+  // ---- Cartera ----
+  recalcCartera(): Observable<MemorialCarteraRecalcResult> {
+    return this.api.post<MemorialCarteraRecalcResult>('/memorial/cartera/recalculate', {});
+  }
+  cartera_aging(): Observable<MemorialAgingReport> {
+    return this.api.get<MemorialAgingReport>('/memorial/cartera/aging');
+  }
+  cartera_overdue(limit = 100): Observable<MemorialOverdueDebtor[]> {
+    return this.api.get<MemorialOverdueDebtor[]>('/memorial/cartera/overdue', { limit });
   }
 }
