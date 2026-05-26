@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "mcp__supabase-savvitrix__list_tables"
+      "mcp__supabase-savvitrix__list_tables",
+      "Bash(npm run *)"
     ]
   }
 }

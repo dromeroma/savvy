@@ -99,6 +99,11 @@ class MemorialService(BaseMixin, OrgMixin, Base):
     )
 
     exequial_contract_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    # Fase 4 — logística (FKs opcionales que reemplazan los campos texto)
+    velation_room_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    cremation_oven_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    cemetery_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    church_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     closed_by: Mapped[uuid.UUID | None] = mapped_column(
@@ -445,6 +450,164 @@ class MemorialPaymentInvoice(Base):
         Uuid, ForeignKey("memorial_invoices.id", ondelete="CASCADE"), nullable=False,
     )
     amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
+
+
+# ---------------------------------------------------------------- Phase 4: Logística
+
+
+class MemorialVehicle(BaseMixin, OrgMixin, Base):
+    """Vehículo (carroza fúnebre, transporte familiar, utilitario)."""
+
+    __tablename__ = "memorial_vehicles"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "code", name="uq_memorial_vehicles_org_code"),
+        UniqueConstraint("organization_id", "plate", name="uq_memorial_vehicles_org_plate"),
+        CheckConstraint(
+            "type IN ('hearse','family','utility','other')",
+            name="chk_memorial_vehicles_type",
+        ),
+        CheckConstraint(
+            "status IN ('active','maintenance','inactive')",
+            name="chk_memorial_vehicles_status",
+        ),
+    )
+
+    code: Mapped[str] = mapped_column(String(40), nullable=False)
+    plate: Mapped[str] = mapped_column(String(20), nullable=False)
+    brand: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    model: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    year: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    type: Mapped[str] = mapped_column(String(20), default="hearse", nullable=False)
+    capacity: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    color: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="active", nullable=False)
+    default_driver_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("memorial_drivers.id", ondelete="SET NULL"), nullable=True,
+    )
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class MemorialDriver(BaseMixin, OrgMixin, Base):
+    """Conductor (recurso físico de la funeraria, no necesariamente
+    Usuario de Savvy)."""
+
+    __tablename__ = "memorial_drivers"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "code", name="uq_memorial_drivers_org_code"),
+    )
+
+    code: Mapped[str] = mapped_column(String(40), nullable=False)
+    first_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    last_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    document_type: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    document_number: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    license_number: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    license_category: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    mobile: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class MemorialRoom(BaseMixin, OrgMixin, Base):
+    """Sala de velación."""
+
+    __tablename__ = "memorial_rooms"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "code", name="uq_memorial_rooms_org_code"),
+    )
+
+    code: Mapped[str] = mapped_column(String(40), nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    capacity: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    location: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class MemorialOven(BaseMixin, OrgMixin, Base):
+    """Horno crematorio."""
+
+    __tablename__ = "memorial_ovens"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "code", name="uq_memorial_ovens_org_code"),
+    )
+
+    code: Mapped[str] = mapped_column(String(40), nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    brand: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    model: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    daily_capacity: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class MemorialLocation(BaseMixin, OrgMixin, Base):
+    """Cementerios e iglesias unificados con columna kind."""
+
+    __tablename__ = "memorial_locations"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "code", name="uq_memorial_locations_org_code"),
+        CheckConstraint(
+            "kind IN ('cemetery','church','other')",
+            name="chk_memorial_locations_kind",
+        ),
+    )
+
+    code: Mapped[str] = mapped_column(String(40), nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    kind: Mapped[str] = mapped_column(String(20), nullable=False)
+    address: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    city: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    contact_name: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    contact_phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    contact_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+
+class MemorialTransfer(BaseMixin, OrgMixin, Base):
+    """Traslado: movimiento de un vehículo con conductor para un servicio.
+    Tipos: pickup (recoger el cuerpo), to_velation, to_cremation, to_burial,
+    to_mass, family (transporte familiar), other."""
+
+    __tablename__ = "memorial_transfers"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "consecutive", name="uq_memorial_transfers_org_consec"),
+        UniqueConstraint("organization_id", "code", name="uq_memorial_transfers_org_code"),
+        CheckConstraint(
+            "transfer_type IN ('pickup','to_velation','to_cremation','to_burial','to_mass','family','other')",
+            name="chk_memorial_transfers_type",
+        ),
+        CheckConstraint(
+            "status IN ('scheduled','in_progress','completed','cancelled')",
+            name="chk_memorial_transfers_status",
+        ),
+    )
+
+    consecutive: Mapped[int] = mapped_column(Integer, nullable=False)
+    code: Mapped[str] = mapped_column(String(20), nullable=False)
+    service_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("memorial_services.id", ondelete="CASCADE"), nullable=True,
+    )
+    transfer_type: Mapped[str] = mapped_column(String(30), nullable=False)
+    vehicle_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("memorial_vehicles.id", ondelete="SET NULL"), nullable=True,
+    )
+    driver_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("memorial_drivers.id", ondelete="SET NULL"), nullable=True,
+    )
+    scheduled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    origin: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    destination: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="scheduled", nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+    )
 
 
 # ---------------------------------------------------------------- Audit (back to original)

@@ -70,6 +70,20 @@ export const MEMORIAL_ROUTES: Routes = [
             (m) => m.MemorialCarteraComponent,
           ),
       },
+      {
+        path: 'logistics',
+        loadComponent: () =>
+          import('./logistics/logistics.component').then(
+            (m) => m.MemorialLogisticsComponent,
+          ),
+      },
+      {
+        path: 'transfers',
+        loadComponent: () =>
+          import('./transfers/transfers-list.component').then(
+            (m) => m.MemorialTransfersListComponent,
+          ),
+      },
     ],
   },
 ];

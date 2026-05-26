@@ -502,3 +502,120 @@ export interface MemorialOverdueDebtor {
   total_balance: string;
 }
 
+
+// ===================== Phase 4: Logística =====================
+
+export type VehicleType = 'hearse' | 'family' | 'utility' | 'other';
+export type VehicleStatus = 'active' | 'maintenance' | 'inactive';
+export type LocationKind = 'cemetery' | 'church' | 'other';
+export type TransferType =
+  | 'pickup' | 'to_velation' | 'to_cremation' | 'to_burial' | 'to_mass' | 'family' | 'other';
+export type TransferStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+
+export interface MemorialVehicle {
+  id: string; organization_id: string;
+  code: string; plate: string;
+  brand: string | null; model: string | null; year: number | null;
+  type: VehicleType; capacity: number | null; color: string | null;
+  status: VehicleStatus; default_driver_id: string | null;
+  notes: string | null;
+  created_at: string; updated_at: string;
+}
+export interface MemorialVehicleCreate {
+  code: string; plate: string;
+  brand?: string | null; model?: string | null; year?: number | null;
+  type?: VehicleType; capacity?: number | null; color?: string | null;
+  status?: VehicleStatus; default_driver_id?: string | null;
+  notes?: string | null;
+}
+
+export interface MemorialDriver {
+  id: string; organization_id: string;
+  code: string;
+  first_name: string; last_name: string | null;
+  document_type: string | null; document_number: string | null;
+  license_number: string | null; license_category: string | null;
+  phone: string | null; mobile: string | null; email: string | null;
+  is_active: boolean; notes: string | null;
+  created_at: string; updated_at: string;
+}
+export interface MemorialDriverCreate {
+  code: string;
+  first_name: string; last_name?: string | null;
+  document_type?: string | null; document_number?: string | null;
+  license_number?: string | null; license_category?: string | null;
+  phone?: string | null; mobile?: string | null; email?: string | null;
+  is_active?: boolean; notes?: string | null;
+}
+
+export interface MemorialRoom {
+  id: string; organization_id: string;
+  code: string; name: string; capacity: number | null;
+  location: string | null; is_active: boolean; notes: string | null;
+  created_at: string; updated_at: string;
+}
+export interface MemorialRoomCreate {
+  code: string; name: string; capacity?: number | null;
+  location?: string | null; is_active?: boolean; notes?: string | null;
+}
+
+export interface MemorialOven {
+  id: string; organization_id: string;
+  code: string; name: string; brand: string | null; model: string | null;
+  daily_capacity: number | null; is_active: boolean; notes: string | null;
+  created_at: string; updated_at: string;
+}
+export interface MemorialOvenCreate {
+  code: string; name: string; brand?: string | null; model?: string | null;
+  daily_capacity?: number | null; is_active?: boolean; notes?: string | null;
+}
+
+export interface MemorialLocation {
+  id: string; organization_id: string;
+  code: string; name: string; kind: LocationKind;
+  address: string | null; city: string | null;
+  contact_name: string | null; contact_phone: string | null; contact_email: string | null;
+  notes: string | null; is_active: boolean;
+  created_at: string; updated_at: string;
+}
+export interface MemorialLocationCreate {
+  code: string; name: string; kind: LocationKind;
+  address?: string | null; city?: string | null;
+  contact_name?: string | null; contact_phone?: string | null; contact_email?: string | null;
+  notes?: string | null; is_active?: boolean;
+}
+
+export interface MemorialTransferListItem {
+  id: string; code: string; consecutive: number;
+  service_id: string | null; service_code: string | null;
+  deceased_name: string | null;
+  transfer_type: TransferType;
+  vehicle_id: string | null; vehicle_label: string | null;
+  driver_id: string | null; driver_name: string | null;
+  scheduled_at: string; completed_at: string | null;
+  origin: string | null; destination: string | null;
+  status: TransferStatus;
+}
+
+export interface MemorialTransfer {
+  id: string; organization_id: string;
+  code: string; consecutive: number;
+  service_id: string | null;
+  transfer_type: TransferType;
+  vehicle_id: string | null; driver_id: string | null;
+  scheduled_at: string; started_at: string | null; completed_at: string | null;
+  origin: string | null; destination: string | null;
+  status: TransferStatus; notes: string | null;
+  created_by: string | null; created_at: string; updated_at: string;
+}
+
+export interface MemorialTransferCreate {
+  service_id?: string | null;
+  transfer_type: TransferType;
+  vehicle_id?: string | null;
+  driver_id?: string | null;
+  scheduled_at: string;
+  origin?: string | null;
+  destination?: string | null;
+  notes?: string | null;
+}

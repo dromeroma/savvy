@@ -30,6 +30,20 @@ import {
   MemorialServiceEvent,
   MemorialServiceListItem,
   MemorialServiceStatus,
+  MemorialVehicle,
+  MemorialVehicleCreate,
+  MemorialDriver,
+  MemorialDriverCreate,
+  MemorialRoom,
+  MemorialRoomCreate,
+  MemorialOven,
+  MemorialOvenCreate,
+  MemorialLocation,
+  MemorialLocationCreate,
+  MemorialTransfer,
+  MemorialTransferCreate,
+  MemorialTransferListItem,
+  TransferStatus,
 } from '../models/memorial.model';
 
 @Injectable({ providedIn: 'root' })
@@ -238,5 +252,109 @@ export class MemorialApiService {
   }
   cartera_overdue(limit = 100): Observable<MemorialOverdueDebtor[]> {
     return this.api.get<MemorialOverdueDebtor[]>('/memorial/cartera/overdue', { limit });
+  }
+
+  // ---- Logistics: Vehicles ----
+  listVehicles(search?: string): Observable<MemorialVehicle[]> {
+    return this.api.get<MemorialVehicle[]>('/memorial/logistics/vehicles', search ? { search } : undefined);
+  }
+  createVehicle(data: MemorialVehicleCreate): Observable<MemorialVehicle> {
+    return this.api.post<MemorialVehicle>('/memorial/logistics/vehicles', data);
+  }
+  updateVehicle(id: string, data: Partial<MemorialVehicleCreate>): Observable<MemorialVehicle> {
+    return this.api.patch<MemorialVehicle>(`/memorial/logistics/vehicles/${id}`, data);
+  }
+  deleteVehicle(id: string): Observable<void> {
+    return this.api.delete(`/memorial/logistics/vehicles/${id}`);
+  }
+
+  // ---- Logistics: Drivers ----
+  listDrivers(search?: string): Observable<MemorialDriver[]> {
+    return this.api.get<MemorialDriver[]>('/memorial/logistics/drivers', search ? { search } : undefined);
+  }
+  createDriver(data: MemorialDriverCreate): Observable<MemorialDriver> {
+    return this.api.post<MemorialDriver>('/memorial/logistics/drivers', data);
+  }
+  updateDriver(id: string, data: Partial<MemorialDriverCreate>): Observable<MemorialDriver> {
+    return this.api.patch<MemorialDriver>(`/memorial/logistics/drivers/${id}`, data);
+  }
+  deleteDriver(id: string): Observable<void> {
+    return this.api.delete(`/memorial/logistics/drivers/${id}`);
+  }
+
+  // ---- Logistics: Rooms ----
+  listRooms(): Observable<MemorialRoom[]> {
+    return this.api.get<MemorialRoom[]>('/memorial/logistics/rooms');
+  }
+  createRoom(data: MemorialRoomCreate): Observable<MemorialRoom> {
+    return this.api.post<MemorialRoom>('/memorial/logistics/rooms', data);
+  }
+  updateRoom(id: string, data: Partial<MemorialRoomCreate>): Observable<MemorialRoom> {
+    return this.api.patch<MemorialRoom>(`/memorial/logistics/rooms/${id}`, data);
+  }
+  deleteRoom(id: string): Observable<void> {
+    return this.api.delete(`/memorial/logistics/rooms/${id}`);
+  }
+
+  // ---- Logistics: Ovens ----
+  listOvens(): Observable<MemorialOven[]> {
+    return this.api.get<MemorialOven[]>('/memorial/logistics/ovens');
+  }
+  createOven(data: MemorialOvenCreate): Observable<MemorialOven> {
+    return this.api.post<MemorialOven>('/memorial/logistics/ovens', data);
+  }
+  updateOven(id: string, data: Partial<MemorialOvenCreate>): Observable<MemorialOven> {
+    return this.api.patch<MemorialOven>(`/memorial/logistics/ovens/${id}`, data);
+  }
+  deleteOven(id: string): Observable<void> {
+    return this.api.delete(`/memorial/logistics/ovens/${id}`);
+  }
+
+  // ---- Logistics: Locations ----
+  listLocations(kind?: string, search?: string): Observable<MemorialLocation[]> {
+    const clean: Record<string, string | number | boolean> = {};
+    if (kind) clean['kind'] = kind;
+    if (search) clean['search'] = search;
+    return this.api.get<MemorialLocation[]>('/memorial/logistics/locations', clean);
+  }
+  createLocation(data: MemorialLocationCreate): Observable<MemorialLocation> {
+    return this.api.post<MemorialLocation>('/memorial/logistics/locations', data);
+  }
+  updateLocation(id: string, data: Partial<MemorialLocationCreate>): Observable<MemorialLocation> {
+    return this.api.patch<MemorialLocation>(`/memorial/logistics/locations/${id}`, data);
+  }
+  deleteLocation(id: string): Observable<void> {
+    return this.api.delete(`/memorial/logistics/locations/${id}`);
+  }
+
+  // ---- Transfers ----
+  listTransfers(params?: {
+    service_id?: string; status?: string;
+    date_from?: string; date_to?: string;
+    limit?: number; offset?: number;
+  }): Observable<MemorialTransferListItem[]> {
+    const clean: Record<string, string | number | boolean> = {};
+    if (params?.service_id) clean['service_id'] = params.service_id;
+    if (params?.status) clean['status'] = params.status;
+    if (params?.date_from) clean['date_from'] = params.date_from;
+    if (params?.date_to) clean['date_to'] = params.date_to;
+    if (params?.limit !== undefined) clean['limit'] = params.limit;
+    if (params?.offset !== undefined) clean['offset'] = params.offset;
+    return this.api.get<MemorialTransferListItem[]>('/memorial/transfers', clean);
+  }
+  getTransfer(id: string): Observable<MemorialTransfer> {
+    return this.api.get<MemorialTransfer>(`/memorial/transfers/${id}`);
+  }
+  createTransfer(data: MemorialTransferCreate): Observable<MemorialTransfer> {
+    return this.api.post<MemorialTransfer>('/memorial/transfers', data);
+  }
+  updateTransfer(id: string, data: Partial<MemorialTransferCreate>): Observable<MemorialTransfer> {
+    return this.api.patch<MemorialTransfer>(`/memorial/transfers/${id}`, data);
+  }
+  transitionTransfer(id: string, newStatus: TransferStatus): Observable<MemorialTransfer> {
+    return this.api.post<MemorialTransfer>(`/memorial/transfers/${id}/transition`, { new_status: newStatus });
+  }
+  deleteTransfer(id: string): Observable<void> {
+    return this.api.delete(`/memorial/transfers/${id}`);
   }
 }

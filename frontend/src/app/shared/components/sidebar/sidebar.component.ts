@@ -161,6 +161,8 @@ const APP_MENUS: Record<string, { icon: string; items: { label: string; route: s
       { label: 'Facturación', route: '/memorial/invoices' },
       { label: 'Pagos', route: '/memorial/payments' },
       { label: 'Cartera', route: '/memorial/cartera' },
+      { label: 'Logística', route: '/memorial/logistics' },
+      { label: 'Traslados', route: '/memorial/transfers' },
     ],
   },
   water: {

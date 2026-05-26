@@ -138,6 +138,12 @@ class ServiceUpdate(BaseModel):
     estimated_total: Decimal | None = Field(None, ge=0)
     final_total: Decimal | None = Field(None, ge=0)
 
+    # Fase 4 — FKs opcionales a recursos de logística
+    velation_room_id: uuid.UUID | None = None
+    cremation_oven_id: uuid.UUID | None = None
+    cemetery_id: uuid.UUID | None = None
+    church_id: uuid.UUID | None = None
+
     notes: str | None = None
 
 
@@ -172,6 +178,11 @@ class ServiceResponse(ServiceBase):
     closed_by: uuid.UUID | None = None
     created_by: uuid.UUID | None = None
     exequial_contract_id: uuid.UUID | None = None
+    # Fase 4 — FKs de logística
+    velation_room_id: uuid.UUID | None = None
+    cremation_oven_id: uuid.UUID | None = None
+    cemetery_id: uuid.UUID | None = None
+    church_id: uuid.UUID | None = None
     created_at: datetime
     updated_at: datetime
 
