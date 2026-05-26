@@ -3,10 +3,11 @@ import { CommonModule } from '@angular/common';
 import { PortalService } from '../../core/services/portal.service';
 import { PortalInvoiceItem } from '../../core/models/portal.model';
 import { NotificationService } from '../../shared/services/notification.service';
+import { WhatsappShareButtonComponent } from '../../shared/components/whatsapp-share-button/whatsapp-share-button.component';
 
 @Component({
   selector: 'app-portal-invoices',
-  imports: [CommonModule],
+  imports: [CommonModule, WhatsappShareButtonComponent],
   template: `
     <div>
       <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-1">Mis facturas</h2>
@@ -54,10 +55,13 @@ import { NotificationService } from '../../shared/services/notification.service'
                   }
                 </div>
               </div>
-              <button (click)="downloadPdf(i.id)"
-                class="mt-3 w-full px-3 py-2 rounded-lg text-xs font-medium bg-sky-500 hover:bg-sky-600 text-white">
-                Descargar PDF
-              </button>
+              <div class="mt-3 flex gap-2">
+                <button (click)="downloadPdf(i.id)"
+                  class="flex-1 px-3 py-2 rounded-lg text-xs font-medium bg-sky-500 hover:bg-sky-600 text-white">
+                  Descargar PDF
+                </button>
+                <app-whatsapp-share [text]="whatsappTextFor(i)" label="Compartir" />
+              </div>
             </div>
           }
         </div>
@@ -118,4 +122,22 @@ export class PortalInvoicesComponent implements OnInit {
   }
 
   pad(n: number): string { return String(n).padStart(2, '0'); }
+
+  whatsappTextFor(i: PortalInvoiceItem): string {
+    const total = Math.round(+i.total).toLocaleString('es-CO');
+    const balance = Math.round(+i.balance).toLocaleString('es-CO');
+    const period = `${i.period_year}-${this.pad(i.period_month)}`;
+    const lines = [
+      `Factura #${i.consecutive} (${period})`,
+      `Consumo: ${i.consumption_cubic} m³`,
+      `Total: $ ${total}`,
+    ];
+    if (+i.balance > 0) {
+      lines.push(`Saldo pendiente: $ ${balance}`);
+      lines.push(`Vence: ${i.due_date}`);
+    } else if (i.status !== 'annulled') {
+      lines.push('Estado: PAGADA ✅');
+    }
+    return lines.join('\n');
+  }
 }

@@ -170,7 +170,8 @@
           </div>
         }
 
-        <div class="flex justify-end gap-2 mt-6">
+        <div class="flex justify-end gap-2 mt-6 items-center flex-wrap">
+          <app-whatsapp-share [text]="whatsappTextFor(d)" label="Compartir" />
           <button (click)="downloadPdf(d.id)"
             class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-brand-500 hover:bg-brand-600">
             Descargar PDF

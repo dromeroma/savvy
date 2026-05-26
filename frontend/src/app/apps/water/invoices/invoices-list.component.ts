@@ -9,10 +9,11 @@ import {
   WaterInvoiceListItem,
 } from '../../../core/models/water.model';
 import { NotificationService } from '../../../shared/services/notification.service';
+import { WhatsappShareButtonComponent } from '../../../shared/components/whatsapp-share-button/whatsapp-share-button.component';
 
 @Component({
   selector: 'app-invoices-list',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, WhatsappShareButtonComponent],
   templateUrl: './invoices-list.component.html',
 })
 export class InvoicesListComponent implements OnInit {
@@ -163,5 +164,23 @@ export class InvoicesListComponent implements OnInit {
       case 'annulled': return 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400 line-through';
       default: return 'bg-gray-100 text-gray-700';
     }
+  }
+
+  whatsappTextFor(d: WaterInvoice): string {
+    const total = Math.round(+d.total).toLocaleString('es-CO');
+    const balance = Math.round(+d.balance).toLocaleString('es-CO');
+    const period = `${d.period_year}-${String(d.period_month).padStart(2, '0')}`;
+    const lines = [
+      `Factura #${d.consecutive} (${period})`,
+      `Consumo: ${d.consumption_cubic} m³`,
+      `Total: $ ${total}`,
+    ];
+    if (+d.balance > 0) {
+      lines.push(`Saldo pendiente: $ ${balance}`);
+      lines.push(`Vence: ${d.due_date}`);
+    } else if (d.status !== 'annulled') {
+      lines.push('Estado: PAGADA ✅');
+    }
+    return lines.join('\n');
   }
 }

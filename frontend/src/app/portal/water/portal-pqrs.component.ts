@@ -9,10 +9,11 @@ import {
   PqrsType,
 } from '../../core/models/portal.model';
 import { NotificationService } from '../../shared/services/notification.service';
+import { WhatsappShareButtonComponent } from '../../shared/components/whatsapp-share-button/whatsapp-share-button.component';
 
 @Component({
   selector: 'app-portal-pqrs',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, WhatsappShareButtonComponent],
   template: `
     <div>
       <div class="flex items-start justify-between gap-3 mb-5">
@@ -144,7 +145,8 @@ import { NotificationService } from '../../shared/services/notification.service'
               </div>
             }
 
-            <div class="flex justify-end mt-5">
+            <div class="flex justify-end items-center gap-2 mt-5">
+              <app-whatsapp-share [text]="whatsappTextFor(d)" label="Compartir" />
               <button (click)="closeDetail()" class="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700">
                 Cerrar
               </button>
@@ -249,5 +251,19 @@ export class PortalPqrsComponent implements OnInit {
 
   private empty(): PqrsCreate {
     return { type: 'peticion', subject: '', description: '' };
+  }
+
+  whatsappTextFor(d: PortalPqrsDetail): string {
+    const lines = [
+      `PQRS ${d.code} · ${d.type.toUpperCase()}`,
+      `Asunto: ${d.subject}`,
+      `Estado: ${this.statusLabel(d.status)}`,
+      '',
+      d.description,
+    ];
+    if (d.response) {
+      lines.push('', '— Respuesta del acueducto:', d.response);
+    }
+    return lines.join('\n');
   }
 }

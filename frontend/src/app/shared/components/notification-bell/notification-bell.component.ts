@@ -5,10 +5,11 @@ import { Subscription, timer } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { WaterExtrasService } from '../../../core/services/water-extras.service';
 import { WaterNotification } from '../../../core/models/water-phase6.model';
+import { WhatsappShareButtonComponent } from '../whatsapp-share-button/whatsapp-share-button.component';
 
 @Component({
   selector: 'app-notification-bell',
-  imports: [CommonModule, DatePipe],
+  imports: [CommonModule, DatePipe, WhatsappShareButtonComponent],
   template: `
     <div class="relative">
       <button (click)="toggle($event)"
@@ -45,9 +46,9 @@ import { WaterNotification } from '../../../core/models/water-phase6.model';
           } @else {
             <ul class="divide-y divide-gray-100 dark:divide-gray-700">
               @for (n of items(); track n.id) {
-                <li>
+                <li class="relative">
                   <button (click)="open_(n)"
-                    class="w-full text-left px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition"
+                    class="w-full text-left px-3 py-2.5 pr-24 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition"
                     [ngClass]="!n.read_at ? 'bg-brand-50/40 dark:bg-brand-500/5' : ''">
                     <div class="flex items-start gap-2">
                       @if (!n.read_at) {
@@ -64,6 +65,9 @@ import { WaterNotification } from '../../../core/models/water-phase6.model';
                       </div>
                     </div>
                   </button>
+                  <div class="absolute top-2.5 right-2" (click)="$event.stopPropagation()">
+                    <app-whatsapp-share [text]="whatsappTextFor(n)" label="" />
+                  </div>
                 </li>
               }
             </ul>
@@ -132,5 +136,9 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
       this.unread.set(0);
       this.refresh();
     });
+  }
+
+  whatsappTextFor(n: WaterNotification): string {
+    return n.body ? `${n.title}\n\n${n.body}` : n.title;
   }
 }
