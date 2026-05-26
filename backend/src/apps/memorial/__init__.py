@@ -1,0 +1,1 @@
+"""SavvyMemorial — gestión funeraria integral."""

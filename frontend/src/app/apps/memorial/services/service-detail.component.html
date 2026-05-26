@@ -1,0 +1,342 @@
+<div class="p-4 sm:p-6 lg:p-8">
+  @if (loading()) {
+    <div class="flex items-center justify-center py-20">
+      <div class="animate-spin rounded-full h-8 w-8 border-4 border-gray-200 border-t-gray-600"></div>
+    </div>
+  } @else if (service(); as s) {
+    <!-- Header -->
+    <div class="flex items-start justify-between gap-3 flex-wrap mb-6">
+      <div>
+        <a routerLink="/memorial/services" class="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400">
+          ← Volver a servicios
+        </a>
+        <div class="flex items-center gap-3 mt-1">
+          <span class="font-mono text-xs text-gray-400">{{ s.code }}</span>
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium" [ngClass]="badge(s.status)">
+            {{ statusLabel(s.status) }}
+          </span>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-white/90 mt-1">
+          {{ s.deceased_first_name }} {{ s.deceased_last_name || '' }}
+        </h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          Defunción: {{ s.deceased_death_date }} · Tipo: {{ typeLabel(s.service_type) }}
+        </p>
+      </div>
+
+      <!-- Acciones de estado -->
+      <div class="flex gap-2 flex-wrap">
+        @for (t of allowedTransitions(); track t) {
+          <button (click)="transition(t)" [disabled]="transitioning()"
+            class="px-3 py-1.5 text-xs font-medium rounded-lg border transition disabled:opacity-50"
+            [ngClass]="{
+              'border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700/50 dark:text-emerald-300 dark:hover:bg-emerald-500/10': t === 'finalizado',
+              'border-red-300 text-red-700 hover:bg-red-50 dark:border-red-700/50 dark:text-red-300 dark:hover:bg-red-500/10': t === 'cancelado',
+              'border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700': t !== 'finalizado' && t !== 'cancelado'
+            }">
+            {{ statusLabel(t) }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Columna izquierda: fallecido + ejecución + nota -->
+      <div class="lg:col-span-2 space-y-6">
+        <!-- Fallecido -->
+        <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
+          <h2 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-4">Información del fallecido</h2>
+          <dl class="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-6 text-sm">
+            <div>
+              <dt class="text-[11px] uppercase tracking-wider text-gray-400">Nombre completo</dt>
+              <dd class="text-gray-800 dark:text-white/90 mt-0.5">{{ s.deceased_first_name }} {{ s.deceased_last_name || '' }}</dd>
+            </div>
+            <div>
+              <dt class="text-[11px] uppercase tracking-wider text-gray-400">Documento</dt>
+              <dd class="text-gray-800 dark:text-white/90 mt-0.5">
+                @if (s.deceased_document_number) {
+                  {{ s.deceased_document_type || 'Doc' }} {{ s.deceased_document_number }}
+                } @else { — }
+              </dd>
+            </div>
+            <div>
+              <dt class="text-[11px] uppercase tracking-wider text-gray-400">Fecha de nacimiento</dt>
+              <dd class="text-gray-800 dark:text-white/90 mt-0.5">{{ s.deceased_birth_date || '—' }}</dd>
+            </div>
+            <div>
+              <dt class="text-[11px] uppercase tracking-wider text-gray-400">Fecha de defunción</dt>
+              <dd class="text-gray-800 dark:text-white/90 mt-0.5">
+                {{ s.deceased_death_date }}{{ s.deceased_death_time ? ' · ' + s.deceased_death_time : '' }}
+              </dd>
+            </div>
+            <div class="sm:col-span-2">
+              <dt class="text-[11px] uppercase tracking-wider text-gray-400">Lugar / causa</dt>
+              <dd class="text-gray-800 dark:text-white/90 mt-0.5">
+                {{ s.deceased_death_place || '—' }}{{ s.deceased_death_cause ? ' · ' + s.deceased_death_cause : '' }}
+              </dd>
+            </div>
+          </dl>
+        </div>
+
+        <!-- Ejecución -->
+        <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-sm font-semibold text-gray-800 dark:text-white/90">Ejecución</h2>
+            <button (click)="toggleExecutionEdit()"
+              class="text-xs font-medium text-brand-500 hover:text-brand-600">
+              {{ editingExecution() ? 'Cancelar' : 'Editar' }}
+            </button>
+          </div>
+
+          @if (!editingExecution()) {
+            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-6 text-sm">
+              <div>
+                <dt class="text-[11px] uppercase tracking-wider text-gray-400">Velación inicio</dt>
+                <dd class="text-gray-800 dark:text-white/90 mt-0.5">{{ s.velation_start_at ? (s.velation_start_at | date:'short') : '—' }}</dd>
+              </div>
+              <div>
+                <dt class="text-[11px] uppercase tracking-wider text-gray-400">Velación fin</dt>
+                <dd class="text-gray-800 dark:text-white/90 mt-0.5">{{ s.velation_end_at ? (s.velation_end_at | date:'short') : '—' }}</dd>
+              </div>
+              <div class="sm:col-span-2">
+                <dt class="text-[11px] uppercase tracking-wider text-gray-400">Velación lugar</dt>
+                <dd class="text-gray-800 dark:text-white/90 mt-0.5">{{ s.velation_location || '—' }}</dd>
+              </div>
+              <div>
+                <dt class="text-[11px] uppercase tracking-wider text-gray-400">Cremación</dt>
+                <dd class="text-gray-800 dark:text-white/90 mt-0.5">{{ s.cremation_at ? (s.cremation_at | date:'short') : '—' }}</dd>
+              </div>
+              <div>
+                <dt class="text-[11px] uppercase tracking-wider text-gray-400">Cremación lugar</dt>
+                <dd class="text-gray-800 dark:text-white/90 mt-0.5">{{ s.cremation_location || '—' }}</dd>
+              </div>
+              <div>
+                <dt class="text-[11px] uppercase tracking-wider text-gray-400">Entierro</dt>
+                <dd class="text-gray-800 dark:text-white/90 mt-0.5">{{ s.burial_at ? (s.burial_at | date:'short') : '—' }}</dd>
+              </div>
+              <div>
+                <dt class="text-[11px] uppercase tracking-wider text-gray-400">Cementerio / sección</dt>
+                <dd class="text-gray-800 dark:text-white/90 mt-0.5">{{ s.burial_cemetery || '—' }}{{ s.burial_section ? ' · ' + s.burial_section : '' }}</dd>
+              </div>
+              <div>
+                <dt class="text-[11px] uppercase tracking-wider text-gray-400">Misa</dt>
+                <dd class="text-gray-800 dark:text-white/90 mt-0.5">{{ s.mass_at ? (s.mass_at | date:'short') : '—' }}</dd>
+              </div>
+              <div>
+                <dt class="text-[11px] uppercase tracking-wider text-gray-400">Iglesia</dt>
+                <dd class="text-gray-800 dark:text-white/90 mt-0.5">{{ s.mass_church || '—' }}</dd>
+              </div>
+              <div>
+                <dt class="text-[11px] uppercase tracking-wider text-gray-400">Estimado</dt>
+                <dd class="text-gray-800 dark:text-white/90 mt-0.5 font-mono">$ {{ (+s.estimated_total) | number:'1.0-0' }}</dd>
+              </div>
+              <div>
+                <dt class="text-[11px] uppercase tracking-wider text-gray-400">Final</dt>
+                <dd class="text-gray-800 dark:text-white/90 mt-0.5 font-mono">$ {{ (+s.final_total) | number:'1.0-0' }}</dd>
+              </div>
+            </dl>
+          } @else {
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Velación inicio</label>
+                <input type="datetime-local" [ngModel]="s.velation_start_at" (ngModelChange)="s.velation_start_at = $event"
+                  class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Velación fin</label>
+                <input type="datetime-local" [ngModel]="s.velation_end_at" (ngModelChange)="s.velation_end_at = $event"
+                  class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+              </div>
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Velación lugar</label>
+                <input [ngModel]="s.velation_location" (ngModelChange)="s.velation_location = $event"
+                  class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Cremación</label>
+                <input type="datetime-local" [ngModel]="s.cremation_at" (ngModelChange)="s.cremation_at = $event"
+                  class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Cremación lugar</label>
+                <input [ngModel]="s.cremation_location" (ngModelChange)="s.cremation_location = $event"
+                  class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Entierro</label>
+                <input type="datetime-local" [ngModel]="s.burial_at" (ngModelChange)="s.burial_at = $event"
+                  class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Cementerio</label>
+                <input [ngModel]="s.burial_cemetery" (ngModelChange)="s.burial_cemetery = $event"
+                  class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Sección</label>
+                <input [ngModel]="s.burial_section" (ngModelChange)="s.burial_section = $event"
+                  class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Misa</label>
+                <input type="datetime-local" [ngModel]="s.mass_at" (ngModelChange)="s.mass_at = $event"
+                  class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Iglesia</label>
+                <input [ngModel]="s.mass_church" (ngModelChange)="s.mass_church = $event"
+                  class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Valor final</label>
+                <input type="number" [ngModel]="s.final_total" (ngModelChange)="s.final_total = $event" min="0"
+                  class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+              </div>
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Observaciones</label>
+                <textarea [ngModel]="s.notes" (ngModelChange)="s.notes = $event" rows="2"
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm"></textarea>
+              </div>
+            </div>
+            <div class="mt-4 flex justify-end">
+              <button (click)="saveExecution()" [disabled]="savingExecution()"
+                class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300">
+                {{ savingExecution() ? 'Guardando…' : 'Guardar' }}
+              </button>
+            </div>
+          }
+        </div>
+
+        <!-- Notes / Timeline -->
+        <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
+          <h2 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-4">Línea de tiempo</h2>
+          <div class="flex gap-2 mb-4">
+            <input [(ngModel)]="newNote" (keydown.enter)="addNote()"
+              placeholder="Agregar nota o seguimiento..."
+              class="flex-1 h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+            <button (click)="addNote()" [disabled]="postingNote() || !newNote.trim()"
+              class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300">
+              Agregar
+            </button>
+          </div>
+          @if (events().length === 0) {
+            <p class="text-xs text-gray-400 italic">Sin eventos registrados.</p>
+          } @else {
+            <ul class="space-y-3">
+              @for (e of events(); track e.id) {
+                <li class="flex gap-3 text-sm">
+                  <div class="w-1.5 h-1.5 rounded-full bg-gray-400 mt-2 shrink-0"></div>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-[11px] uppercase tracking-wider text-gray-400">{{ eventLabel(e.event_type) }} · {{ e.created_at | date:'short' }}</div>
+                    @if (e.body) {
+                      <div class="text-gray-700 dark:text-gray-300 mt-0.5 whitespace-pre-line">{{ e.body }}</div>
+                    }
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </div>
+
+      <!-- Columna derecha: familiares -->
+      <div class="space-y-6">
+        <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-sm font-semibold text-gray-800 dark:text-white/90">Familiares</h2>
+            <button (click)="openAddFamily()" class="text-xs font-medium text-brand-500 hover:text-brand-600">
+              + Añadir
+            </button>
+          </div>
+          @if (s.family_members.length === 0) {
+            <p class="text-xs text-gray-400 italic">Sin familiares registrados.</p>
+          } @else {
+            <ul class="space-y-3">
+              @for (f of s.family_members; track f.id) {
+                <li class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+                  <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <div class="font-medium text-gray-800 dark:text-white/90 text-sm">{{ f.first_name }} {{ f.last_name || '' }}</div>
+                        @if (f.is_primary) {
+                          <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-brand-100 text-brand-700 dark:bg-brand-500/20 dark:text-brand-300">PRIMARIO</span>
+                        }
+                      </div>
+                      @if (f.relationship) {
+                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ f.relationship }}</div>
+                      }
+                      @if (f.mobile || f.phone) {
+                        <div class="text-xs text-gray-600 dark:text-gray-400 mt-1 font-mono">{{ f.mobile || f.phone }}</div>
+                      }
+                      @if (f.email) {
+                        <div class="text-xs text-gray-600 dark:text-gray-400 font-mono">{{ f.email }}</div>
+                      }
+                    </div>
+                    <button (click)="removeFamily(f.id)" class="text-xs text-red-600 hover:text-red-700 shrink-0">Eliminar</button>
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal añadir familiar -->
+    @if (addingFamily()) {
+      <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="closeAddFamily()">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-lg w-full p-6"
+          (click)="$event.stopPropagation()">
+          <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-4">Añadir familiar</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Nombres *</label>
+              <input [(ngModel)]="familyForm.first_name"
+                class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Apellidos</label>
+              <input [(ngModel)]="familyForm.last_name"
+                class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Parentesco</label>
+              <input [(ngModel)]="familyForm.relationship"
+                class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Celular</label>
+              <input [(ngModel)]="familyForm.mobile"
+                class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+              <input type="email" [(ngModel)]="familyForm.email"
+                class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+            </div>
+            <div class="sm:col-span-2">
+              <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                <input type="checkbox" [(ngModel)]="familyForm.is_primary" />
+                Marcar como contacto primario
+              </label>
+            </div>
+          </div>
+          <div class="flex justify-end gap-2 mt-5">
+            <button (click)="closeAddFamily()" [disabled]="savingFamily()"
+              class="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">
+              Cancelar
+            </button>
+            <button (click)="saveFamily()" [disabled]="savingFamily() || !familyForm.first_name.trim()"
+              class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300">
+              {{ savingFamily() ? 'Guardando…' : 'Añadir' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+  } @else {
+    <div class="p-5 bg-error-50 border border-error-200 dark:bg-error-500/10 dark:border-error-500/30 rounded-xl text-sm text-error-700 dark:text-error-400">
+      Servicio no encontrado.
+    </div>
+  }
+</div>

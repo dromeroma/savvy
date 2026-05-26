@@ -147,6 +147,13 @@ export const routes: Routes = [
         data: { app: 'water' },
         canActivate: [appAccessGuard],
       },
+      {
+        path: 'memorial',
+        loadChildren: () =>
+          import('./apps/memorial/memorial.routes').then((m) => m.MEMORIAL_ROUTES),
+        data: { app: 'memorial' },
+        canActivate: [appAccessGuard],
+      },
     ],
   },
   {

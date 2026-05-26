@@ -1,0 +1,246 @@
+<div class="p-4 sm:p-6 lg:p-8">
+  <!-- Header -->
+  <div class="flex items-start justify-between gap-4 flex-wrap mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-800 dark:text-white/90">Servicios funerarios</h1>
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        Cada servicio agrupa fallecido, familia responsable, tipo, ejecución y estado.
+      </p>
+    </div>
+    <button (click)="openCreate()"
+      class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium shadow-theme-xs">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+      </svg>
+      Nuevo servicio
+    </button>
+  </div>
+
+  <!-- Filters -->
+  <div class="flex flex-wrap gap-3 mb-4">
+    <input [(ngModel)]="search" (ngModelChange)="onSearchChange()"
+      placeholder="Buscar por código, nombre del fallecido, documento..."
+      class="flex-1 sm:max-w-sm h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+    <select [(ngModel)]="filterStatus" (ngModelChange)="load()"
+      class="h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-white/90 px-3 py-2 text-sm">
+      @for (s of statuses; track s.value) {
+        <option [value]="s.value">{{ s.label }}</option>
+      }
+    </select>
+    <select [(ngModel)]="filterType" (ngModelChange)="load()"
+      class="h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-white/90 px-3 py-2 text-sm">
+      @for (t of types; track t.value) {
+        <option [value]="t.value">{{ t.label }}</option>
+      }
+    </select>
+  </div>
+
+  <!-- Table -->
+  @if (loading()) {
+    <div class="flex items-center justify-center py-20">
+      <div class="animate-spin rounded-full h-8 w-8 border-4 border-gray-200 border-t-gray-600"></div>
+    </div>
+  } @else if (services().length === 0) {
+    <div class="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-10 text-center">
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        Aún no hay servicios registrados. Crea el primero con "Nuevo servicio".
+      </p>
+    </div>
+  } @else {
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 dark:bg-gray-700/30">
+          <tr class="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <th class="px-4 py-3">Código</th>
+            <th class="px-4 py-3">Fallecido</th>
+            <th class="px-4 py-3">Defunción</th>
+            <th class="px-4 py-3">Tipo</th>
+            <th class="px-4 py-3">Contacto familiar</th>
+            <th class="px-4 py-3 text-center">Familiares</th>
+            <th class="px-4 py-3 text-right">Estimado</th>
+            <th class="px-4 py-3">Estado</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+          @for (s of services(); track s.id) {
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/20 cursor-pointer"
+                [routerLink]="['/memorial/services', s.id]">
+              <td class="px-4 py-3 font-mono text-xs text-gray-700 dark:text-gray-300">{{ s.code }}</td>
+              <td class="px-4 py-3">
+                <div class="font-medium text-gray-800 dark:text-white/90">{{ s.deceased_name }}</div>
+              </td>
+              <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ s.deceased_death_date }}</td>
+              <td class="px-4 py-3 text-gray-700 dark:text-gray-300 text-xs">{{ typeLabel(s.service_type) }}</td>
+              <td class="px-4 py-3 text-gray-700 dark:text-gray-300">
+                @if (s.primary_family_name) {
+                  <div>{{ s.primary_family_name }}</div>
+                  @if (s.primary_family_phone) {
+                    <div class="text-xs text-gray-400">{{ s.primary_family_phone }}</div>
+                  }
+                } @else {
+                  <span class="text-xs text-gray-400 italic">Sin contacto</span>
+                }
+              </td>
+              <td class="px-4 py-3 text-center text-gray-700 dark:text-gray-300">{{ s.family_count }}</td>
+              <td class="px-4 py-3 text-right text-gray-700 dark:text-gray-300 font-mono text-xs">
+                $ {{ (+s.estimated_total) | number:'1.0-0' }}
+              </td>
+              <td class="px-4 py-3">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                  [ngClass]="badge(s.status)">{{ statusLabel(s.status) }}</span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <!-- Create modal -->
+  @if (formOpen()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="closeForm()">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto"
+        (click)="$event.stopPropagation()">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-1">Nuevo servicio funerario</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-5">
+          Datos iniciales del fallecido, familia responsable y tipo de servicio. El detalle de ejecución se llena después.
+        </p>
+
+        @if (formError()) {
+          <div class="mb-4 p-3 bg-error-50 border border-error-200 text-error-700 dark:bg-error-500/10 dark:border-error-500/30 dark:text-error-400 rounded-lg text-sm">
+            {{ formError() }}
+          </div>
+        }
+
+        <!-- Fallecido -->
+        <div class="mb-2">
+          <h4 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">Fallecido</h4>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Nombres *</label>
+            <input [(ngModel)]="form.deceased_first_name"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Apellidos</label>
+            <input [(ngModel)]="form.deceased_last_name"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo doc.</label>
+            <select [(ngModel)]="form.deceased_document_type"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm">
+              <option [ngValue]="null">—</option>
+              <option value="CC">CC</option>
+              <option value="CE">CE</option>
+              <option value="TI">TI</option>
+              <option value="RC">RC</option>
+              <option value="PP">PP</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Documento</label>
+            <input [(ngModel)]="form.deceased_document_number"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha de nacimiento</label>
+            <input type="date" [(ngModel)]="form.deceased_birth_date"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha de defunción *</label>
+            <input type="date" [(ngModel)]="form.deceased_death_date"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Lugar de defunción</label>
+            <input [(ngModel)]="form.deceased_death_place" placeholder="Hospital, ciudad..."
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Causa</label>
+            <input [(ngModel)]="form.deceased_death_cause" placeholder="Opcional"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+          </div>
+        </div>
+
+        <!-- Servicio -->
+        <div class="mt-6 mb-2">
+          <h4 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">Servicio</h4>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo de servicio *</label>
+            <select [(ngModel)]="form.service_type"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm">
+              @for (t of types; track t.value) {
+                @if (t.value !== '') {
+                  <option [value]="t.value">{{ t.label }}</option>
+                }
+              }
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Valor estimado</label>
+            <input type="number" [(ngModel)]="form.estimated_total" min="0"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+          </div>
+        </div>
+
+        <!-- Familiar responsable -->
+        <div class="mt-6 mb-2">
+          <h4 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">Familiar responsable</h4>
+        </div>
+        @if (form.family_members && form.family_members[0]) {
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Nombres</label>
+              <input [(ngModel)]="form.family_members[0].first_name"
+                class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Apellidos</label>
+              <input [(ngModel)]="form.family_members[0].last_name"
+                class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Parentesco</label>
+              <input [(ngModel)]="form.family_members[0].relationship" placeholder="Esposo/a, hijo/a, hermano/a..."
+                class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Celular</label>
+              <input [(ngModel)]="form.family_members[0].mobile"
+                class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+              <input type="email" [(ngModel)]="form.family_members[0].email"
+                class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+            </div>
+          </div>
+          <p class="text-xs text-gray-500 mt-2">Después podrás añadir más familiares desde el detalle del servicio.</p>
+        }
+
+        <div class="mt-6">
+          <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Observaciones</label>
+          <textarea [(ngModel)]="form.notes" rows="2"
+            class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm"></textarea>
+        </div>
+
+        <div class="flex justify-end gap-2 mt-6">
+          <button (click)="closeForm()" [disabled]="saving()"
+            class="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">
+            Cancelar
+          </button>
+          <button (click)="submit()" [disabled]="saving()"
+            class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300">
+            {{ saving() ? 'Guardando…' : 'Crear servicio' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>
