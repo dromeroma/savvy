@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MemorialApiService } from '../../../core/services/memorial.service';
 import {
+  CoverageLookupResult,
   MemorialFamilyMemberCreate,
   MemorialService,
   MemorialServiceEvent,
@@ -40,6 +41,12 @@ export class MemorialServiceDetailComponent implements OnInit {
 
   // Transición de estado
   transitioning = signal(false);
+
+  // Cobertura exequial
+  lookupOpen = signal(false);
+  lookupResults = signal<CoverageLookupResult[]>([]);
+  lookupLoading = signal(false);
+  lookupError = signal('');
 
   // Estados permitidos según estado actual
   allowedTransitions = computed<MemorialServiceStatus[]>(() => {
@@ -246,6 +253,8 @@ export class MemorialServiceDetailComponent implements OnInit {
       case 'note': return 'Nota';
       case 'family_added': return 'Familiar añadido';
       case 'family_removed': return 'Familiar eliminado';
+      case 'contract_linked': return 'Contrato exequial vinculado';
+      case 'contract_unlinked': return 'Contrato exequial desvinculado';
       default: return t;
     }
   }
@@ -260,5 +269,74 @@ export class MemorialServiceDetailComponent implements OnInit {
       email: '',
       is_primary: false,
     };
+  }
+
+  // -------- Coverage lookup --------
+  openLookup(): void {
+    this.lookupResults.set([]);
+    this.lookupError.set('');
+    this.lookupOpen.set(true);
+    const s = this.service();
+    if (s?.deceased_document_number) {
+      this.runLookup(s.deceased_document_number);
+    }
+  }
+
+  closeLookup(): void { this.lookupOpen.set(false); }
+
+  runLookup(doc: string): void {
+    if (!doc?.trim()) {
+      this.lookupError.set('Ingresa el documento del fallecido.');
+      this.lookupResults.set([]);
+      return;
+    }
+    this.lookupLoading.set(true);
+    this.lookupError.set('');
+    this.memorial.coverageLookup(doc.trim()).subscribe({
+      next: (results) => {
+        this.lookupResults.set(results);
+        this.lookupLoading.set(false);
+        if (results.length === 0) {
+          this.lookupError.set('No se encontró cobertura activa con ese documento.');
+        }
+      },
+      error: () => {
+        this.lookupLoading.set(false);
+        this.lookupError.set('Error al consultar cobertura.');
+      },
+    });
+  }
+
+  linkContract(contractId: string): void {
+    const s = this.service();
+    if (!s) return;
+    this.memorial.linkContractToService(s.id, contractId).subscribe({
+      next: (upd) => {
+        this.service.set(upd);
+        this.notify.show({
+          type: 'success', title: 'Contrato vinculado',
+          message: 'El servicio quedó asociado al contrato exequial.',
+        });
+        this.closeLookup();
+        this.loadEvents(s.id);
+      },
+      error: (err) => this.notify.show({
+        type: 'error', title: 'Error',
+        message: err?.error?.detail || 'No se pudo vincular el contrato.',
+      }),
+    });
+  }
+
+  unlinkContract(): void {
+    const s = this.service();
+    if (!s) return;
+    if (!confirm('¿Desvincular el contrato exequial de este servicio?')) return;
+    this.memorial.linkContractToService(s.id, null).subscribe({
+      next: (upd) => {
+        this.service.set(upd);
+        this.notify.show({ type: 'success', title: 'Desvinculado', message: 'Contrato desvinculado.' });
+        this.loadEvents(s.id);
+      },
+    });
   }
 }

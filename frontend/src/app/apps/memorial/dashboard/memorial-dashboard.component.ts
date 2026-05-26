@@ -58,8 +58,25 @@ import { MemorialDashboardKpis } from '../../../core/models/memorial.model';
           </div>
         </div>
 
+        <!-- Segunda fila: planes exequiales -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
+            <div class="text-[11px] uppercase tracking-wider text-gray-400">Contratos exequiales activos</div>
+            <div class="text-3xl font-semibold text-gray-800 dark:text-white/90 mt-1">{{ k.active_contracts }}</div>
+          </div>
+          <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
+            <div class="text-[11px] uppercase tracking-wider text-gray-400">Afiliados totales</div>
+            <div class="text-3xl font-semibold text-gray-800 dark:text-white/90 mt-1">{{ k.total_affiliates }}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">beneficiarios vigentes</div>
+          </div>
+          <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
+            <div class="text-[11px] uppercase tracking-wider text-gray-400">Planes activos en catálogo</div>
+            <div class="text-3xl font-semibold text-gray-800 dark:text-white/90 mt-1">{{ k.plans_active }}</div>
+          </div>
+        </div>
+
         <!-- Quick links -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <a routerLink="/memorial/services"
             class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 hover:border-brand-400 transition">
             <div class="text-sm font-semibold text-gray-800 dark:text-white/90">Servicios funerarios</div>
@@ -67,10 +84,20 @@ import { MemorialDashboardKpis } from '../../../core/models/memorial.model';
               Crear, ver y gestionar servicios. Estados, familiares, ejecución.
             </div>
           </a>
-          <div class="rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 p-5 text-gray-400">
-            <div class="text-sm font-medium">Planes exequiales</div>
-            <div class="text-xs mt-1">Disponible en la próxima fase (afiliados + cuotas).</div>
-          </div>
+          <a routerLink="/memorial/plans"
+            class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 hover:border-brand-400 transition">
+            <div class="text-sm font-semibold text-gray-800 dark:text-white/90">Planes exequiales</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Catálogo de planes con tarifa y cobertura.
+            </div>
+          </a>
+          <a routerLink="/memorial/contracts"
+            class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 hover:border-brand-400 transition">
+            <div class="text-sm font-semibold text-gray-800 dark:text-white/90">Contratos</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Afiliados, beneficiarios y cobertura.
+            </div>
+          </a>
         </div>
       } @else {
         <div class="p-5 bg-error-50 border border-error-200 dark:bg-error-500/10 dark:border-error-500/30 rounded-xl text-sm text-error-700 dark:text-error-400">

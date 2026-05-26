@@ -12,6 +12,9 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.apps.memorial.models import (
+    MemorialExequialBeneficiary,
+    MemorialExequialContract,
+    MemorialExequialPlan,
     MemorialService,
     MemorialServiceEvent,
     MemorialServiceFamily,
@@ -445,13 +448,87 @@ class MemorialServicesService:
                 MemorialService.deceased_death_date == today,
             )
         ) or 0
+
+        # Fase 2 — planes + contratos + afiliados
+        active_contracts = await db.scalar(
+            select(func.count(MemorialExequialContract.id)).where(
+                MemorialExequialContract.organization_id == org_id,
+                MemorialExequialContract.status == "active",
+            )
+        ) or 0
+        plans_active = await db.scalar(
+            select(func.count(MemorialExequialPlan.id)).where(
+                MemorialExequialPlan.organization_id == org_id,
+                MemorialExequialPlan.is_active.is_(True),
+            )
+        ) or 0
+        total_affiliates = await db.scalar(
+            select(func.count(MemorialExequialBeneficiary.id))
+            .join(
+                MemorialExequialContract,
+                MemorialExequialContract.id == MemorialExequialBeneficiary.contract_id,
+            )
+            .where(
+                MemorialExequialBeneficiary.organization_id == org_id,
+                MemorialExequialBeneficiary.removed_at.is_(None),
+                MemorialExequialContract.status == "active",
+            )
+        ) or 0
+
         return DashboardKpis(
             services_total=total,
             services_active=active,
             services_closed=closed,
             services_today=int(today_count),
             services_by_status=by_status,
+            active_contracts=int(active_contracts),
+            plans_active=int(plans_active),
+            total_affiliates=int(total_affiliates),
         )
+
+    @staticmethod
+    async def link_contract(
+        db: AsyncSession,
+        org_id: uuid.UUID,
+        service_id: uuid.UUID,
+        contract_id: uuid.UUID | None,
+        actor_user_id: uuid.UUID | None,
+    ) -> MemorialService:
+        """Vincula o desvincula un contrato exequial al servicio. Valida
+        que el contrato exista en la misma org."""
+        svc = await MemorialServicesService.get_service(db, org_id, service_id)
+        if svc.status in ("finalizado", "cancelado"):
+            raise ConflictError(
+                "No se puede vincular un contrato a un servicio cerrado.",
+            )
+        if contract_id is not None:
+            c = await db.scalar(
+                select(MemorialExequialContract).where(
+                    MemorialExequialContract.id == contract_id,
+                    MemorialExequialContract.organization_id == org_id,
+                )
+            )
+            if c is None:
+                raise NotFoundError("Contrato exequial no encontrado.")
+            svc.exequial_contract_id = c.id
+            await db.flush()
+            await MemorialServicesService._log_event(
+                db, org_id, svc.id, actor_user_id,
+                event_type="contract_linked",
+                body=f"Vinculado al contrato {c.code}",
+                event_data={"contract_id": str(c.id), "contract_code": c.code},
+            )
+        else:
+            old_id = str(svc.exequial_contract_id) if svc.exequial_contract_id else None
+            svc.exequial_contract_id = None
+            await db.flush()
+            await MemorialServicesService._log_event(
+                db, org_id, svc.id, actor_user_id,
+                event_type="contract_unlinked",
+                body="Contrato exequial desvinculado",
+                event_data={"previous_contract_id": old_id},
+            )
+        return svc
 
     # ------------------------------------------------------------------
     # Internals

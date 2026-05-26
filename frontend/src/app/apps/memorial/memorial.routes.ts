@@ -28,6 +28,27 @@ export const MEMORIAL_ROUTES: Routes = [
             (m) => m.MemorialServiceDetailComponent,
           ),
       },
+      {
+        path: 'plans',
+        loadComponent: () =>
+          import('./plans/plans-list.component').then(
+            (m) => m.MemorialPlansListComponent,
+          ),
+      },
+      {
+        path: 'contracts',
+        loadComponent: () =>
+          import('./contracts/contracts-list.component').then(
+            (m) => m.MemorialContractsListComponent,
+          ),
+      },
+      {
+        path: 'contracts/:id',
+        loadComponent: () =>
+          import('./contracts/contract-detail.component').then(
+            (m) => m.MemorialContractDetailComponent,
+          ),
+      },
     ],
   },
 ];

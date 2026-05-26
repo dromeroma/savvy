@@ -156,6 +156,8 @@ const APP_MENUS: Record<string, { icon: string; items: { label: string; route: s
     items: [
       { label: 'Dashboard', route: '/memorial/dashboard' },
       { label: 'Servicios funerarios', route: '/memorial/services' },
+      { label: 'Planes exequiales', route: '/memorial/plans' },
+      { label: 'Contratos', route: '/memorial/contracts' },
     ],
   },
   water: {

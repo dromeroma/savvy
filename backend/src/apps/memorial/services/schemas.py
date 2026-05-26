@@ -203,11 +203,22 @@ class AddNoteRequest(BaseModel):
 
 
 class DashboardKpis(BaseModel):
-    """Métricas que pinta el dashboard de Memorial — fase 1 son las
-    operativas; financieras y de cartera vienen en fase 3."""
+    """Métricas que pinta el dashboard de Memorial. Fase 1: solo
+    servicios. Fase 2 amplía con planes y afiliados."""
 
     services_total: int
     services_active: int          # iniciado | en_proceso | pendiente
     services_closed: int
-    services_today: int           # finalizados o creados hoy
+    services_today: int           # con defunción registrada hoy
     services_by_status: dict[str, int]
+
+    # Fase 2
+    active_contracts: int = 0
+    total_affiliates: int = 0     # beneficiarios sin removed_at en contratos activos
+    plans_active: int = 0
+
+
+class LinkContractRequest(BaseModel):
+    """Vincular (o desvincular) un contrato exequial a un servicio."""
+
+    contract_id: uuid.UUID | None = None

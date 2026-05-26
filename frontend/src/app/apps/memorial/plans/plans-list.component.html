@@ -1,0 +1,197 @@
+<div class="p-4 sm:p-6 lg:p-8">
+  <div class="flex items-start justify-between gap-4 flex-wrap mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-800 dark:text-white/90">Planes exequiales</h1>
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        Catálogo de planes que ofrece la funeraria — tarifas, cobertura, vigencia.
+      </p>
+    </div>
+    <button (click)="openCreate()"
+      class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">
+      Nuevo plan
+    </button>
+  </div>
+
+  <div class="flex flex-wrap gap-3 mb-4">
+    <input [(ngModel)]="search" (ngModelChange)="onSearchChange()"
+      placeholder="Buscar por código o nombre..."
+      class="flex-1 sm:max-w-sm h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+    <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+      <input type="checkbox" [(ngModel)]="activeOnly" (ngModelChange)="load()" />
+      Solo activos
+    </label>
+  </div>
+
+  @if (loading()) {
+    <div class="flex items-center justify-center py-20">
+      <div class="animate-spin rounded-full h-8 w-8 border-4 border-gray-200 border-t-gray-600"></div>
+    </div>
+  } @else if (plans().length === 0) {
+    <div class="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-10 text-center">
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        Aún no hay planes. Crea el primero para que tus afiliados puedan firmar contratos.
+      </p>
+    </div>
+  } @else {
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      @for (p of plans(); track p.id) {
+        <div class="rounded-2xl border bg-white dark:bg-gray-800 overflow-hidden hover:shadow-theme-md transition"
+          [ngClass]="p.is_active ? 'border-gray-200 dark:border-gray-700' : 'border-gray-200/60 dark:border-gray-700/60 opacity-70'">
+          <div class="p-5">
+            <div class="flex items-center gap-2 flex-wrap mb-2">
+              <span class="font-mono text-xs text-gray-400">{{ p.code }}</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium" [ngClass]="typeBadge(p.plan_type)">
+                {{ typeLabel(p.plan_type) }}
+              </span>
+              @if (!p.is_active) {
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">Inactivo</span>
+              }
+            </div>
+            <h3 class="text-base font-semibold text-gray-800 dark:text-white/90">{{ p.name }}</h3>
+            <div class="grid grid-cols-2 gap-3 mt-4">
+              <div>
+                <div class="text-[10px] uppercase tracking-wider text-gray-400">Cuota mensual</div>
+                <div class="text-lg font-semibold text-gray-800 dark:text-white/90 font-mono">$ {{ (+p.monthly_fee) | number:'1.0-0' }}</div>
+              </div>
+              <div>
+                <div class="text-[10px] uppercase tracking-wider text-gray-400">Cobertura</div>
+                <div class="text-lg font-semibold text-gray-800 dark:text-white/90 font-mono">$ {{ (+p.coverage_amount) | number:'1.0-0' }}</div>
+              </div>
+            </div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-3">
+              {{ p.contracts_count }} contrato(s) activo(s)
+            </div>
+          </div>
+          <div class="border-t border-gray-200 dark:border-gray-700 flex">
+            <button (click)="openEdit(p)" class="flex-1 px-3 py-2 text-xs font-medium text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-500/10">Editar</button>
+            <button (click)="confirmDelete(p)" class="flex-1 px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 border-l border-gray-200 dark:border-gray-700">Eliminar</button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Form modal -->
+  @if (formOpen()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="closeForm()">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto"
+        (click)="$event.stopPropagation()">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-1">
+          {{ editing() ? 'Editar plan' : 'Nuevo plan exequial' }}
+        </h3>
+
+        @if (formError()) {
+          <div class="my-4 p-3 bg-error-50 border border-error-200 text-error-700 dark:bg-error-500/10 dark:border-error-500/30 dark:text-error-400 rounded-lg text-sm">
+            {{ formError() }}
+          </div>
+        }
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Código *</label>
+            <input [(ngModel)]="form.code" [disabled]="!!editing()"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm disabled:opacity-60" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo *</label>
+            <select [(ngModel)]="form.plan_type" [disabled]="!!editing()"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm disabled:opacity-60">
+              @for (t of types; track t.value) {
+                <option [value]="t.value">{{ t.label }}</option>
+              }
+            </select>
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre del plan *</label>
+            <input [(ngModel)]="form.name"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción</label>
+            <textarea [(ngModel)]="form.description" rows="2"
+              class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm"></textarea>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Cuota mensual</label>
+            <input type="number" min="0" [(ngModel)]="form.monthly_fee"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Cuota trimestral</label>
+            <input type="number" min="0" [(ngModel)]="form.quarterly_fee"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Cuota semestral</label>
+            <input type="number" min="0" [(ngModel)]="form.semiannual_fee"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Cuota anual</label>
+            <input type="number" min="0" [(ngModel)]="form.annual_fee"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Cobertura (valor)</label>
+            <input type="number" min="0" [(ngModel)]="form.coverage_amount"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Carencia (días)</label>
+            <input type="number" min="0" [(ngModel)]="form.waiting_period_days"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Máx beneficiarios</label>
+            <input type="number" min="1" [(ngModel)]="form.max_beneficiaries" placeholder="Sin límite"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Edad máx afiliación</label>
+            <input type="number" min="0" max="120" [(ngModel)]="form.max_age_at_affiliation"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Vigencia desde *</label>
+            <input type="date" [(ngModel)]="form.valid_from" [disabled]="!!editing()"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm disabled:opacity-60" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Vigencia hasta</label>
+            <input type="date" [(ngModel)]="form.valid_to"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+          </div>
+
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Cobertura incluye (un ítem por línea)
+            </label>
+            <textarea [(ngModel)]="coverageInput" rows="4"
+              placeholder="Servicio funerario completo&#10;Velación 24 horas&#10;Traslado nacional&#10;Cremación o entierro"
+              class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm"></textarea>
+          </div>
+          <div>
+            <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <input type="checkbox" [(ngModel)]="form.is_active" />
+              Plan activo
+            </label>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 mt-6">
+          <button (click)="closeForm()" [disabled]="saving()"
+            class="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">
+            Cancelar
+          </button>
+          <button (click)="submit()" [disabled]="saving()"
+            class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300">
+            {{ saving() ? 'Guardando…' : (editing() ? 'Actualizar' : 'Crear') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

@@ -18,6 +18,7 @@ from sqlalchemy import (
     Date,
     DateTime,
     ForeignKey,
+    Integer,
     Numeric,
     String,
     Text,
@@ -203,6 +204,135 @@ class MemorialNotification(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False,
     )
+
+
+# ---------------------------------------------------------------- Phase 2: Exequial plans
+
+
+class MemorialExequialPlan(BaseMixin, OrgMixin, Base):
+    """Catálogo de planes exequiales que vende la funeraria."""
+
+    __tablename__ = "memorial_exequial_plans"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "code", name="uq_memorial_plans_org_code"),
+        CheckConstraint(
+            "plan_type IN ('individual','familiar','empresarial')",
+            name="chk_memorial_plans_type",
+        ),
+    )
+
+    code: Mapped[str] = mapped_column(String(40), nullable=False)
+    name: Mapped[str] = mapped_column(String(150), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    plan_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    max_beneficiaries: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    max_age_at_affiliation: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    max_age_for_coverage: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    waiting_period_days: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    monthly_fee: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0"), nullable=False)
+    quarterly_fee: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0"), nullable=False)
+    semiannual_fee: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0"), nullable=False)
+    annual_fee: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0"), nullable=False)
+
+    coverage_amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0"), nullable=False)
+    coverage_items: Mapped[list | None] = mapped_column(JSONB, default=list)
+
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    valid_from: Mapped[date] = mapped_column(Date, nullable=False)
+    valid_to: Mapped[date | None] = mapped_column(Date, nullable=True)
+
+
+class MemorialExequialContract(BaseMixin, OrgMixin, Base):
+    """Contrato exequial firmado por un afiliado o empresa."""
+
+    __tablename__ = "memorial_exequial_contracts"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "consecutive", name="uq_memorial_contracts_org_consec"),
+        UniqueConstraint("organization_id", "code", name="uq_memorial_contracts_org_code"),
+        CheckConstraint(
+            "status IN ('active','suspended','cancelled','expired')",
+            name="chk_memorial_contracts_status",
+        ),
+        CheckConstraint(
+            "affiliate_type IN ('individual','familiar','empresarial')",
+            name="chk_memorial_contracts_affiliate",
+        ),
+        CheckConstraint(
+            "payment_frequency IN ('monthly','quarterly','semiannual','annual')",
+            name="chk_memorial_contracts_freq",
+        ),
+    )
+
+    consecutive: Mapped[int] = mapped_column(Integer, nullable=False)
+    code: Mapped[str] = mapped_column(String(20), nullable=False)
+    plan_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("memorial_exequial_plans.id", ondelete="RESTRICT"), nullable=False,
+    )
+
+    affiliate_type: Mapped[str] = mapped_column(String(20), nullable=False)
+
+    titular_first_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    titular_last_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    titular_business_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    titular_document_type: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    titular_document_number: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    titular_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    titular_phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    titular_mobile: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    titular_address: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    payment_frequency: Mapped[str] = mapped_column(String(20), nullable=False)
+    fee_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0"), nullable=False)
+    start_date: Mapped[date] = mapped_column(Date, nullable=False)
+    next_payment_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+
+    status: Mapped[str] = mapped_column(String(20), default="active", nullable=False)
+    suspended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    cancellation_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+    )
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+    )
+
+    beneficiaries: Mapped[list[MemorialExequialBeneficiary]] = relationship(
+        "MemorialExequialBeneficiary", back_populates="contract",
+        cascade="all, delete-orphan",
+    )
+    plan: Mapped[MemorialExequialPlan] = relationship("MemorialExequialPlan")
+
+
+class MemorialExequialBeneficiary(BaseMixin, OrgMixin, Base):
+    """Persona cubierta dentro de un contrato exequial."""
+
+    __tablename__ = "memorial_exequial_beneficiaries"
+
+    contract_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("memorial_exequial_contracts.id", ondelete="CASCADE"), nullable=False,
+    )
+    first_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    last_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    document_type: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    document_number: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    birth_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    gender: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    relationship_: Mapped[str | None] = mapped_column("relationship", String(50), nullable=True)
+    is_titular: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    joined_at: Mapped[date] = mapped_column(Date, default=date.today, nullable=False)
+    removed_at: Mapped[date | None] = mapped_column(Date, nullable=True)
+    removed_reason: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    contract: Mapped[MemorialExequialContract] = relationship(
+        "MemorialExequialContract", back_populates="beneficiaries",
+    )
+
+
+# ---------------------------------------------------------------- Audit (back to original)
 
 
 class MemorialAuditLog(Base):

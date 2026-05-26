@@ -14,6 +14,7 @@ from src.apps.memorial.services.schemas import (
     FamilyMemberCreate,
     FamilyMemberResponse,
     FamilyMemberUpdate,
+    LinkContractRequest,
     ServiceCreate,
     ServiceEventResponse,
     ServiceListItem,
@@ -151,6 +152,24 @@ async def update_service(
 ) -> Any:
     await MemorialServicesService.update_service(
         db, org_id, service_id, data, _user_uuid(user),
+    )
+    return await get_service(service_id, db, org_id)
+
+
+@router.post(
+    "/{service_id}/link-contract",
+    response_model=ServiceResponse,
+    dependencies=[Depends(require_permission("memorial", "services.manage"))],
+)
+async def link_contract(
+    service_id: uuid.UUID,
+    req: LinkContractRequest,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+    user: dict[str, Any] = Depends(get_current_user),
+) -> Any:
+    await MemorialServicesService.link_contract(
+        db, org_id, service_id, req.contract_id, _user_uuid(user),
     )
     return await get_service(service_id, db, org_id)
 
