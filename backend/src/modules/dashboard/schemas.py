@@ -54,8 +54,20 @@ class DashboardMetric(BaseModel):
     app_code: str | None = None  # None for org-level metrics
 
 
+class DashboardExecutiveTotals(BaseModel):
+    """Agregados cross-app del mes actual."""
+
+    income_month: str  # "$ 45.230.000"
+    income_month_raw: float
+    receivables_total: str  # cartera por cobrar
+    receivables_total_raw: float
+    alerts_count: int  # número total de alertas críticas
+    active_apps_count: int
+
+
 class DashboardSummaryResponse(BaseModel):
     organization: DashboardOrganization
     subscription: DashboardSubscription | None
     active_apps: list[DashboardApp]
     metrics: list[DashboardMetric]
+    totals: DashboardExecutiveTotals | None = None

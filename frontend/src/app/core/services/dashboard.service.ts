@@ -44,11 +44,21 @@ export interface DashboardMetric {
   app_code: string | null;
 }
 
+export interface DashboardExecutiveTotals {
+  income_month: string;
+  income_month_raw: number;
+  receivables_total: string;
+  receivables_total_raw: number;
+  alerts_count: number;
+  active_apps_count: number;
+}
+
 export interface DashboardSummaryResponse {
   organization: DashboardOrganization;
   subscription: DashboardSubscription | null;
   active_apps: DashboardApp[];
   metrics: DashboardMetric[];
+  totals: DashboardExecutiveTotals | null;
 }
 
 @Injectable({ providedIn: 'root' })
