@@ -170,7 +170,7 @@
 
     <!-- Modal añadir beneficiario -->
     @if (addingBen()) {
-      <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="closeAddBen()">
+      <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="$event.target === $event.currentTarget && closeAddBen()">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-lg w-full p-6"
           (click)="$event.stopPropagation()">
           <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-4">Añadir beneficiario</h3>

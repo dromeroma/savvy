@@ -165,7 +165,7 @@
 
   <!-- Modal item -->
   @if (itemFormOpen()) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="closeItemForm()">
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="$event.target === $event.currentTarget && closeItemForm()">
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto"
         (click)="$event.stopPropagation()">
         <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-1">
@@ -253,7 +253,7 @@
 
   <!-- Modal movimiento -->
   @if (movFormOpen()) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="closeMovForm()">
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="$event.target === $event.currentTarget && closeMovForm()">
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-xl w-full p-6"
         (click)="$event.stopPropagation()">
         <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-1">Registrar movimiento</h3>

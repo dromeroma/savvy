@@ -19,9 +19,9 @@
         <option [value]="m.value">{{ m.label }}</option>
       }
     </select>
-    <input type="date" [(ngModel)]="filterDateFrom" (ngModelChange)="load()" placeholder="Desde"
+    <input type="date" [(ngModel)]="filterDateFrom" (change)="load()" placeholder="Desde"
       class="h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
-    <input type="date" [(ngModel)]="filterDateTo" (ngModelChange)="load()" placeholder="Hasta"
+    <input type="date" [(ngModel)]="filterDateTo" (change)="load()" placeholder="Hasta"
       class="h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
   </div>
 
@@ -69,7 +69,7 @@
 
   <!-- Modal registrar pago -->
   @if (formOpen()) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="closeForm()">
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="$event.target === $event.currentTarget && closeForm()">
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-xl w-full p-6 max-h-[90vh] overflow-y-auto"
         (click)="$event.stopPropagation()">
         <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-1">Registrar pago</h3>

@@ -312,7 +312,7 @@
 
     <!-- Modal añadir familiar -->
     @if (addingFamily()) {
-      <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="closeAddFamily()">
+      <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="$event.target === $event.currentTarget && closeAddFamily()">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-lg w-full p-6"
           (click)="$event.stopPropagation()">
           <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-4">Añadir familiar</h3>
@@ -365,7 +365,7 @@
 
     <!-- Modal lookup cobertura -->
     @if (lookupOpen()) {
-      <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="closeLookup()">
+      <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="$event.target === $event.currentTarget && closeLookup()">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto"
           (click)="$event.stopPropagation()">
           <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-1">Buscar cobertura exequial</h3>

@@ -133,8 +133,8 @@
           <option [value]="e.id">{{ e.first_name }} {{ e.last_name }} ({{ e.code }})</option>
         }
       </select>
-      <input type="date" [(ngModel)]="attDateFrom" (ngModelChange)="load()" class="h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm" />
-      <input type="date" [(ngModel)]="attDateTo" (ngModelChange)="load()" class="h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm" />
+      <input type="date" [(ngModel)]="attDateFrom" (change)="load()" class="h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm" />
+      <input type="date" [(ngModel)]="attDateTo" (change)="load()" class="h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm" />
     </div>
     @if (loading()) {
       <div class="flex items-center justify-center py-20"><div class="animate-spin rounded-full h-8 w-8 border-4 border-gray-200 border-t-gray-600"></div></div>
@@ -180,7 +180,7 @@
 
   <!-- Modal cargo -->
   @if (posFormOpen()) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="closePosForm()">
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="$event.target === $event.currentTarget && closePosForm()">
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-lg w-full p-6" (click)="$event.stopPropagation()">
         <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-1">{{ editingPosId() ? 'Editar cargo' : 'Nuevo cargo' }}</h3>
         @if (posFormError()) {
@@ -215,7 +215,7 @@
 
   <!-- Modal empleado -->
   @if (empFormOpen()) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="closeEmpForm()">
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="$event.target === $event.currentTarget && closeEmpForm()">
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto" (click)="$event.stopPropagation()">
         <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-1">{{ editingEmpId() ? 'Editar empleado' : 'Nuevo empleado' }}</h3>
         @if (empFormError()) {
@@ -322,7 +322,7 @@
 
   <!-- Modal asistencia -->
   @if (attFormOpen()) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="closeAttForm()">
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="$event.target === $event.currentTarget && closeAttForm()">
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-lg w-full p-6" (click)="$event.stopPropagation()">
         <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-1">Registrar asistencia</h3>
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
