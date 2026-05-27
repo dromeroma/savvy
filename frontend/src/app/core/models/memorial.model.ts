@@ -776,3 +776,111 @@ export interface HrAttendanceListItem {
   status: string;
 }
 
+// ============================================================ CRM (fase 6)
+
+export type LeadSource =
+  | 'referral' | 'walk_in' | 'web' | 'social' | 'whatsapp' | 'phone' | 'event' | 'other';
+
+export type LeadInterest =
+  | 'exequial_plan' | 'service_immediate' | 'service_future' | 'info' | 'other';
+
+export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'proposal' | 'won' | 'lost';
+export type LeadPriority = 'low' | 'medium' | 'high' | 'urgent';
+
+export type CommChannel = 'call' | 'email' | 'whatsapp' | 'visit' | 'sms' | 'meeting' | 'note';
+export type CommDirection = 'inbound' | 'outbound' | 'internal';
+
+export interface Lead {
+  id: string;
+  organization_id: string;
+  consecutive: number;
+  code: string;
+  first_name: string | null;
+  last_name: string | null;
+  business_name: string | null;
+  document_type: string | null;
+  document_number: string | null;
+  email: string | null;
+  phone: string | null;
+  mobile: string | null;
+  address: string | null;
+  source: LeadSource;
+  interest: LeadInterest;
+  status: LeadStatus;
+  priority: LeadPriority;
+  assigned_to: string | null;
+  next_follow_up_at: string | null;
+  notes: string | null;
+  converted_contract_id: string | null;
+  converted_service_id: string | null;
+  converted_at: string | null;
+  lost_reason: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LeadCreate {
+  first_name?: string | null;
+  last_name?: string | null;
+  business_name?: string | null;
+  document_type?: string | null;
+  document_number?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  mobile?: string | null;
+  address?: string | null;
+  source?: LeadSource;
+  interest?: LeadInterest;
+  priority?: LeadPriority;
+  assigned_to?: string | null;
+  next_follow_up_at?: string | null;
+  notes?: string | null;
+}
+
+export interface LeadUpdate extends LeadCreate {
+  status?: LeadStatus;
+  lost_reason?: string | null;
+}
+
+export interface LeadListItem {
+  id: string;
+  code: string;
+  first_name: string | null;
+  last_name: string | null;
+  business_name: string | null;
+  email: string | null;
+  mobile: string | null;
+  phone: string | null;
+  source: LeadSource;
+  interest: LeadInterest;
+  status: LeadStatus;
+  priority: LeadPriority;
+  assigned_to: string | null;
+  next_follow_up_at: string | null;
+  created_at: string;
+}
+
+export interface LeadCommunication {
+  id: string;
+  organization_id: string;
+  lead_id: string;
+  channel: CommChannel;
+  direction: CommDirection;
+  subject: string | null;
+  content: string | null;
+  occurred_at: string;
+  outcome: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface LeadCommunicationCreate {
+  channel: CommChannel;
+  direction?: CommDirection;
+  subject?: string | null;
+  content?: string | null;
+  occurred_at?: string | null;
+  outcome?: string | null;
+}
+

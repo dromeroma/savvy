@@ -165,6 +165,7 @@ const APP_MENUS: Record<string, { icon: string; items: { label: string; route: s
       { label: 'Traslados', route: '/memorial/transfers' },
       { label: 'Inventario', route: '/memorial/inventory' },
       { label: 'RRHH', route: '/memorial/hr' },
+      { label: 'CRM', route: '/memorial/crm' },
     ],
   },
   water: {

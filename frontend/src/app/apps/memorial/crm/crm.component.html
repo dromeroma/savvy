@@ -1,0 +1,340 @@
+<div class="px-4 sm:px-6 py-6 space-y-6">
+
+  <!-- Header -->
+  <header class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h1 class="text-2xl font-semibold text-slate-900 dark:text-slate-100">CRM</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400">Prospectos, seguimiento y conversión a contratos o servicios.</p>
+    </div>
+    <button (click)="openForm()" type="button"
+      class="inline-flex items-center gap-2 rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
+      <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      Nuevo lead
+    </button>
+  </header>
+
+  <!-- Funnel KPIs -->
+  <section class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+    @for (s of statuses; track s.value) {
+      <button type="button" (click)="filterStatus = filterStatus === s.value ? '' : s.value; refresh()"
+        class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3 text-left hover:border-brand-400 transition-colors"
+        [class.border-brand-500]="filterStatus === s.value">
+        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium" [class]="s.class">{{ s.label }}</span>
+        <p class="mt-2 text-2xl font-semibold text-slate-900 dark:text-slate-100">{{ funnelCounts()[s.value] }}</p>
+      </button>
+    }
+  </section>
+
+  <!-- Filtros -->
+  <section class="flex flex-wrap items-end gap-3">
+    <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
+      <span class="mb-1">Buscar</span>
+      <input [(ngModel)]="search" (keyup.enter)="refresh()"
+        placeholder="Nombre, código, email, doc..."
+        class="w-64 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+    </label>
+    <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
+      <span class="mb-1">Origen</span>
+      <select [(ngModel)]="filterSource" (change)="refresh()"
+        class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm">
+        <option value="">— Todos —</option>
+        @for (s of sources; track s.value) { <option [value]="s.value">{{ s.label }}</option> }
+      </select>
+    </label>
+    <button (click)="refresh()" type="button"
+      class="rounded-md border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800">
+      Refrescar
+    </button>
+  </section>
+
+  <!-- Tabla -->
+  <section class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+    <table class="min-w-full text-sm">
+      <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300">
+        <tr>
+          <th class="text-left px-4 py-2 font-medium">Código</th>
+          <th class="text-left px-4 py-2 font-medium">Nombre</th>
+          <th class="text-left px-4 py-2 font-medium">Contacto</th>
+          <th class="text-left px-4 py-2 font-medium">Origen</th>
+          <th class="text-left px-4 py-2 font-medium">Interés</th>
+          <th class="text-left px-4 py-2 font-medium">Prioridad</th>
+          <th class="text-left px-4 py-2 font-medium">Estado</th>
+          <th class="text-right px-4 py-2 font-medium">Acciones</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+        @if (loading()) {
+          <tr><td colspan="8" class="px-4 py-8 text-center text-slate-500">Cargando...</td></tr>
+        } @else if (leads().length === 0) {
+          <tr><td colspan="8" class="px-4 py-8 text-center text-slate-500">Sin leads registrados.</td></tr>
+        } @else {
+          @for (l of leads(); track l.id) {
+            <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+              <td class="px-4 py-2 font-mono text-xs">{{ l.code }}</td>
+              <td class="px-4 py-2">
+                <button type="button" (click)="openDetail(l)" class="text-brand-700 dark:text-brand-300 hover:underline font-medium">
+                  {{ leadName(l) }}
+                </button>
+              </td>
+              <td class="px-4 py-2 text-slate-600 dark:text-slate-400">
+                @if (l.email) { <div>{{ l.email }}</div> }
+                @if (l.mobile || l.phone) { <div>{{ l.mobile || l.phone }}</div> }
+              </td>
+              <td class="px-4 py-2">{{ sourceLabel(l.source) }}</td>
+              <td class="px-4 py-2">{{ interestLabel(l.interest) }}</td>
+              <td class="px-4 py-2 capitalize" [class]="priorityClass(l.priority)">{{ l.priority }}</td>
+              <td class="px-4 py-2">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium" [class]="statusClass(l.status)">
+                  {{ statusLabel(l.status) }}
+                </span>
+              </td>
+              <td class="px-4 py-2 text-right space-x-2 whitespace-nowrap">
+                <button (click)="openForm(l)" type="button" class="text-xs text-brand-600 hover:underline">Editar</button>
+                <button (click)="removeLead(l)" type="button" class="text-xs text-rose-600 hover:underline">Eliminar</button>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ===================== Modal lead ===================== -->
+  @if (formOpen()) {
+    <div class="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/50 px-4 py-6">
+      <div class="bg-white dark:bg-slate-900 rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+          <h2 class="text-lg font-semibold">{{ editingId() ? 'Editar lead' : 'Nuevo lead' }}</h2>
+          <button (click)="closeForm()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" type="button">✕</button>
+        </div>
+        <form (ngSubmit)="saveForm()" class="px-5 py-4 space-y-4">
+          @if (formError()) {
+            <p class="text-sm text-rose-600">{{ formError() }}</p>
+          }
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
+              <span class="mb-1">Nombres</span>
+              <input [(ngModel)]="form.first_name" name="first_name"
+                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+            </label>
+            <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
+              <span class="mb-1">Apellidos</span>
+              <input [(ngModel)]="form.last_name" name="last_name"
+                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+            </label>
+            <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400 sm:col-span-2">
+              <span class="mb-1">Razón social (si aplica)</span>
+              <input [(ngModel)]="form.business_name" name="business_name"
+                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+            </label>
+
+            <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
+              <span class="mb-1">Tipo doc.</span>
+              <input [(ngModel)]="form.document_type" name="document_type" maxlength="10"
+                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+            </label>
+            <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
+              <span class="mb-1">Número documento</span>
+              <input [(ngModel)]="form.document_number" name="document_number"
+                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+            </label>
+
+            <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
+              <span class="mb-1">Email</span>
+              <input [(ngModel)]="form.email" name="email" type="email"
+                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+            </label>
+            <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
+              <span class="mb-1">Celular</span>
+              <input [(ngModel)]="form.mobile" name="mobile"
+                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+            </label>
+            <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
+              <span class="mb-1">Teléfono</span>
+              <input [(ngModel)]="form.phone" name="phone"
+                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+            </label>
+            <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
+              <span class="mb-1">Dirección</span>
+              <input [(ngModel)]="form.address" name="address"
+                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+            </label>
+
+            <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
+              <span class="mb-1">Origen</span>
+              <select [(ngModel)]="form.source" name="source"
+                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm">
+                @for (s of sources; track s.value) { <option [value]="s.value">{{ s.label }}</option> }
+              </select>
+            </label>
+            <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
+              <span class="mb-1">Interés</span>
+              <select [(ngModel)]="form.interest" name="interest"
+                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm">
+                @for (i of interests; track i.value) { <option [value]="i.value">{{ i.label }}</option> }
+              </select>
+            </label>
+            <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
+              <span class="mb-1">Prioridad</span>
+              <select [(ngModel)]="form.priority" name="priority"
+                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm">
+                @for (p of priorities; track p.value) { <option [value]="p.value">{{ p.label }}</option> }
+              </select>
+            </label>
+            <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
+              <span class="mb-1">Próximo seguimiento</span>
+              <input [(ngModel)]="form.next_follow_up_at" name="next_follow_up_at" type="datetime-local"
+                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+            </label>
+
+            @if (editingId()) {
+              <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
+                <span class="mb-1">Estado</span>
+                <select [(ngModel)]="form.status" name="status"
+                  class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm">
+                  @for (s of statuses; track s.value) { <option [value]="s.value">{{ s.label }}</option> }
+                </select>
+              </label>
+            }
+
+            <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400 sm:col-span-2">
+              <span class="mb-1">Notas</span>
+              <textarea [(ngModel)]="form.notes" name="notes" rows="3"
+                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm"></textarea>
+            </label>
+          </div>
+
+          <div class="flex justify-end gap-2 border-t border-slate-200 dark:border-slate-700 pt-3">
+            <button type="button" (click)="closeForm()"
+              class="rounded-md border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800">Cancelar</button>
+            <button type="submit" [disabled]="savingForm()"
+              class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50">
+              {{ savingForm() ? 'Guardando...' : 'Guardar' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- ===================== Drawer detalle ===================== -->
+  @if (detailOpen() && detail(); as d) {
+    <div class="fixed inset-0 z-40 flex bg-slate-900/50">
+      <div class="ml-auto h-full w-full max-w-2xl bg-white dark:bg-slate-900 overflow-y-auto shadow-xl">
+        <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-900 z-10">
+          <div>
+            <span class="text-xs text-slate-500 font-mono">{{ d.code }}</span>
+            <h2 class="text-lg font-semibold">{{ leadName(d) }}</h2>
+          </div>
+          <button (click)="closeDetail()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" type="button">✕</button>
+        </div>
+
+        <div class="px-5 py-4 space-y-5">
+          <!-- Status changer -->
+          <section>
+            <p class="text-xs text-slate-500 mb-2">Cambiar estado:</p>
+            <div class="flex flex-wrap gap-2">
+              @for (s of statuses; track s.value) {
+                <button type="button" (click)="changeStatus(s.value)"
+                  class="px-3 py-1 rounded-md text-xs font-medium border border-slate-200 dark:border-slate-700"
+                  [class]="d.status === s.value ? s.class : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'">
+                  {{ s.label }}
+                </button>
+              }
+            </div>
+          </section>
+
+          <!-- Contact -->
+          <section class="grid grid-cols-2 gap-3 text-sm">
+            <div><span class="text-xs text-slate-500">Email</span><p>{{ d.email || '—' }}</p></div>
+            <div><span class="text-xs text-slate-500">Celular</span><p>{{ d.mobile || d.phone || '—' }}</p></div>
+            <div><span class="text-xs text-slate-500">Documento</span><p>{{ d.document_type }} {{ d.document_number || '—' }}</p></div>
+            <div><span class="text-xs text-slate-500">Dirección</span><p>{{ d.address || '—' }}</p></div>
+            <div><span class="text-xs text-slate-500">Origen</span><p>{{ sourceLabel(d.source) }}</p></div>
+            <div><span class="text-xs text-slate-500">Interés</span><p>{{ interestLabel(d.interest) }}</p></div>
+            @if (d.notes) {
+              <div class="col-span-2"><span class="text-xs text-slate-500">Notas</span><p class="whitespace-pre-wrap">{{ d.notes }}</p></div>
+            }
+            @if (d.converted_contract_id) {
+              <div class="col-span-2 rounded-md bg-emerald-50 dark:bg-emerald-900/20 p-2 text-xs text-emerald-700 dark:text-emerald-300">
+                Convertido a contrato ID {{ d.converted_contract_id }}
+              </div>
+            }
+            @if (d.converted_service_id) {
+              <div class="col-span-2 rounded-md bg-emerald-50 dark:bg-emerald-900/20 p-2 text-xs text-emerald-700 dark:text-emerald-300">
+                Convertido a servicio ID {{ d.converted_service_id }}
+              </div>
+            }
+            @if (d.lost_reason) {
+              <div class="col-span-2 rounded-md bg-rose-50 dark:bg-rose-900/20 p-2 text-xs text-rose-700 dark:text-rose-300">
+                Perdido: {{ d.lost_reason }}
+              </div>
+            }
+          </section>
+
+          <!-- Mark lost -->
+          @if (d.status !== 'lost' && d.status !== 'won') {
+            <section class="rounded-md border border-rose-200 dark:border-rose-800 p-3">
+              <p class="text-sm font-medium text-rose-700 dark:text-rose-300">Marcar como perdido</p>
+              <div class="mt-2 flex gap-2">
+                <input [(ngModel)]="lostReasonInput" placeholder="Motivo (requerido)"
+                  class="flex-1 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+                <button (click)="markLost()" type="button" [disabled]="marking()"
+                  class="rounded-md bg-rose-600 px-3 py-2 text-sm text-white hover:bg-rose-700 disabled:opacity-50">
+                  {{ marking() ? '...' : 'Marcar' }}
+                </button>
+              </div>
+            </section>
+          }
+
+          <!-- Comunicaciones -->
+          <section>
+            <h3 class="text-sm font-semibold mb-2">Comunicaciones</h3>
+            <div class="rounded-md border border-slate-200 dark:border-slate-700 p-3 mb-3">
+              @if (commError()) { <p class="text-xs text-rose-600 mb-2">{{ commError() }}</p> }
+              <div class="grid grid-cols-2 gap-2">
+                <select [(ngModel)]="commForm.channel" class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1.5 text-sm">
+                  @for (c of channels; track c.value) { <option [value]="c.value">{{ c.label }}</option> }
+                </select>
+                <select [(ngModel)]="commForm.direction" class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1.5 text-sm">
+                  @for (d of directions; track d.value) { <option [value]="d.value">{{ d.label }}</option> }
+                </select>
+              </div>
+              <input [(ngModel)]="commForm.subject" placeholder="Asunto (opcional)"
+                class="mt-2 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+              <textarea [(ngModel)]="commForm.content" placeholder="Detalle..." rows="2"
+                class="mt-2 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm"></textarea>
+              <div class="mt-2 flex justify-end">
+                <button (click)="addComm()" type="button" [disabled]="savingComm()"
+                  class="rounded-md bg-brand-600 px-3 py-1.5 text-sm text-white hover:bg-brand-700 disabled:opacity-50">
+                  {{ savingComm() ? '...' : 'Registrar' }}
+                </button>
+              </div>
+            </div>
+
+            @if (comms().length === 0) {
+              <p class="text-xs text-slate-500">Sin comunicaciones aún.</p>
+            } @else {
+              <ul class="space-y-2">
+                @for (c of comms(); track c.id) {
+                  <li class="rounded-md border border-slate-200 dark:border-slate-700 p-2 text-sm">
+                    <div class="flex justify-between items-start">
+                      <div>
+                        <span class="text-xs font-medium">{{ channelLabel(c.channel) }} · {{ directionLabel(c.direction) }}</span>
+                        <span class="text-xs text-slate-500 ml-2">{{ c.occurred_at | slice:0:16 }}</span>
+                      </div>
+                      <button (click)="removeComm(c)" type="button" class="text-xs text-rose-600 hover:underline">✕</button>
+                    </div>
+                    @if (c.subject) { <p class="text-sm font-medium mt-1">{{ c.subject }}</p> }
+                    @if (c.content) { <p class="text-xs text-slate-600 dark:text-slate-400 whitespace-pre-wrap mt-1">{{ c.content }}</p> }
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+        </div>
+      </div>
+    </div>
+  }
+</div>

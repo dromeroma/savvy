@@ -775,6 +775,106 @@ class MemorialAttendance(BaseMixin, OrgMixin, Base):
     )
 
 
+# ---------------------------------------------------------------- Phase 6: CRM
+
+
+class MemorialLead(BaseMixin, OrgMixin, Base):
+    """Prospecto comercial — antes de convertirse en contrato o servicio."""
+
+    __tablename__ = "memorial_leads"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "consecutive", name="uq_memorial_leads_org_consec"),
+        UniqueConstraint("organization_id", "code", name="uq_memorial_leads_org_code"),
+        CheckConstraint(
+            "source IN ('referral','walk_in','web','social','whatsapp','phone','event','other')",
+            name="chk_memorial_leads_source",
+        ),
+        CheckConstraint(
+            "interest IN ('exequial_plan','service_immediate','service_future','info','other')",
+            name="chk_memorial_leads_interest",
+        ),
+        CheckConstraint(
+            "status IN ('new','contacted','qualified','proposal','won','lost')",
+            name="chk_memorial_leads_status",
+        ),
+        CheckConstraint(
+            "priority IN ('low','medium','high','urgent')",
+            name="chk_memorial_leads_priority",
+        ),
+    )
+
+    consecutive: Mapped[int] = mapped_column(Integer, nullable=False)
+    code: Mapped[str] = mapped_column(String(20), nullable=False)
+    first_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    last_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    business_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    document_type: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    document_number: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    mobile: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    address: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    source: Mapped[str] = mapped_column(String(20), default="walk_in", nullable=False)
+    interest: Mapped[str] = mapped_column(String(30), default="info", nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="new", nullable=False)
+    priority: Mapped[str] = mapped_column(String(10), default="medium", nullable=False)
+    assigned_to: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+    )
+    next_follow_up_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    converted_contract_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("memorial_exequial_contracts.id", ondelete="SET NULL"), nullable=True,
+    )
+    converted_service_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("memorial_services.id", ondelete="SET NULL"), nullable=True,
+    )
+    converted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    lost_reason: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+    )
+
+
+class MemorialLeadCommunication(Base):
+    """Comunicación con un lead (llamada, email, WhatsApp, visita, etc)."""
+
+    __tablename__ = "memorial_lead_communications"
+    __table_args__ = (
+        CheckConstraint(
+            "channel IN ('call','email','whatsapp','visit','sms','meeting','note')",
+            name="chk_memorial_lead_comm_channel",
+        ),
+        CheckConstraint(
+            "direction IN ('inbound','outbound','internal')",
+            name="chk_memorial_lead_comm_direction",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("organizations.id", ondelete="CASCADE"),
+        index=True, nullable=False,
+    )
+    lead_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("memorial_leads.id", ondelete="CASCADE"), nullable=False,
+    )
+    channel: Mapped[str] = mapped_column(String(20), nullable=False)
+    direction: Mapped[str] = mapped_column(String(10), default="outbound", nullable=False)
+    subject: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    content: Mapped[str | None] = mapped_column(Text, nullable=True)
+    occurred_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False,
+    )
+    outcome: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False,
+    )
+
+
 # ---------------------------------------------------------------- Audit (back to original)
 
 

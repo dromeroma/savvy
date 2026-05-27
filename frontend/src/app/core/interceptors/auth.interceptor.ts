@@ -5,9 +5,13 @@ import { AuthService } from '../services/auth.service';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
+
+  // El portal del cliente gestiona su propio token; no inyectamos el JWT admin.
+  const isMemorialPortal = req.url.includes('/memorial-portal');
+
   const token = auth.getToken();
 
-  if (token) {
+  if (token && !isMemorialPortal) {
     req = req.clone({
       setHeaders: { Authorization: `Bearer ${token}` },
     });
@@ -18,7 +22,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       // Don't try to refresh if it's already a refresh or login request
       const isAuthRequest = req.url.includes('/auth/refresh') || req.url.includes('/auth/login');
 
-      if (err.status === 401 && !isAuthRequest && auth.getRefreshToken()) {
+      if (err.status === 401 && !isAuthRequest && !isMemorialPortal && auth.getRefreshToken()) {
         // Try to silently refresh the token
         return auth.refreshAccessToken().pipe(
           switchMap((tokens) => {
@@ -36,7 +40,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         );
       }
 
-      if (err.status === 401 && !isAuthRequest) {
+      if (err.status === 401 && !isAuthRequest && !isMemorialPortal) {
         auth.logout();
       }
 

@@ -168,5 +168,12 @@ export const routes: Routes = [
     loadChildren: () =>
       import('./portal/portal.routes').then((m) => m.PORTAL_ROUTES),
   },
+  {
+    path: 'memorial-portal',
+    loadChildren: () =>
+      import('./memorial-portal/memorial-portal.routes').then(
+        (m) => m.MEMORIAL_PORTAL_ROUTES,
+      ),
+  },
   { path: '**', redirectTo: 'dashboard' },
 ];

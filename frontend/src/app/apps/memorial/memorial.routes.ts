@@ -98,6 +98,13 @@ export const MEMORIAL_ROUTES: Routes = [
             (m) => m.MemorialHrComponent,
           ),
       },
+      {
+        path: 'crm',
+        loadComponent: () =>
+          import('./crm/crm.component').then(
+            (m) => m.MemorialCrmComponent,
+          ),
+      },
     ],
   },
 ];

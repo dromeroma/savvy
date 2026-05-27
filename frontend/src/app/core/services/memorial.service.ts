@@ -58,6 +58,12 @@ import {
   HrAttendance,
   HrAttendanceCreate,
   HrAttendanceListItem,
+  Lead,
+  LeadCreate,
+  LeadUpdate,
+  LeadListItem,
+  LeadCommunication,
+  LeadCommunicationCreate,
 } from '../models/memorial.model';
 
 @Injectable({ providedIn: 'root' })
@@ -472,5 +478,52 @@ export class MemorialApiService {
   }
   deleteAttendance(id: string): Observable<void> {
     return this.api.delete(`/memorial/hr/attendance/${id}`);
+  }
+
+  // ---- CRM: Leads ----
+  listLeads(params?: {
+    status?: string; source?: string; assigned_to?: string;
+    search?: string; limit?: number; offset?: number;
+  }): Observable<LeadListItem[]> {
+    const clean: Record<string, string | number | boolean> = {};
+    if (params?.status) clean['status'] = params.status;
+    if (params?.source) clean['source'] = params.source;
+    if (params?.assigned_to) clean['assigned_to'] = params.assigned_to;
+    if (params?.search) clean['search'] = params.search;
+    if (params?.limit !== undefined) clean['limit'] = params.limit;
+    if (params?.offset !== undefined) clean['offset'] = params.offset;
+    return this.api.get<LeadListItem[]>('/memorial/crm/leads', clean);
+  }
+  getLead(id: string): Observable<Lead> {
+    return this.api.get<Lead>(`/memorial/crm/leads/${id}`);
+  }
+  createLead(data: LeadCreate): Observable<Lead> {
+    return this.api.post<Lead>('/memorial/crm/leads', data);
+  }
+  updateLead(id: string, data: LeadUpdate): Observable<Lead> {
+    return this.api.patch<Lead>(`/memorial/crm/leads/${id}`, data);
+  }
+  deleteLead(id: string): Observable<void> {
+    return this.api.delete(`/memorial/crm/leads/${id}`);
+  }
+  convertLeadToContract(id: string, contractId: string): Observable<Lead> {
+    return this.api.post<Lead>(`/memorial/crm/leads/${id}/convert-contract`, { contract_id: contractId });
+  }
+  convertLeadToService(id: string, serviceId: string): Observable<Lead> {
+    return this.api.post<Lead>(`/memorial/crm/leads/${id}/convert-service`, { service_id: serviceId });
+  }
+  markLeadLost(id: string, reason: string): Observable<Lead> {
+    return this.api.post<Lead>(`/memorial/crm/leads/${id}/mark-lost`, { lost_reason: reason });
+  }
+
+  // ---- CRM: Communications ----
+  listLeadCommunications(leadId: string): Observable<LeadCommunication[]> {
+    return this.api.get<LeadCommunication[]>(`/memorial/crm/leads/${leadId}/communications`);
+  }
+  createLeadCommunication(leadId: string, data: LeadCommunicationCreate): Observable<LeadCommunication> {
+    return this.api.post<LeadCommunication>(`/memorial/crm/leads/${leadId}/communications`, data);
+  }
+  deleteLeadCommunication(commId: string): Observable<void> {
+    return this.api.delete(`/memorial/crm/communications/${commId}`);
   }
 }
