@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -12,10 +12,11 @@ import {
   PlanType,
 } from '../../../core/models/memorial.model';
 import { NotificationService } from '../../../shared/services/notification.service';
+import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
 
 @Component({
   selector: 'app-memorial-contracts-list',
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, PaginationComponent],
   templateUrl: './contracts-list.component.html',
 })
 export class MemorialContractsListComponent implements OnInit {
@@ -26,6 +27,22 @@ export class MemorialContractsListComponent implements OnInit {
   loading = signal(true);
   contracts = signal<ExequialContractListItem[]>([]);
   plansForPicker = signal<ExequialPlanListItem[]>([]);
+
+  // Paginación cliente
+  page = signal(0);
+  pageSize = signal(20);
+  paginatedContracts = computed(() => {
+    const start = this.page() * this.pageSize();
+    return this.contracts().slice(start, start + this.pageSize());
+  });
+
+  constructor() {
+    // Reset page cuando cambia el dataset (filtros, refresh)
+    effect(() => {
+      this.contracts();
+      this.page.set(0);
+    }, { allowSignalWrites: true });
+  }
 
   search = '';
   filterStatus = '';

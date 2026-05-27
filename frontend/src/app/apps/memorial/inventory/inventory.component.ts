@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MemorialApiService } from '../../../core/services/memorial.service';
@@ -12,12 +12,13 @@ import {
   MovementType,
 } from '../../../core/models/memorial.model';
 import { NotificationService } from '../../../shared/services/notification.service';
+import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
 
 type Tab = 'items' | 'movements';
 
 @Component({
   selector: 'app-memorial-inventory',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, PaginationComponent],
   templateUrl: './inventory.component.html',
 })
 export class MemorialInventoryComponent implements OnInit {
@@ -29,6 +30,25 @@ export class MemorialInventoryComponent implements OnInit {
 
   items = signal<InventoryItemListItem[]>([]);
   movements = signal<InventoryMovementListItem[]>([]);
+
+  itemsPage = signal(0);
+  itemsPageSize = signal(20);
+  paginatedItems = computed(() => {
+    const s = this.itemsPage() * this.itemsPageSize();
+    return this.items().slice(s, s + this.itemsPageSize());
+  });
+
+  movPage = signal(0);
+  movPageSize = signal(20);
+  paginatedMovements = computed(() => {
+    const s = this.movPage() * this.movPageSize();
+    return this.movements().slice(s, s + this.movPageSize());
+  });
+
+  constructor() {
+    effect(() => { this.items(); this.itemsPage.set(0); }, { allowSignalWrites: true });
+    effect(() => { this.movements(); this.movPage.set(0); }, { allowSignalWrites: true });
+  }
 
   // Filtros items
   filterCategory: ItemCategory | '' = '';

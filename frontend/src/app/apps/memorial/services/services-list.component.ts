@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -10,10 +10,11 @@ import {
   MemorialServiceType,
 } from '../../../core/models/memorial.model';
 import { NotificationService } from '../../../shared/services/notification.service';
+import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
 
 @Component({
   selector: 'app-memorial-services-list',
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, PaginationComponent],
   templateUrl: './services-list.component.html',
 })
 export class MemorialServicesListComponent implements OnInit {
@@ -23,6 +24,20 @@ export class MemorialServicesListComponent implements OnInit {
 
   loading = signal(true);
   services = signal<MemorialServiceListItem[]>([]);
+
+  page = signal(0);
+  pageSize = signal(20);
+  paginatedServices = computed(() => {
+    const start = this.page() * this.pageSize();
+    return this.services().slice(start, start + this.pageSize());
+  });
+
+  constructor() {
+    effect(() => {
+      this.services();
+      this.page.set(0);
+    }, { allowSignalWrites: true });
+  }
 
   search = '';
   filterStatus = '';

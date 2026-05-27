@@ -56,7 +56,7 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-          @for (c of contracts(); track c.id) {
+          @for (c of paginatedContracts(); track c.id) {
             <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/20 cursor-pointer"
                 [routerLink]="['/memorial/contracts', c.id]">
               <td class="px-4 py-3 font-mono text-xs text-gray-700 dark:text-gray-300">{{ c.code }}</td>
@@ -83,6 +83,7 @@
           }
         </tbody>
       </table>
+      <app-pagination [totalItems]="contracts().length" [(page)]="page" [(pageSize)]="pageSize" />
     </div>
   }
 

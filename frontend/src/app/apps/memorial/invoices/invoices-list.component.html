@@ -56,7 +56,7 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-          @for (i of invoices(); track i.id) {
+          @for (i of paginatedInvoices(); track i.id) {
             <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/20">
               <td class="px-4 py-3 font-mono text-xs text-gray-700 dark:text-gray-300">{{ i.code }}</td>
               <td class="px-4 py-3 text-xs text-gray-700 dark:text-gray-300">{{ sourceLabel(i.source_type) }}</td>
@@ -84,6 +84,7 @@
           }
         </tbody>
       </table>
+      <app-pagination [totalItems]="invoices().length" [(page)]="page" [(pageSize)]="pageSize" />
     </div>
   }
 </div>

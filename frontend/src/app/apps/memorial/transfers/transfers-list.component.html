@@ -50,7 +50,7 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-          @for (t of transfers(); track t.id) {
+          @for (t of paginatedTransfers(); track t.id) {
             <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/20">
               <td class="px-4 py-3 font-mono text-xs">{{ t.code }}</td>
               <td class="px-4 py-3 text-xs text-gray-700 dark:text-gray-300">{{ typeLabel(t.transfer_type) }}</td>
@@ -93,6 +93,7 @@
           }
         </tbody>
       </table>
+      <app-pagination [totalItems]="transfers().length" [(page)]="page" [(pageSize)]="pageSize" />
     </div>
   }
 

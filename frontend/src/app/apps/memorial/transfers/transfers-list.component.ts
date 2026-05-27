@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -13,10 +13,11 @@ import {
   TransferType,
 } from '../../../core/models/memorial.model';
 import { NotificationService } from '../../../shared/services/notification.service';
+import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
 
 @Component({
   selector: 'app-memorial-transfers-list',
-  imports: [CommonModule, FormsModule, RouterLink, DatePipe],
+  imports: [CommonModule, FormsModule, RouterLink, DatePipe, PaginationComponent],
   templateUrl: './transfers-list.component.html',
 })
 export class MemorialTransfersListComponent implements OnInit {
@@ -25,6 +26,17 @@ export class MemorialTransfersListComponent implements OnInit {
 
   loading = signal(true);
   transfers = signal<MemorialTransferListItem[]>([]);
+
+  page = signal(0);
+  pageSize = signal(20);
+  paginatedTransfers = computed(() => {
+    const s = this.page() * this.pageSize();
+    return this.transfers().slice(s, s + this.pageSize());
+  });
+
+  constructor() {
+    effect(() => { this.transfers(); this.page.set(0); }, { allowSignalWrites: true });
+  }
 
   vehiclesForPicker = signal<MemorialVehicle[]>([]);
   driversForPicker = signal<MemorialDriver[]>([]);

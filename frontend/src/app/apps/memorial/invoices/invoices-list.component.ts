@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MemorialApiService } from '../../../core/services/memorial.service';
@@ -9,10 +9,11 @@ import {
 } from '../../../core/models/memorial.model';
 import { NotificationService } from '../../../shared/services/notification.service';
 import { WhatsappShareButtonComponent } from '../../../shared/components/whatsapp-share-button/whatsapp-share-button.component';
+import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
 
 @Component({
   selector: 'app-memorial-invoices-list',
-  imports: [CommonModule, FormsModule, WhatsappShareButtonComponent],
+  imports: [CommonModule, FormsModule, WhatsappShareButtonComponent, PaginationComponent],
   templateUrl: './invoices-list.component.html',
 })
 export class MemorialInvoicesListComponent implements OnInit {
@@ -21,6 +22,20 @@ export class MemorialInvoicesListComponent implements OnInit {
 
   loading = signal(true);
   invoices = signal<MemorialInvoiceListItem[]>([]);
+
+  page = signal(0);
+  pageSize = signal(20);
+  paginatedInvoices = computed(() => {
+    const start = this.page() * this.pageSize();
+    return this.invoices().slice(start, start + this.pageSize());
+  });
+
+  constructor() {
+    effect(() => {
+      this.invoices();
+      this.page.set(0);
+    }, { allowSignalWrites: true });
+  }
 
   filterSource = '';
   filterStatus = '';

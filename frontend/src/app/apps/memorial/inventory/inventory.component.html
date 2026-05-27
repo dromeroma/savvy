@@ -79,7 +79,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-            @for (i of items(); track i.id) {
+            @for (i of paginatedItems(); track i.id) {
               <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/20" [class.opacity-60]="!i.is_active">
                 <td class="px-4 py-3 font-mono text-xs">{{ i.code }}</td>
                 <td class="px-4 py-3">
@@ -107,6 +107,7 @@
             }
           </tbody>
         </table>
+        <app-pagination [totalItems]="items().length" [(page)]="itemsPage" [(pageSize)]="itemsPageSize" />
       </div>
     }
   }
@@ -135,7 +136,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-            @for (m of movements(); track m.id) {
+            @for (m of paginatedMovements(); track m.id) {
               <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/20">
                 <td class="px-4 py-3 font-mono text-xs">{{ m.code }}</td>
                 <td class="px-4 py-3 text-xs">{{ m.movement_date }}</td>
@@ -157,6 +158,7 @@
             }
           </tbody>
         </table>
+        <app-pagination [totalItems]="movements().length" [(page)]="movPage" [(pageSize)]="movPageSize" />
       </div>
     }
   }

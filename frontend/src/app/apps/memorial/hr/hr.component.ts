@@ -1,6 +1,7 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
 import { MemorialApiService } from '../../../core/services/memorial.service';
 import {
   AttendanceStatus,
@@ -21,7 +22,7 @@ type Tab = 'employees' | 'positions' | 'attendance';
 
 @Component({
   selector: 'app-memorial-hr',
-  imports: [CommonModule, FormsModule, DatePipe],
+  imports: [CommonModule, FormsModule, DatePipe, PaginationComponent],
   templateUrl: './hr.component.html',
 })
 export class MemorialHrComponent implements OnInit {
@@ -34,6 +35,34 @@ export class MemorialHrComponent implements OnInit {
   employees = signal<HrEmployeeListItem[]>([]);
   positions = signal<HrPosition[]>([]);
   attendance = signal<HrAttendanceListItem[]>([]);
+
+  // Paginación por pestaña
+  empPage = signal(0);
+  empPageSize = signal(20);
+  paginatedEmployees = computed(() => {
+    const s = this.empPage() * this.empPageSize();
+    return this.employees().slice(s, s + this.empPageSize());
+  });
+
+  posPage = signal(0);
+  posPageSize = signal(20);
+  paginatedPositions = computed(() => {
+    const s = this.posPage() * this.posPageSize();
+    return this.positions().slice(s, s + this.posPageSize());
+  });
+
+  attPage = signal(0);
+  attPageSize = signal(20);
+  paginatedAttendance = computed(() => {
+    const s = this.attPage() * this.attPageSize();
+    return this.attendance().slice(s, s + this.attPageSize());
+  });
+
+  constructor() {
+    effect(() => { this.employees(); this.empPage.set(0); }, { allowSignalWrites: true });
+    effect(() => { this.positions(); this.posPage.set(0); }, { allowSignalWrites: true });
+    effect(() => { this.attendance(); this.attPage.set(0); }, { allowSignalWrites: true });
+  }
 
   // Filtros
   searchEmp = '';

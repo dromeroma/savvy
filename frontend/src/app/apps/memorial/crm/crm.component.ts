@@ -1,6 +1,7 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, inject, OnInit, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
 import { MemorialApiService } from '../../../core/services/memorial.service';
 import {
   CommChannel,
@@ -19,7 +20,7 @@ import { NotificationService } from '../../../shared/services/notification.servi
 
 @Component({
   selector: 'app-memorial-crm',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, PaginationComponent],
   templateUrl: './crm.component.html',
 })
 export class MemorialCrmComponent implements OnInit {
@@ -28,6 +29,17 @@ export class MemorialCrmComponent implements OnInit {
 
   loading = signal(false);
   leads = signal<LeadListItem[]>([]);
+
+  page = signal(0);
+  pageSize = signal(20);
+  paginatedLeads = computed(() => {
+    const s = this.page() * this.pageSize();
+    return this.leads().slice(s, s + this.pageSize());
+  });
+
+  constructor() {
+    effect(() => { this.leads(); this.page.set(0); }, { allowSignalWrites: true });
+  }
 
   search = '';
   filterStatus = '';

@@ -68,7 +68,7 @@
         } @else if (leads().length === 0) {
           <tr><td colspan="8" class="px-4 py-8 text-center text-slate-500">Sin leads registrados.</td></tr>
         } @else {
-          @for (l of leads(); track l.id) {
+          @for (l of paginatedLeads(); track l.id) {
             <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
               <td class="px-4 py-2 font-mono text-xs">{{ l.code }}</td>
               <td class="px-4 py-2">
@@ -97,6 +97,7 @@
         }
       </tbody>
     </table>
+    <app-pagination [totalItems]="leads().length" [(page)]="page" [(pageSize)]="pageSize" />
   </section>
 
   <!-- ===================== Modal lead ===================== -->

@@ -48,7 +48,7 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-          @for (p of payments(); track p.id) {
+          @for (p of paginatedPayments(); track p.id) {
             <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/20">
               <td class="px-4 py-3 font-mono text-xs text-gray-700 dark:text-gray-300">{{ p.code }}</td>
               <td class="px-4 py-3 text-xs text-gray-700 dark:text-gray-300">{{ p.payment_date }}</td>
@@ -63,6 +63,7 @@
           }
         </tbody>
       </table>
+      <app-pagination [totalItems]="payments().length" [(page)]="page" [(pageSize)]="pageSize" />
     </div>
   }
 

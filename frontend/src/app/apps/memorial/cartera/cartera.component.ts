@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MemorialApiService } from '../../../core/services/memorial.service';
@@ -7,10 +7,11 @@ import {
   MemorialOverdueDebtor,
 } from '../../../core/models/memorial.model';
 import { NotificationService } from '../../../shared/services/notification.service';
+import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
 
 @Component({
   selector: 'app-memorial-cartera',
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, PaginationComponent],
   template: `
     <div class="p-4 sm:p-6 lg:p-8">
       <div class="flex items-start justify-between gap-4 flex-wrap mb-6">
@@ -79,7 +80,7 @@ import { NotificationService } from '../../../shared/services/notification.servi
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                @for (d of debtors(); track d.code) {
+                @for (d of paginatedDebtors(); track d.code) {
                   <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/20">
                     <td class="px-4 py-3 font-mono text-xs">
                       @if (d.contract_id) {
@@ -109,6 +110,7 @@ import { NotificationService } from '../../../shared/services/notification.servi
                 }
               </tbody>
             </table>
+            <app-pagination [totalItems]="debtors().length" [(page)]="page" [(pageSize)]="pageSize" />
           }
         </div>
       }
@@ -122,6 +124,20 @@ export class MemorialCarteraComponent implements OnInit {
   loading = signal(true);
   aging = signal<MemorialAgingReport | null>(null);
   debtors = signal<MemorialOverdueDebtor[]>([]);
+
+  page = signal(0);
+  pageSize = signal(20);
+  paginatedDebtors = computed(() => {
+    const start = this.page() * this.pageSize();
+    return this.debtors().slice(start, start + this.pageSize());
+  });
+
+  constructor() {
+    effect(() => {
+      this.debtors();
+      this.page.set(0);
+    }, { allowSignalWrites: true });
+  }
   recalculating = signal(false);
 
   ngOnInit(): void { this.load(); }
