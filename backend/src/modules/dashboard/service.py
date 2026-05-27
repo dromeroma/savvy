@@ -210,6 +210,22 @@ class DashboardService:
             metrics.extend(await DashboardService._water_metrics(db, org_id))
         if "pos" in app_codes:
             metrics.extend(await DashboardService._pos_metrics(db, org_id))
+        if "parking" in app_codes:
+            metrics.extend(await DashboardService._parking_metrics(db, org_id))
+        if "health" in app_codes:
+            metrics.extend(await DashboardService._health_metrics(db, org_id))
+        if "pay" in app_codes:
+            metrics.extend(await DashboardService._pay_metrics(db, org_id))
+        if "condo" in app_codes:
+            metrics.extend(await DashboardService._condo_metrics(db, org_id))
+        if "credit" in app_codes:
+            metrics.extend(await DashboardService._credit_metrics(db, org_id))
+        if "edu" in app_codes:
+            metrics.extend(await DashboardService._edu_metrics(db, org_id))
+        if "family" in app_codes:
+            metrics.extend(await DashboardService._family_metrics(db, org_id))
+        if "crm" in app_codes:
+            metrics.extend(await DashboardService._crm_metrics(db, org_id))
         return metrics
 
     # ------------------------------------------------------------------
@@ -518,6 +534,546 @@ class DashboardService:
                 icon="trending-up",
                 color="#059669",
                 app_code="pos",
+            ),
+        ]
+
+    # ------------------------------------------------------------------
+    # Parking KPIs
+    # ------------------------------------------------------------------
+    @staticmethod
+    async def _parking_metrics(
+        db: AsyncSession, org_id: uuid.UUID,
+    ) -> list[DashboardMetric]:
+        from datetime import datetime, time as dtime, timezone
+        from src.apps.parking.sessions.models import ParkingSession
+        today = date.today()
+        first_of_month = today.replace(day=1)
+        month_start = datetime.combine(first_of_month, dtime.min, tzinfo=timezone.utc)
+        day_start = datetime.combine(today, dtime.min, tzinfo=timezone.utc)
+
+        active = await db.scalar(
+            select(func.count(ParkingSession.id)).where(
+                ParkingSession.organization_id == org_id,
+                ParkingSession.status == "active",
+            )
+        ) or 0
+
+        sessions_today = await db.scalar(
+            select(func.count(ParkingSession.id)).where(
+                ParkingSession.organization_id == org_id,
+                ParkingSession.entry_time >= day_start,
+            )
+        ) or 0
+
+        income = await db.scalar(
+            select(func.coalesce(func.sum(ParkingSession.total), 0)).where(
+                ParkingSession.organization_id == org_id,
+                ParkingSession.payment_status == "paid",
+                ParkingSession.entry_time >= month_start,
+            )
+        ) or 0
+
+        return [
+            DashboardMetric(
+                key="parking.active_sessions",
+                label="Sesiones activas",
+                value=_fmt_int(int(active)),
+                raw_value=float(active),
+                icon="car",
+                color="#0EA5E9",
+                app_code="parking",
+            ),
+            DashboardMetric(
+                key="parking.sessions_today",
+                label="Ingresos hoy",
+                value=_fmt_int(int(sessions_today)),
+                raw_value=float(sessions_today),
+                icon="clock",
+                color="#6366F1",
+                app_code="parking",
+            ),
+            DashboardMetric(
+                key="parking.income_month",
+                label="Ingresos del mes",
+                value=_fmt_money(income),
+                raw_value=float(income),
+                icon="trending-up",
+                color="#059669",
+                app_code="parking",
+            ),
+        ]
+
+    # ------------------------------------------------------------------
+    # Health KPIs
+    # ------------------------------------------------------------------
+    @staticmethod
+    async def _health_metrics(
+        db: AsyncSession, org_id: uuid.UUID,
+    ) -> list[DashboardMetric]:
+        from src.apps.health.patients.models import HealthPatient
+        from src.apps.health.appointments.models import HealthAppointment
+        today = date.today()
+        first_of_month = today.replace(day=1)
+
+        active_patients = await db.scalar(
+            select(func.count(HealthPatient.id)).where(
+                HealthPatient.organization_id == org_id,
+                HealthPatient.status == "active",
+            )
+        ) or 0
+
+        appts_today = await db.scalar(
+            select(func.count(HealthAppointment.id)).where(
+                HealthAppointment.organization_id == org_id,
+                HealthAppointment.appointment_date == today,
+                HealthAppointment.status.in_(["scheduled", "confirmed", "in_progress"]),
+            )
+        ) or 0
+
+        income = await db.scalar(
+            select(func.coalesce(func.sum(HealthAppointment.amount), 0)).where(
+                HealthAppointment.organization_id == org_id,
+                HealthAppointment.payment_status == "paid",
+                HealthAppointment.appointment_date >= first_of_month,
+                HealthAppointment.appointment_date <= today,
+            )
+        ) or 0
+
+        return [
+            DashboardMetric(
+                key="health.active_patients",
+                label="Pacientes activos",
+                value=_fmt_int(int(active_patients)),
+                raw_value=float(active_patients),
+                icon="heart",
+                color="#DC2626",
+                app_code="health",
+            ),
+            DashboardMetric(
+                key="health.appointments_today",
+                label="Citas hoy",
+                value=_fmt_int(int(appts_today)),
+                raw_value=float(appts_today),
+                icon="calendar",
+                color="#0EA5E9",
+                app_code="health",
+            ),
+            DashboardMetric(
+                key="health.income_month",
+                label="Ingresos del mes",
+                value=_fmt_money(income),
+                raw_value=float(income),
+                icon="trending-up",
+                color="#059669",
+                app_code="health",
+            ),
+        ]
+
+    # ------------------------------------------------------------------
+    # Pay KPIs
+    # ------------------------------------------------------------------
+    @staticmethod
+    async def _pay_metrics(
+        db: AsyncSession, org_id: uuid.UUID,
+    ) -> list[DashboardMetric]:
+        from datetime import datetime, time as dtime, timezone
+        from src.apps.pay.transactions.models import PayTransaction
+        today = date.today()
+        first_of_month = today.replace(day=1)
+        month_start = datetime.combine(first_of_month, dtime.min, tzinfo=timezone.utc)
+
+        tx_count = await db.scalar(
+            select(func.count(PayTransaction.id)).where(
+                PayTransaction.organization_id == org_id,
+                PayTransaction.status.in_(["captured", "settled"]),
+                PayTransaction.created_at >= month_start,
+            )
+        ) or 0
+
+        volume = await db.scalar(
+            select(func.coalesce(func.sum(PayTransaction.net_amount), 0)).where(
+                PayTransaction.organization_id == org_id,
+                PayTransaction.status.in_(["captured", "settled"]),
+                PayTransaction.created_at >= month_start,
+            )
+        ) or 0
+
+        failed = await db.scalar(
+            select(func.count(PayTransaction.id)).where(
+                PayTransaction.organization_id == org_id,
+                PayTransaction.status == "failed",
+                PayTransaction.created_at >= month_start,
+            )
+        ) or 0
+
+        return [
+            DashboardMetric(
+                key="pay.transactions_month",
+                label="Transacciones del mes",
+                value=_fmt_int(int(tx_count)),
+                raw_value=float(tx_count),
+                icon="credit-card",
+                color="#9333EA",
+                app_code="pay",
+            ),
+            DashboardMetric(
+                key="pay.income_month",
+                label="Volumen del mes",
+                value=_fmt_money(volume),
+                raw_value=float(volume),
+                icon="trending-up",
+                color="#059669",
+                app_code="pay",
+            ),
+            DashboardMetric(
+                key="pay.failed.alert",
+                label="Transacciones fallidas",
+                value=_fmt_int(int(failed)),
+                raw_value=float(failed),
+                icon="alert-triangle",
+                color="#DC2626",
+                app_code="pay",
+            ),
+        ]
+
+    # ------------------------------------------------------------------
+    # Condo KPIs
+    # ------------------------------------------------------------------
+    @staticmethod
+    async def _condo_metrics(
+        db: AsyncSession, org_id: uuid.UUID,
+    ) -> list[DashboardMetric]:
+        from src.apps.condo.fees.models import CondoFee
+        today = date.today()
+        first_of_month = today.replace(day=1)
+        period_now = today.strftime("%Y-%m")
+
+        # Cuotas pagadas del mes (sum paid_amount)
+        income = await db.scalar(
+            select(func.coalesce(func.sum(CondoFee.paid_amount), 0)).where(
+                CondoFee.organization_id == org_id,
+                CondoFee.paid_date >= first_of_month,
+                CondoFee.paid_date <= today,
+            )
+        ) or 0
+
+        # Cartera (saldo = total - paid_amount) sobre cuotas no pagadas
+        receivables = await db.scalar(
+            select(func.coalesce(func.sum(CondoFee.total - CondoFee.paid_amount), 0)).where(
+                CondoFee.organization_id == org_id,
+                CondoFee.status.in_(["pending", "partial", "overdue"]),
+            )
+        ) or 0
+
+        # Cuotas vencidas
+        overdue = await db.scalar(
+            select(func.count(CondoFee.id)).where(
+                CondoFee.organization_id == org_id,
+                CondoFee.status.in_(["pending", "partial", "overdue"]),
+                CondoFee.due_date < today,
+            )
+        ) or 0
+
+        return [
+            DashboardMetric(
+                key="condo.income_month",
+                label="Cuotas recaudadas mes",
+                value=_fmt_money(income),
+                raw_value=float(income),
+                icon="trending-up",
+                color="#059669",
+                app_code="condo",
+            ),
+            DashboardMetric(
+                key="condo.receivables",
+                label="Cartera por cobrar",
+                value=_fmt_money(receivables),
+                raw_value=float(receivables),
+                icon="alert-circle",
+                color="#D97706",
+                app_code="condo",
+            ),
+            DashboardMetric(
+                key="condo.overdue.alert",
+                label="Cuotas vencidas",
+                value=_fmt_int(int(overdue)),
+                raw_value=float(overdue),
+                icon="alert-triangle",
+                color="#DC2626",
+                app_code="condo",
+            ),
+        ]
+
+    # ------------------------------------------------------------------
+    # Credit KPIs
+    # ------------------------------------------------------------------
+    @staticmethod
+    async def _credit_metrics(
+        db: AsyncSession, org_id: uuid.UUID,
+    ) -> list[DashboardMetric]:
+        from src.apps.credit.loans.models import CreditLoan
+        from src.apps.credit.payments.models import CreditPayment
+
+        today = date.today()
+        first_of_month = today.replace(day=1)
+
+        active_loans = await db.scalar(
+            select(func.count(CreditLoan.id)).where(
+                CreditLoan.organization_id == org_id,
+                CreditLoan.status.in_(["active", "current", "delinquent"]),
+            )
+        ) or 0
+
+        # Cartera viva = suma de balance_principal de préstamos activos
+        portfolio = await db.scalar(
+            select(func.coalesce(func.sum(CreditLoan.balance_principal), 0)).where(
+                CreditLoan.organization_id == org_id,
+                CreditLoan.status.in_(["active", "current", "delinquent"]),
+            )
+        ) or 0
+
+        delinquent = await db.scalar(
+            select(func.count(CreditLoan.id)).where(
+                CreditLoan.organization_id == org_id,
+                CreditLoan.status == "delinquent",
+            )
+        ) or 0
+
+        # Ingresos del mes = suma de pagos
+        income = await db.scalar(
+            select(func.coalesce(func.sum(CreditPayment.amount), 0)).where(
+                CreditPayment.organization_id == org_id,
+                CreditPayment.payment_date >= first_of_month,
+                CreditPayment.payment_date <= today,
+            )
+        ) or 0
+
+        return [
+            DashboardMetric(
+                key="credit.active_loans",
+                label="Préstamos activos",
+                value=_fmt_int(int(active_loans)),
+                raw_value=float(active_loans),
+                icon="dollar-sign",
+                color="#0EA5E9",
+                app_code="credit",
+            ),
+            DashboardMetric(
+                key="credit.portfolio",
+                label="Cartera viva",
+                value=_fmt_money(portfolio),
+                raw_value=float(portfolio),
+                icon="briefcase",
+                color="#7C3AED",
+                app_code="credit",
+            ),
+            DashboardMetric(
+                key="credit.income_month",
+                label="Recaudo del mes",
+                value=_fmt_money(income),
+                raw_value=float(income),
+                icon="trending-up",
+                color="#059669",
+                app_code="credit",
+            ),
+            DashboardMetric(
+                key="credit.delinquent.alert",
+                label="Préstamos en mora",
+                value=_fmt_int(int(delinquent)),
+                raw_value=float(delinquent),
+                icon="alert-triangle",
+                color="#DC2626",
+                app_code="credit",
+            ),
+        ]
+
+    # ------------------------------------------------------------------
+    # Edu KPIs
+    # ------------------------------------------------------------------
+    @staticmethod
+    async def _edu_metrics(
+        db: AsyncSession, org_id: uuid.UUID,
+    ) -> list[DashboardMetric]:
+        from src.apps.edu.students.models import EduStudent
+        from src.apps.edu.finance.models import EduStudentCharge
+
+        today = date.today()
+
+        active_students = await db.scalar(
+            select(func.count(EduStudent.id)).where(
+                EduStudent.organization_id == org_id,
+                EduStudent.academic_status == "active",
+            )
+        ) or 0
+
+        receivables = await db.scalar(
+            select(func.coalesce(func.sum(EduStudentCharge.balance), 0)).where(
+                EduStudentCharge.organization_id == org_id,
+                EduStudentCharge.status.in_(["pending", "overdue"]),
+            )
+        ) or 0
+
+        overdue = await db.scalar(
+            select(func.count(EduStudentCharge.id)).where(
+                EduStudentCharge.organization_id == org_id,
+                EduStudentCharge.status.in_(["pending", "overdue"]),
+                EduStudentCharge.due_date.is_not(None),
+                EduStudentCharge.due_date < today,
+            )
+        ) or 0
+
+        return [
+            DashboardMetric(
+                key="edu.active_students",
+                label="Estudiantes activos",
+                value=_fmt_int(int(active_students)),
+                raw_value=float(active_students),
+                icon="users",
+                color="#0EA5E9",
+                app_code="edu",
+            ),
+            DashboardMetric(
+                key="edu.receivables",
+                label="Cartera estudiantil",
+                value=_fmt_money(receivables),
+                raw_value=float(receivables),
+                icon="alert-circle",
+                color="#D97706",
+                app_code="edu",
+            ),
+            DashboardMetric(
+                key="edu.overdue.alert",
+                label="Cobros vencidos",
+                value=_fmt_int(int(overdue)),
+                raw_value=float(overdue),
+                icon="alert-triangle",
+                color="#DC2626",
+                app_code="edu",
+            ),
+        ]
+
+    # ------------------------------------------------------------------
+    # Family KPIs
+    # ------------------------------------------------------------------
+    @staticmethod
+    async def _family_metrics(
+        db: AsyncSession, org_id: uuid.UUID,
+    ) -> list[DashboardMetric]:
+        from src.apps.family.models import FamilyMember, FamilyUnit
+
+        units = await db.scalar(
+            select(func.count(FamilyUnit.id)).where(
+                FamilyUnit.organization_id == org_id,
+                FamilyUnit.status == "active",
+            )
+        ) or 0
+
+        members = await db.scalar(
+            select(func.count(FamilyMember.id)).where(
+                FamilyMember.organization_id == org_id,
+            )
+        ) or 0
+
+        return [
+            DashboardMetric(
+                key="family.units",
+                label="Núcleos familiares",
+                value=_fmt_int(int(units)),
+                raw_value=float(units),
+                icon="home",
+                color="#7C3AED",
+                app_code="family",
+            ),
+            DashboardMetric(
+                key="family.members",
+                label="Personas vinculadas",
+                value=_fmt_int(int(members)),
+                raw_value=float(members),
+                icon="users",
+                color="#0EA5E9",
+                app_code="family",
+            ),
+        ]
+
+    # ------------------------------------------------------------------
+    # CRM KPIs
+    # ------------------------------------------------------------------
+    @staticmethod
+    async def _crm_metrics(
+        db: AsyncSession, org_id: uuid.UUID,
+    ) -> list[DashboardMetric]:
+        from src.apps.crm.deals.models import CrmDeal
+        from src.apps.crm.leads.models import CrmLead
+
+        today = date.today()
+        first_of_month = today.replace(day=1)
+
+        leads_open = await db.scalar(
+            select(func.count(CrmLead.id)).where(
+                CrmLead.organization_id == org_id,
+                CrmLead.status.in_(["new", "contacted", "qualified"]),
+            )
+        ) or 0
+
+        deals_open = await db.scalar(
+            select(func.count(CrmDeal.id)).where(
+                CrmDeal.organization_id == org_id,
+                CrmDeal.status == "open",
+            )
+        ) or 0
+
+        pipeline_value = await db.scalar(
+            select(func.coalesce(func.sum(CrmDeal.value), 0)).where(
+                CrmDeal.organization_id == org_id,
+                CrmDeal.status == "open",
+            )
+        ) or 0
+
+        won_month = await db.scalar(
+            select(func.coalesce(func.sum(CrmDeal.value), 0)).where(
+                CrmDeal.organization_id == org_id,
+                CrmDeal.status == "won",
+                CrmDeal.won_date >= first_of_month,
+                CrmDeal.won_date <= today,
+            )
+        ) or 0
+
+        return [
+            DashboardMetric(
+                key="crm.leads_open",
+                label="Leads abiertos",
+                value=_fmt_int(int(leads_open)),
+                raw_value=float(leads_open),
+                icon="user-plus",
+                color="#0EA5E9",
+                app_code="crm",
+            ),
+            DashboardMetric(
+                key="crm.deals_open",
+                label="Negocios abiertos",
+                value=_fmt_int(int(deals_open)),
+                raw_value=float(deals_open),
+                icon="target",
+                color="#7C3AED",
+                app_code="crm",
+            ),
+            DashboardMetric(
+                key="crm.pipeline_value",
+                label="Pipeline",
+                value=_fmt_money(pipeline_value),
+                raw_value=float(pipeline_value),
+                icon="briefcase",
+                color="#6366F1",
+                app_code="crm",
+            ),
+            DashboardMetric(
+                key="crm.income_month",
+                label="Cerrado del mes",
+                value=_fmt_money(won_month),
+                raw_value=float(won_month),
+                icon="trending-up",
+                color="#059669",
+                app_code="crm",
             ),
         ]
 
