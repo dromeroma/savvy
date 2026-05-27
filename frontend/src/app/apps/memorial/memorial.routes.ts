@@ -84,6 +84,20 @@ export const MEMORIAL_ROUTES: Routes = [
             (m) => m.MemorialTransfersListComponent,
           ),
       },
+      {
+        path: 'inventory',
+        loadComponent: () =>
+          import('./inventory/inventory.component').then(
+            (m) => m.MemorialInventoryComponent,
+          ),
+      },
+      {
+        path: 'hr',
+        loadComponent: () =>
+          import('./hr/hr.component').then(
+            (m) => m.MemorialHrComponent,
+          ),
+      },
     ],
   },
 ];

@@ -44,6 +44,20 @@ import {
   MemorialTransferCreate,
   MemorialTransferListItem,
   TransferStatus,
+  InventoryItem,
+  InventoryItemCreate,
+  InventoryItemListItem,
+  InventoryMovement,
+  InventoryMovementCreate,
+  InventoryMovementListItem,
+  HrPosition,
+  HrPositionCreate,
+  HrEmployee,
+  HrEmployeeCreate,
+  HrEmployeeListItem,
+  HrAttendance,
+  HrAttendanceCreate,
+  HrAttendanceListItem,
 } from '../models/memorial.model';
 
 @Injectable({ providedIn: 'root' })
@@ -356,5 +370,107 @@ export class MemorialApiService {
   }
   deleteTransfer(id: string): Observable<void> {
     return this.api.delete(`/memorial/transfers/${id}`);
+  }
+
+  // ---- Inventory: Items ----
+  listInventoryItems(params?: {
+    category?: string; active_only?: boolean; low_stock_only?: boolean; search?: string;
+  }): Observable<InventoryItemListItem[]> {
+    const clean: Record<string, string | number | boolean> = {};
+    if (params?.category) clean['category'] = params.category;
+    if (params?.active_only) clean['active_only'] = true;
+    if (params?.low_stock_only) clean['low_stock_only'] = true;
+    if (params?.search) clean['search'] = params.search;
+    return this.api.get<InventoryItemListItem[]>('/memorial/inventory/items', clean);
+  }
+  getInventoryItem(id: string): Observable<InventoryItem> {
+    return this.api.get<InventoryItem>(`/memorial/inventory/items/${id}`);
+  }
+  createInventoryItem(data: InventoryItemCreate): Observable<InventoryItem> {
+    return this.api.post<InventoryItem>('/memorial/inventory/items', data);
+  }
+  updateInventoryItem(id: string, data: Partial<InventoryItemCreate>): Observable<InventoryItem> {
+    return this.api.patch<InventoryItem>(`/memorial/inventory/items/${id}`, data);
+  }
+  deleteInventoryItem(id: string): Observable<void> {
+    return this.api.delete(`/memorial/inventory/items/${id}`);
+  }
+
+  // ---- Inventory: Movements ----
+  listInventoryMovements(params?: {
+    item_id?: string; movement_type?: string;
+    date_from?: string; date_to?: string;
+    limit?: number; offset?: number;
+  }): Observable<InventoryMovementListItem[]> {
+    const clean: Record<string, string | number | boolean> = {};
+    if (params?.item_id) clean['item_id'] = params.item_id;
+    if (params?.movement_type) clean['movement_type'] = params.movement_type;
+    if (params?.date_from) clean['date_from'] = params.date_from;
+    if (params?.date_to) clean['date_to'] = params.date_to;
+    if (params?.limit !== undefined) clean['limit'] = params.limit;
+    if (params?.offset !== undefined) clean['offset'] = params.offset;
+    return this.api.get<InventoryMovementListItem[]>('/memorial/inventory/movements', clean);
+  }
+  recordInventoryMovement(data: InventoryMovementCreate): Observable<InventoryMovement> {
+    return this.api.post<InventoryMovement>('/memorial/inventory/movements', data);
+  }
+
+  // ---- HR: Positions ----
+  listPositions(active_only = false): Observable<HrPosition[]> {
+    return this.api.get<HrPosition[]>('/memorial/hr/positions', active_only ? { active_only: true } : undefined);
+  }
+  createPosition(data: HrPositionCreate): Observable<HrPosition> {
+    return this.api.post<HrPosition>('/memorial/hr/positions', data);
+  }
+  updatePosition(id: string, data: Partial<HrPositionCreate>): Observable<HrPosition> {
+    return this.api.patch<HrPosition>(`/memorial/hr/positions/${id}`, data);
+  }
+  deletePosition(id: string): Observable<void> {
+    return this.api.delete(`/memorial/hr/positions/${id}`);
+  }
+
+  // ---- HR: Employees ----
+  listEmployees(params?: { status?: string; position_id?: string; search?: string }): Observable<HrEmployeeListItem[]> {
+    const clean: Record<string, string | number | boolean> = {};
+    if (params?.status) clean['status'] = params.status;
+    if (params?.position_id) clean['position_id'] = params.position_id;
+    if (params?.search) clean['search'] = params.search;
+    return this.api.get<HrEmployeeListItem[]>('/memorial/hr/employees', clean);
+  }
+  getEmployee(id: string): Observable<HrEmployee> {
+    return this.api.get<HrEmployee>(`/memorial/hr/employees/${id}`);
+  }
+  createEmployee(data: HrEmployeeCreate): Observable<HrEmployee> {
+    return this.api.post<HrEmployee>('/memorial/hr/employees', data);
+  }
+  updateEmployee(id: string, data: Partial<HrEmployeeCreate>): Observable<HrEmployee> {
+    return this.api.patch<HrEmployee>(`/memorial/hr/employees/${id}`, data);
+  }
+  deleteEmployee(id: string): Observable<void> {
+    return this.api.delete(`/memorial/hr/employees/${id}`);
+  }
+
+  // ---- HR: Attendance ----
+  listAttendance(params?: {
+    employee_id?: string; date_from?: string; date_to?: string;
+    status?: string; limit?: number; offset?: number;
+  }): Observable<HrAttendanceListItem[]> {
+    const clean: Record<string, string | number | boolean> = {};
+    if (params?.employee_id) clean['employee_id'] = params.employee_id;
+    if (params?.date_from) clean['date_from'] = params.date_from;
+    if (params?.date_to) clean['date_to'] = params.date_to;
+    if (params?.status) clean['status'] = params.status;
+    if (params?.limit !== undefined) clean['limit'] = params.limit;
+    if (params?.offset !== undefined) clean['offset'] = params.offset;
+    return this.api.get<HrAttendanceListItem[]>('/memorial/hr/attendance', clean);
+  }
+  upsertAttendance(data: HrAttendanceCreate): Observable<HrAttendance> {
+    return this.api.post<HrAttendance>('/memorial/hr/attendance', data);
+  }
+  updateAttendance(id: string, data: Partial<HrAttendanceCreate>): Observable<HrAttendance> {
+    return this.api.patch<HrAttendance>(`/memorial/hr/attendance/${id}`, data);
+  }
+  deleteAttendance(id: string): Observable<void> {
+    return this.api.delete(`/memorial/hr/attendance/${id}`);
   }
 }

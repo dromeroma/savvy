@@ -610,6 +610,171 @@ class MemorialTransfer(BaseMixin, OrgMixin, Base):
     )
 
 
+# ---------------------------------------------------------------- Phase 5: Inventario + RRHH
+
+
+class MemorialInventoryItem(BaseMixin, OrgMixin, Base):
+    """Item del catálogo de inventario."""
+
+    __tablename__ = "memorial_inventory_items"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "code", name="uq_memorial_inv_items_org_code"),
+        CheckConstraint(
+            "category IN ('casket','urn','flowers','supplies','vehicle_supplies','other')",
+            name="chk_memorial_inv_category",
+        ),
+    )
+
+    code: Mapped[str] = mapped_column(String(40), nullable=False)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    category: Mapped[str] = mapped_column(String(40), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    unit: Mapped[str] = mapped_column(String(20), default="unidad", nullable=False)
+    current_stock: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0"), nullable=False)
+    min_stock: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0"), nullable=False)
+    max_stock: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
+    unit_cost: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0"), nullable=False)
+    sale_price: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0"), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class MemorialInventoryMovement(Base):
+    """Movimiento de stock. Inmutable: cada uno actualiza el current_stock
+    del item en su creación y nunca se edita."""
+
+    __tablename__ = "memorial_inventory_movements"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "consecutive", name="uq_memorial_inv_mov_org_consec"),
+        UniqueConstraint("organization_id", "code", name="uq_memorial_inv_mov_org_code"),
+        CheckConstraint(
+            "movement_type IN ('entry','exit','adjustment','transfer_out','transfer_in')",
+            name="chk_memorial_inv_mov_type",
+        ),
+        CheckConstraint("quantity <> 0", name="chk_memorial_inv_mov_qty"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("organizations.id", ondelete="CASCADE"),
+        index=True, nullable=False,
+    )
+    consecutive: Mapped[int] = mapped_column(Integer, nullable=False)
+    code: Mapped[str] = mapped_column(String(20), nullable=False)
+    item_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("memorial_inventory_items.id", ondelete="RESTRICT"), nullable=False,
+    )
+    movement_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    quantity: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
+    unit_cost: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
+    reason: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    reference_doc: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    supplier: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    service_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("memorial_services.id", ondelete="SET NULL"), nullable=True,
+    )
+    movement_date: Mapped[date] = mapped_column(Date, default=date.today, nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    recorded_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False,
+    )
+
+
+class MemorialPosition(BaseMixin, OrgMixin, Base):
+    """Cargo/puesto dentro de la funeraria."""
+
+    __tablename__ = "memorial_positions"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "code", name="uq_memorial_positions_org_code"),
+    )
+
+    code: Mapped[str] = mapped_column(String(40), nullable=False)
+    name: Mapped[str] = mapped_column(String(150), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+
+class MemorialEmployee(BaseMixin, OrgMixin, Base):
+    """Empleado de la funeraria. Datos laborales + link opcional al user
+    de Savvy (para login en el portal interno) y al driver de fase 4
+    (si el empleado es además conductor)."""
+
+    __tablename__ = "memorial_employees"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "code", name="uq_memorial_employees_org_code"),
+        CheckConstraint(
+            "status IN ('active','on_leave','suspended','terminated')",
+            name="chk_memorial_employees_status",
+        ),
+        CheckConstraint(
+            "contract_type IN ('indefinido','fijo','obra_labor','prestacion','aprendiz','otro')",
+            name="chk_memorial_employees_contract",
+        ),
+        CheckConstraint(
+            "default_shift IS NULL OR default_shift IN "
+            "('morning','afternoon','night','rotating','administrative')",
+            name="chk_memorial_employees_shift",
+        ),
+    )
+
+    code: Mapped[str] = mapped_column(String(40), nullable=False)
+    first_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    last_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    document_type: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    document_number: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    birth_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    gender: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    mobile: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    address: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    position_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("memorial_positions.id", ondelete="SET NULL"), nullable=True,
+    )
+    contract_type: Mapped[str] = mapped_column(String(30), default="indefinido", nullable=False)
+    hire_date: Mapped[date] = mapped_column(Date, nullable=False)
+    end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    base_salary: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0"), nullable=False)
+    default_shift: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="active", nullable=False)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+    )
+    driver_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("memorial_drivers.id", ondelete="SET NULL"), nullable=True,
+    )
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class MemorialAttendance(BaseMixin, OrgMixin, Base):
+    """Registro diario de asistencia. Único por empleado + fecha."""
+
+    __tablename__ = "memorial_attendance"
+    __table_args__ = (
+        UniqueConstraint("employee_id", "work_date", name="uq_memorial_att_emp_date"),
+        CheckConstraint(
+            "status IN ('present','absent','late','justified','vacation','sick_leave')",
+            name="chk_memorial_att_status",
+        ),
+    )
+
+    employee_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("memorial_employees.id", ondelete="CASCADE"), nullable=False,
+    )
+    work_date: Mapped[date] = mapped_column(Date, nullable=False)
+    check_in_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    check_out_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    hours_worked: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="present", nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    recorded_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+    )
+
+
 # ---------------------------------------------------------------- Audit (back to original)
 
 

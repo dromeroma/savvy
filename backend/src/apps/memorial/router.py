@@ -4,6 +4,8 @@ from fastapi import APIRouter
 
 from src.apps.memorial.cartera.router import router as cartera_router
 from src.apps.memorial.contracts.router import router as contracts_router
+from src.apps.memorial.hr.router import router as hr_router
+from src.apps.memorial.inventory.router import router as inventory_router
 from src.apps.memorial.invoices.router import router as invoices_router
 from src.apps.memorial.logistics.router import router as logistics_router
 from src.apps.memorial.payments.router import router as payments_router
@@ -22,3 +24,5 @@ router.include_router(payments_router)
 router.include_router(cartera_router)
 router.include_router(logistics_router)
 router.include_router(transfers_router)
+router.include_router(inventory_router)
+router.include_router(hr_router)

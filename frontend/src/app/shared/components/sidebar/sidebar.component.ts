@@ -163,6 +163,8 @@ const APP_MENUS: Record<string, { icon: string; items: { label: string; route: s
       { label: 'Cartera', route: '/memorial/cartera' },
       { label: 'Logística', route: '/memorial/logistics' },
       { label: 'Traslados', route: '/memorial/transfers' },
+      { label: 'Inventario', route: '/memorial/inventory' },
+      { label: 'RRHH', route: '/memorial/hr' },
     ],
   },
   water: {

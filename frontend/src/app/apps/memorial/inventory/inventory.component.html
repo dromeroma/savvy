@@ -1,0 +1,333 @@
+<div class="p-4 sm:p-6 lg:p-8">
+  <div class="flex items-start justify-between gap-4 flex-wrap mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-800 dark:text-white/90">Inventario</h1>
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        Catálogo de ataúdes, urnas, flores, insumos. Stock actualizado con cada movimiento.
+      </p>
+    </div>
+    <div class="flex gap-2">
+      <button (click)="openCreateMov()"
+        class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium">
+        Registrar movimiento
+      </button>
+      @if (tab() === 'items') {
+        <button (click)="openCreateItem()"
+          class="px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">
+          Nuevo item
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="border-b border-gray-200 dark:border-gray-700 mb-5">
+    <nav class="flex gap-1 -mb-px">
+      <button (click)="setTab('items')"
+        class="px-4 py-2 text-sm font-medium border-b-2 transition-colors"
+        [ngClass]="tab() === 'items' ? 'border-brand-500 text-brand-500' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'">
+        Items del catálogo
+      </button>
+      <button (click)="setTab('movements')"
+        class="px-4 py-2 text-sm font-medium border-b-2 transition-colors"
+        [ngClass]="tab() === 'movements' ? 'border-brand-500 text-brand-500' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'">
+        Historial de movimientos
+      </button>
+    </nav>
+  </div>
+
+  @if (tab() === 'items') {
+    <!-- Filtros -->
+    <div class="flex flex-wrap gap-3 mb-4">
+      <input [(ngModel)]="searchItems" (ngModelChange)="onSearchChange()"
+        placeholder="Buscar por código o nombre..."
+        class="flex-1 sm:max-w-sm h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+      <select [(ngModel)]="filterCategory" (ngModelChange)="load()"
+        class="h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-white/90 px-3 py-2 text-sm">
+        <option value="">Todas las categorías</option>
+        @for (c of categories; track c.value) {
+          <option [value]="c.value">{{ c.label }}</option>
+        }
+      </select>
+      <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+        <input type="checkbox" [(ngModel)]="lowStockOnly" (ngModelChange)="load()" />
+        Solo stock bajo
+      </label>
+    </div>
+
+    @if (loading()) {
+      <div class="flex items-center justify-center py-20">
+        <div class="animate-spin rounded-full h-8 w-8 border-4 border-gray-200 border-t-gray-600"></div>
+      </div>
+    } @else if (items().length === 0) {
+      <div class="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-10 text-center">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Aún no hay items registrados.</p>
+      </div>
+    } @else {
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 dark:bg-gray-700/30">
+            <tr class="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <th class="px-4 py-3">Código</th>
+              <th class="px-4 py-3">Item</th>
+              <th class="px-4 py-3">Categoría</th>
+              <th class="px-4 py-3 text-right">Stock</th>
+              <th class="px-4 py-3 text-right">Mín / Máx</th>
+              <th class="px-4 py-3 text-right">Costo</th>
+              <th class="px-4 py-3 text-right">Precio venta</th>
+              <th class="px-4 py-3"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            @for (i of items(); track i.id) {
+              <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/20" [class.opacity-60]="!i.is_active">
+                <td class="px-4 py-3 font-mono text-xs">{{ i.code }}</td>
+                <td class="px-4 py-3">
+                  <div class="font-medium text-gray-800 dark:text-white/90">{{ i.name }}</div>
+                  <div class="text-[11px] text-gray-400">{{ i.unit }}</div>
+                </td>
+                <td class="px-4 py-3 text-xs text-gray-700 dark:text-gray-300">{{ categoryLabel(i.category) }}</td>
+                <td class="px-4 py-3 text-right">
+                  <span [ngClass]="i.is_low_stock ? 'text-red-600 font-semibold' : 'text-gray-700 dark:text-gray-300'">
+                    {{ (+i.current_stock) | number:'1.0-2' }}
+                  </span>
+                  @if (i.is_low_stock) { <span class="ml-1 text-[10px] text-red-600">STOCK BAJO</span> }
+                </td>
+                <td class="px-4 py-3 text-right text-xs text-gray-500">
+                  {{ (+i.min_stock) | number:'1.0-0' }} / {{ i.max_stock ? ((+i.max_stock) | number:'1.0-0') : '∞' }}
+                </td>
+                <td class="px-4 py-3 text-right font-mono text-xs">$ {{ (+i.unit_cost) | number:'1.0-0' }}</td>
+                <td class="px-4 py-3 text-right font-mono text-xs">$ {{ (+i.sale_price) | number:'1.0-0' }}</td>
+                <td class="px-4 py-3 text-right whitespace-nowrap">
+                  <button (click)="openCreateMov(i.id)" class="text-xs text-brand-500 font-medium mr-3">Movimiento</button>
+                  <button (click)="openEditItem(i)" class="text-xs text-gray-600 dark:text-gray-300 font-medium mr-3">Editar</button>
+                  <button (click)="confirmDeleteItem(i)" class="text-xs text-red-600">Eliminar</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+
+  @if (tab() === 'movements') {
+    @if (loading()) {
+      <div class="flex items-center justify-center py-20">
+        <div class="animate-spin rounded-full h-8 w-8 border-4 border-gray-200 border-t-gray-600"></div>
+      </div>
+    } @else if (movements().length === 0) {
+      <div class="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-10 text-center">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Aún no hay movimientos.</p>
+      </div>
+    } @else {
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 dark:bg-gray-700/30">
+            <tr class="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <th class="px-4 py-3">Código</th>
+              <th class="px-4 py-3">Fecha</th>
+              <th class="px-4 py-3">Item</th>
+              <th class="px-4 py-3">Tipo</th>
+              <th class="px-4 py-3 text-right">Cantidad</th>
+              <th class="px-4 py-3 text-right">Costo unit.</th>
+              <th class="px-4 py-3">Motivo</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            @for (m of movements(); track m.id) {
+              <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/20">
+                <td class="px-4 py-3 font-mono text-xs">{{ m.code }}</td>
+                <td class="px-4 py-3 text-xs">{{ m.movement_date }}</td>
+                <td class="px-4 py-3">
+                  <div class="font-medium text-gray-800 dark:text-white/90">{{ m.item_name }}</div>
+                  <div class="text-[11px] text-gray-400 font-mono">{{ m.item_code }}</div>
+                </td>
+                <td class="px-4 py-3">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium" [ngClass]="movTypeBadge(m.movement_type)">
+                    {{ movTypeLabel(m.movement_type) }}
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-right font-mono">{{ (+m.quantity) | number:'1.0-2' }}</td>
+                <td class="px-4 py-3 text-right font-mono text-xs">
+                  {{ m.unit_cost ? '$ ' + ((+m.unit_cost) | number:'1.0-0') : '—' }}
+                </td>
+                <td class="px-4 py-3 text-xs">{{ m.reason || '—' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+
+  <!-- Modal item -->
+  @if (itemFormOpen()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="closeItemForm()">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto"
+        (click)="$event.stopPropagation()">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-1">
+          {{ editingItemId() ? 'Editar item' : 'Nuevo item' }}
+        </h3>
+        @if (itemFormError()) {
+          <div class="my-4 p-3 bg-error-50 border border-error-200 text-error-700 dark:bg-error-500/10 dark:border-error-500/30 dark:text-error-400 rounded-lg text-sm">
+            {{ itemFormError() }}
+          </div>
+        }
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+          <div>
+            <label class="block text-xs font-medium mb-1">Código *</label>
+            <input [(ngModel)]="itemForm.code" [disabled]="!!editingItemId()"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm disabled:opacity-60" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium mb-1">Categoría *</label>
+            <select [(ngModel)]="itemForm.category" [disabled]="!!editingItemId()"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm disabled:opacity-60">
+              @for (c of categories; track c.value) {
+                <option [value]="c.value">{{ c.label }}</option>
+              }
+            </select>
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-medium mb-1">Nombre *</label>
+            <input [(ngModel)]="itemForm.name" class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium mb-1">Unidad</label>
+            <input [(ngModel)]="itemForm.unit" placeholder="unidad, kg, par..."
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm" />
+          </div>
+          @if (!editingItemId()) {
+            <div>
+              <label class="block text-xs font-medium mb-1">Stock inicial</label>
+              <input type="number" min="0" [(ngModel)]="itemForm.initial_stock"
+                class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm" />
+            </div>
+          } @else { <div></div> }
+          <div>
+            <label class="block text-xs font-medium mb-1">Stock mínimo</label>
+            <input type="number" min="0" [(ngModel)]="itemForm.min_stock"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium mb-1">Stock máximo</label>
+            <input type="number" min="0" [(ngModel)]="itemForm.max_stock"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium mb-1">Costo unitario</label>
+            <input type="number" min="0" [(ngModel)]="itemForm.unit_cost"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium mb-1">Precio venta</label>
+            <input type="number" min="0" [(ngModel)]="itemForm.sale_price"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm" />
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-medium mb-1">Descripción</label>
+            <textarea [(ngModel)]="itemForm.description" rows="2"
+              class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm"></textarea>
+          </div>
+          <div class="sm:col-span-2">
+            <label class="inline-flex items-center gap-2 text-sm">
+              <input type="checkbox" [(ngModel)]="itemForm.is_active" />
+              Item activo
+            </label>
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 mt-6">
+          <button (click)="closeItemForm()" [disabled]="savingItem()"
+            class="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">Cancelar</button>
+          <button (click)="submitItem()" [disabled]="savingItem()"
+            class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300">
+            {{ savingItem() ? 'Guardando…' : (editingItemId() ? 'Actualizar' : 'Crear') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Modal movimiento -->
+  @if (movFormOpen()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="closeMovForm()">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-xl w-full p-6"
+        (click)="$event.stopPropagation()">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-1">Registrar movimiento</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          Las entradas suman al stock, las salidas restan, el ajuste setea al valor absoluto.
+        </p>
+        @if (movFormError()) {
+          <div class="mb-4 p-3 bg-error-50 border border-error-200 text-error-700 dark:bg-error-500/10 dark:border-error-500/30 dark:text-error-400 rounded-lg text-sm">
+            {{ movFormError() }}
+          </div>
+        }
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-medium mb-1">Item *</label>
+            <select [(ngModel)]="movForm.item_id"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm">
+              <option value="">— Seleccionar item —</option>
+              @for (i of items(); track i.id) {
+                <option [value]="i.id">{{ i.code }} — {{ i.name }} (stock: {{ i.current_stock }})</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium mb-1">Tipo *</label>
+            <select [(ngModel)]="movForm.movement_type"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm">
+              @for (t of movTypes; track t.value) {
+                <option [value]="t.value">{{ t.label }}</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium mb-1">Cantidad *</label>
+            <input type="number" min="0.01" step="0.01" [(ngModel)]="movForm.quantity"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium mb-1">Costo unitario</label>
+            <input type="number" min="0" [(ngModel)]="movForm.unit_cost"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium mb-1">Fecha</label>
+            <input type="date" [(ngModel)]="movForm.movement_date"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium mb-1">Motivo</label>
+            <input [(ngModel)]="movForm.reason" placeholder="compra, venta, ajuste..."
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium mb-1">Proveedor</label>
+            <input [(ngModel)]="movForm.supplier"
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm" />
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-medium mb-1">Documento de referencia</label>
+            <input [(ngModel)]="movForm.reference_doc" placeholder="factura, remisión..."
+              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm" />
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-medium mb-1">Notas</label>
+            <textarea [(ngModel)]="movForm.notes" rows="2"
+              class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm"></textarea>
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 mt-6">
+          <button (click)="closeMovForm()" [disabled]="savingMov()"
+            class="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">Cancelar</button>
+          <button (click)="submitMov()" [disabled]="savingMov()"
+            class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300">
+            {{ savingMov() ? 'Registrando…' : 'Registrar' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

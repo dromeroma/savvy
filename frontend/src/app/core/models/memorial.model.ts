@@ -619,3 +619,160 @@ export interface MemorialTransferCreate {
   destination?: string | null;
   notes?: string | null;
 }
+
+
+// ===================== Phase 5: Inventario + RRHH =====================
+
+export type ItemCategory = 'casket' | 'urn' | 'flowers' | 'supplies' | 'vehicle_supplies' | 'other';
+export type MovementType = 'entry' | 'exit' | 'adjustment' | 'transfer_out' | 'transfer_in';
+export type ContractType = 'indefinido' | 'fijo' | 'obra_labor' | 'prestacion' | 'aprendiz' | 'otro';
+export type EmployeeStatus = 'active' | 'on_leave' | 'suspended' | 'terminated';
+export type ShiftKind = 'morning' | 'afternoon' | 'night' | 'rotating' | 'administrative';
+export type AttendanceStatus = 'present' | 'absent' | 'late' | 'justified' | 'vacation' | 'sick_leave';
+
+export interface InventoryItem {
+  id: string; organization_id: string;
+  code: string; name: string; category: ItemCategory;
+  description: string | null; unit: string;
+  current_stock: string; min_stock: string; max_stock: string | null;
+  unit_cost: string; sale_price: string;
+  is_active: boolean; notes: string | null;
+  created_at: string; updated_at: string;
+}
+
+export interface InventoryItemCreate {
+  code: string; name: string; category: ItemCategory;
+  description?: string | null; unit?: string;
+  initial_stock?: string | number;
+  min_stock?: string | number; max_stock?: string | number | null;
+  unit_cost?: string | number; sale_price?: string | number;
+  is_active?: boolean; notes?: string | null;
+}
+
+export interface InventoryItemListItem {
+  id: string; code: string; name: string; category: string; unit: string;
+  current_stock: string; min_stock: string; max_stock: string | null;
+  unit_cost: string; sale_price: string;
+  is_active: boolean; is_low_stock: boolean;
+}
+
+export interface InventoryMovement {
+  id: string; code: string; consecutive: number;
+  organization_id: string;
+  item_id: string;
+  movement_type: MovementType;
+  quantity: string; unit_cost: string | null;
+  reason: string | null; reference_doc: string | null;
+  supplier: string | null;
+  service_id: string | null;
+  movement_date: string;
+  notes: string | null;
+  recorded_by: string | null;
+  created_at: string;
+}
+
+export interface InventoryMovementCreate {
+  item_id: string;
+  movement_type: MovementType;
+  quantity: string | number;
+  unit_cost?: string | number | null;
+  reason?: string | null;
+  reference_doc?: string | null;
+  supplier?: string | null;
+  service_id?: string | null;
+  movement_date?: string | null;
+  notes?: string | null;
+}
+
+export interface InventoryMovementListItem {
+  id: string; code: string; consecutive: number;
+  item_id: string; item_code: string; item_name: string;
+  movement_type: MovementType;
+  quantity: string; unit_cost: string | null;
+  reason: string | null;
+  movement_date: string; created_at: string;
+}
+
+export interface HrPosition {
+  id: string; organization_id: string;
+  code: string; name: string; description: string | null;
+  is_active: boolean;
+  created_at: string; updated_at: string;
+}
+
+export interface HrPositionCreate {
+  code: string; name: string; description?: string | null; is_active?: boolean;
+}
+
+export interface HrEmployee {
+  id: string; organization_id: string;
+  code: string;
+  first_name: string; last_name: string | null;
+  document_type: string | null; document_number: string | null;
+  birth_date: string | null; gender: string | null;
+  email: string | null; phone: string | null; mobile: string | null;
+  address: string | null;
+  position_id: string | null;
+  contract_type: ContractType;
+  hire_date: string; end_date: string | null;
+  base_salary: string;
+  default_shift: ShiftKind | null;
+  status: EmployeeStatus;
+  user_id: string | null;
+  driver_id: string | null;
+  notes: string | null;
+  created_at: string; updated_at: string;
+}
+
+export interface HrEmployeeCreate {
+  code: string;
+  first_name: string; last_name?: string | null;
+  document_type?: string | null; document_number?: string | null;
+  birth_date?: string | null; gender?: string | null;
+  email?: string | null; phone?: string | null; mobile?: string | null;
+  address?: string | null;
+  position_id?: string | null;
+  contract_type?: ContractType;
+  hire_date: string; end_date?: string | null;
+  base_salary?: string | number;
+  default_shift?: ShiftKind | null;
+  status?: EmployeeStatus;
+  user_id?: string | null;
+  driver_id?: string | null;
+  notes?: string | null;
+}
+
+export interface HrEmployeeListItem {
+  id: string; code: string;
+  first_name: string; last_name: string | null;
+  document_number: string | null;
+  position_id: string | null; position_name: string | null;
+  contract_type: string; hire_date: string;
+  status: string; base_salary: string;
+  default_shift: string | null;
+}
+
+export interface HrAttendance {
+  id: string; organization_id: string;
+  employee_id: string; work_date: string;
+  check_in_at: string | null; check_out_at: string | null;
+  hours_worked: string | null;
+  status: AttendanceStatus; notes: string | null;
+  created_at: string; updated_at: string;
+}
+
+export interface HrAttendanceCreate {
+  employee_id: string; work_date: string;
+  check_in_at?: string | null; check_out_at?: string | null;
+  status?: AttendanceStatus; notes?: string | null;
+}
+
+export interface HrAttendanceListItem {
+  id: string;
+  employee_id: string; employee_code: string; employee_name: string;
+  work_date: string;
+  check_in_at: string | null; check_out_at: string | null;
+  hours_worked: string | null;
+  status: string;
+}
+
