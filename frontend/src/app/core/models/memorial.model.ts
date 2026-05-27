@@ -884,3 +884,90 @@ export interface LeadCommunicationCreate {
   outcome?: string | null;
 }
 
+// ============================================================ Reports (fase 7)
+
+export interface IncomePoint {
+  period: string;
+  exequial_dues: string;
+  service_income: string;
+  total: string;
+}
+
+export interface IncomeReport {
+  date_from: string;
+  date_to: string;
+  points: IncomePoint[];
+  total_dues: string;
+  total_services: string;
+  grand_total: string;
+}
+
+export interface ServiceTypeCount {
+  service_type: string;
+  count: number;
+  total_revenue: string;
+}
+
+export interface ServicesByTypeReport {
+  date_from: string;
+  date_to: string;
+  items: ServiceTypeCount[];
+  total_count: number;
+  total_revenue: string;
+}
+
+export interface PlanRankingItem {
+  plan_id: string;
+  plan_code: string;
+  plan_name: string;
+  contracts_count: number;
+  active_count: number;
+  total_revenue: string;
+}
+
+export interface PlanRankingReport {
+  items: PlanRankingItem[];
+}
+
+export interface EmployeeRankingItem {
+  employee_id: string;
+  employee_code: string;
+  employee_name: string;
+  position_name: string | null;
+  days_present: number;
+  hours_worked: string;
+}
+
+export interface EmployeeRankingReport {
+  date_from: string;
+  date_to: string;
+  items: EmployeeRankingItem[];
+}
+
+export interface OperationalKpis {
+  services_open: number;
+  services_in_progress: number;
+  services_closed_period: number;
+  avg_close_hours: number | null;
+  contracts_active: number;
+  contracts_overdue: number;
+  leads_open: number;
+  leads_won_period: number;
+  inventory_low_stock_items: number;
+}
+
+// ============================================================ Audit (fase 7)
+
+export interface AuditLogEntry {
+  id: string;
+  organization_id: string;
+  actor_user_id: string | null;
+  action: string;
+  resource_type: string | null;
+  resource_id: string | null;
+  details: Record<string, unknown> | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: string;
+}
+

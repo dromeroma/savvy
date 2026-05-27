@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter
 
+from src.apps.memorial.audit.router import router as audit_router
 from src.apps.memorial.cartera.router import router as cartera_router
 from src.apps.memorial.contracts.router import router as contracts_router
 from src.apps.memorial.crm.router import router as crm_router
@@ -11,6 +12,7 @@ from src.apps.memorial.invoices.router import router as invoices_router
 from src.apps.memorial.logistics.router import router as logistics_router
 from src.apps.memorial.payments.router import router as payments_router
 from src.apps.memorial.plans.router import router as plans_router
+from src.apps.memorial.reports.router import router as reports_router
 from src.apps.memorial.services.router import dashboard_router, router as services_router
 from src.apps.memorial.transfers.router import router as transfers_router
 
@@ -28,3 +30,5 @@ router.include_router(transfers_router)
 router.include_router(inventory_router)
 router.include_router(hr_router)
 router.include_router(crm_router)
+router.include_router(reports_router)
+router.include_router(audit_router)

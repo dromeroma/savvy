@@ -105,6 +105,20 @@ export const MEMORIAL_ROUTES: Routes = [
             (m) => m.MemorialCrmComponent,
           ),
       },
+      {
+        path: 'reports',
+        loadComponent: () =>
+          import('./reports/reports.component').then(
+            (m) => m.MemorialReportsComponent,
+          ),
+      },
+      {
+        path: 'audit',
+        loadComponent: () =>
+          import('./audit/audit.component').then(
+            (m) => m.MemorialAuditComponent,
+          ),
+      },
     ],
   },
 ];

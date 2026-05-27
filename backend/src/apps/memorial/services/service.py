@@ -314,6 +314,13 @@ class MemorialServicesService:
             body=(req.note or f"Estado: {old} → {new}"),
             event_data={"from": old, "to": new},
         )
+        from src.apps.memorial.audit.service import record_audit
+        await record_audit(
+            db, org_id=org_id, actor_user_id=actor_user_id,
+            action="service.status_changed",
+            resource_type="service", resource_id=svc.id,
+            details={"from": old, "to": new, "note": req.note, "code": svc.code},
+        )
         return svc
 
     @staticmethod

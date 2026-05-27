@@ -1,0 +1,311 @@
+<div class="px-4 sm:px-6 py-6 space-y-6">
+
+  <!-- Header -->
+  <header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <h1 class="text-2xl font-semibold text-slate-900 dark:text-slate-100">Reportes y analytics</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400">Ingresos, servicios, planes, empleados y KPIs operacionales.</p>
+    </div>
+    <div class="flex flex-wrap items-end gap-2">
+      <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
+        <span class="mb-1">Desde</span>
+        <input [(ngModel)]="dateFrom" type="date"
+          class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+      </label>
+      <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
+        <span class="mb-1">Hasta</span>
+        <input [(ngModel)]="dateTo" type="date"
+          class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+      </label>
+      <button (click)="loadAll()" type="button"
+        class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
+        Aplicar
+      </button>
+    </div>
+  </header>
+
+  <!-- Tabs -->
+  <nav class="flex gap-1 border-b border-slate-200 dark:border-slate-700 overflow-x-auto">
+    @for (t of tabs; track t.value) {
+      <button type="button" (click)="setTab(t.value)"
+        class="px-4 py-2.5 text-sm border-b-2 -mb-px whitespace-nowrap"
+        [class.border-brand-600]="tab() === t.value"
+        [class.text-brand-700]="tab() === t.value"
+        [class.dark:text-brand-300]="tab() === t.value"
+        [class.border-transparent]="tab() !== t.value"
+        [class.text-slate-600]="tab() !== t.value"
+        [class.dark:text-slate-400]="tab() !== t.value">
+        {{ t.label }}
+      </button>
+    }
+  </nav>
+
+  @if (loading()) {
+    <p class="text-sm text-slate-500">Cargando...</p>
+  }
+
+  <!-- ====================== TAB KPIs ====================== -->
+  @if (tab() === 'overview' && kpis(); as k) {
+    <section class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+        <p class="text-xs text-slate-500">Servicios abiertos</p>
+        <p class="text-2xl font-semibold mt-1">{{ k.services_open }}</p>
+      </div>
+      <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+        <p class="text-xs text-slate-500">En proceso</p>
+        <p class="text-2xl font-semibold mt-1">{{ k.services_in_progress }}</p>
+      </div>
+      <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+        <p class="text-xs text-slate-500">Cerrados (30d)</p>
+        <p class="text-2xl font-semibold mt-1">{{ k.services_closed_period }}</p>
+      </div>
+      <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+        <p class="text-xs text-slate-500">Cierre promedio (h)</p>
+        <p class="text-2xl font-semibold mt-1">
+          {{ k.avg_close_hours !== null ? (k.avg_close_hours | number:'1.0-1') : '—' }}
+        </p>
+      </div>
+      <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+        <p class="text-xs text-slate-500">Contratos activos</p>
+        <p class="text-2xl font-semibold mt-1">{{ k.contracts_active }}</p>
+      </div>
+      <div class="rounded-lg border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-900/20 p-4">
+        <p class="text-xs text-rose-700 dark:text-rose-300">Contratos morosos</p>
+        <p class="text-2xl font-semibold mt-1 text-rose-700 dark:text-rose-200">{{ k.contracts_overdue }}</p>
+      </div>
+      <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+        <p class="text-xs text-slate-500">Leads abiertos</p>
+        <p class="text-2xl font-semibold mt-1">{{ k.leads_open }}</p>
+      </div>
+      <div class="rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 p-4">
+        <p class="text-xs text-emerald-700 dark:text-emerald-300">Leads ganados (30d)</p>
+        <p class="text-2xl font-semibold mt-1 text-emerald-700 dark:text-emerald-200">{{ k.leads_won_period }}</p>
+      </div>
+      <div class="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4">
+        <p class="text-xs text-amber-700 dark:text-amber-300">Inventario bajo stock</p>
+        <p class="text-2xl font-semibold mt-1 text-amber-700 dark:text-amber-200">{{ k.inventory_low_stock_items }}</p>
+      </div>
+    </section>
+  }
+
+  <!-- ====================== TAB Ingresos ====================== -->
+  @if (tab() === 'income' && income(); as r) {
+    <section class="space-y-4">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+          <p class="text-xs text-slate-500">Cuotas exequiales</p>
+          <p class="text-2xl font-semibold mt-1">$ {{ +r.total_dues | number:'1.0-0' }}</p>
+        </div>
+        <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+          <p class="text-xs text-slate-500">Ingresos servicios</p>
+          <p class="text-2xl font-semibold mt-1">$ {{ +r.total_services | number:'1.0-0' }}</p>
+        </div>
+        <div class="rounded-lg border border-brand-200 dark:border-brand-800 bg-brand-50 dark:bg-brand-900/20 p-4">
+          <p class="text-xs text-brand-700 dark:text-brand-300">Total</p>
+          <p class="text-2xl font-semibold mt-1 text-brand-700 dark:text-brand-200">$ {{ +r.grand_total | number:'1.0-0' }}</p>
+        </div>
+      </div>
+
+      <!-- Chart simple SVG -->
+      @if (incomeChart(); as ic) {
+        <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+          <h2 class="text-sm font-semibold mb-3">Ingresos por período</h2>
+          <div class="overflow-x-auto">
+            <div class="flex items-end gap-3 min-h-[180px]">
+              @for (p of ic.points; track p.period) {
+                <div class="flex flex-col items-center gap-1">
+                  <div class="flex flex-col-reverse items-center" style="height: 150px;">
+                    <div class="bg-brand-500 w-8 rounded-t" [style.height.px]="(+p.exequial_dues / ic.max) * 150"></div>
+                    <div class="bg-brand-300 w-8" [style.height.px]="(+p.service_income / ic.max) * 150"></div>
+                  </div>
+                  <span class="text-xs text-slate-600 dark:text-slate-400">{{ p.period }}</span>
+                  <span class="text-xs font-medium">$ {{ +p.total | number:'1.0-0' }}</span>
+                </div>
+              }
+            </div>
+            <div class="mt-3 flex gap-4 text-xs">
+              <span class="flex items-center gap-2"><span class="w-3 h-3 bg-brand-500"></span>Cuotas exequiales</span>
+              <span class="flex items-center gap-2"><span class="w-3 h-3 bg-brand-300"></span>Ingresos servicios</span>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Tabla -->
+      <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-x-auto">
+        <div class="flex justify-between items-center px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+          <h2 class="text-sm font-semibold">Detalle por período</h2>
+          <button (click)="exportIncomeCsv()" type="button"
+            class="text-xs text-brand-600 hover:underline">Exportar CSV</button>
+        </div>
+        <table class="min-w-full text-sm">
+          <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300">
+            <tr>
+              <th class="text-left px-3 py-2 font-medium">Período</th>
+              <th class="text-right px-3 py-2 font-medium">Cuotas</th>
+              <th class="text-right px-3 py-2 font-medium">Servicios</th>
+              <th class="text-right px-3 py-2 font-medium">Total</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+            @if (r.points.length === 0) {
+              <tr><td colspan="4" class="px-3 py-6 text-center text-slate-500">Sin movimientos en el período.</td></tr>
+            } @else {
+              @for (p of r.points; track p.period) {
+                <tr>
+                  <td class="px-3 py-2 font-mono">{{ p.period }}</td>
+                  <td class="px-3 py-2 text-right">$ {{ +p.exequial_dues | number:'1.0-0' }}</td>
+                  <td class="px-3 py-2 text-right">$ {{ +p.service_income | number:'1.0-0' }}</td>
+                  <td class="px-3 py-2 text-right font-medium">$ {{ +p.total | number:'1.0-0' }}</td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+
+  <!-- ====================== TAB Servicios ====================== -->
+  @if (tab() === 'services' && services(); as r) {
+    <section class="space-y-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+          <p class="text-xs text-slate-500">Servicios prestados</p>
+          <p class="text-2xl font-semibold mt-1">{{ r.total_count }}</p>
+        </div>
+        <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+          <p class="text-xs text-slate-500">Ingresos totales</p>
+          <p class="text-2xl font-semibold mt-1">$ {{ +r.total_revenue | number:'1.0-0' }}</p>
+        </div>
+      </div>
+
+      @if (servicesChart(); as sc) {
+        <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+          <h2 class="text-sm font-semibold mb-3">Distribución por tipo</h2>
+          <div class="space-y-2">
+            @for (it of sc.items; track it.service_type) {
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span>{{ serviceTypeLabel(it.service_type) }}</span>
+                  <span class="font-medium">{{ it.count }} · $ {{ +it.total_revenue | number:'1.0-0' }}</span>
+                </div>
+                <div class="h-2 bg-slate-200 dark:bg-slate-700 rounded overflow-hidden">
+                  <div class="h-full bg-brand-500" [style.width.%]="(it.count / sc.max) * 100"></div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-x-auto">
+        <div class="flex justify-between items-center px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+          <h2 class="text-sm font-semibold">Detalle</h2>
+          <button (click)="exportServicesCsv()" type="button" class="text-xs text-brand-600 hover:underline">Exportar CSV</button>
+        </div>
+        <table class="min-w-full text-sm">
+          <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300">
+            <tr>
+              <th class="text-left px-3 py-2 font-medium">Tipo</th>
+              <th class="text-right px-3 py-2 font-medium">Cantidad</th>
+              <th class="text-right px-3 py-2 font-medium">Ingresos</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+            @if (r.items.length === 0) {
+              <tr><td colspan="3" class="px-3 py-6 text-center text-slate-500">Sin servicios en el período.</td></tr>
+            } @else {
+              @for (it of r.items; track it.service_type) {
+                <tr>
+                  <td class="px-3 py-2">{{ serviceTypeLabel(it.service_type) }}</td>
+                  <td class="px-3 py-2 text-right">{{ it.count }}</td>
+                  <td class="px-3 py-2 text-right">$ {{ +it.total_revenue | number:'1.0-0' }}</td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+
+  <!-- ====================== TAB Planes ====================== -->
+  @if (tab() === 'plans' && plans(); as r) {
+    <section>
+      <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-x-auto">
+        <div class="flex justify-between items-center px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+          <h2 class="text-sm font-semibold">Ranking de planes</h2>
+          <button (click)="exportPlansCsv()" type="button" class="text-xs text-brand-600 hover:underline">Exportar CSV</button>
+        </div>
+        <table class="min-w-full text-sm">
+          <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300">
+            <tr>
+              <th class="text-left px-3 py-2 font-medium">Código</th>
+              <th class="text-left px-3 py-2 font-medium">Plan</th>
+              <th class="text-right px-3 py-2 font-medium">Contratos</th>
+              <th class="text-right px-3 py-2 font-medium">Activos</th>
+              <th class="text-right px-3 py-2 font-medium">Ingreso periódico (cuotas)</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+            @if (r.items.length === 0) {
+              <tr><td colspan="5" class="px-3 py-6 text-center text-slate-500">Sin planes registrados.</td></tr>
+            } @else {
+              @for (it of r.items; track it.plan_id) {
+                <tr>
+                  <td class="px-3 py-2 font-mono text-xs">{{ it.plan_code }}</td>
+                  <td class="px-3 py-2">{{ it.plan_name }}</td>
+                  <td class="px-3 py-2 text-right">{{ it.contracts_count }}</td>
+                  <td class="px-3 py-2 text-right">{{ it.active_count }}</td>
+                  <td class="px-3 py-2 text-right">$ {{ +it.total_revenue | number:'1.0-0' }}</td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+
+  <!-- ====================== TAB Empleados ====================== -->
+  @if (tab() === 'employees' && employees(); as r) {
+    <section>
+      <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-x-auto">
+        <div class="flex justify-between items-center px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+          <h2 class="text-sm font-semibold">
+            Ranking de empleados
+            <span class="text-xs text-slate-500 font-normal">({{ r.date_from | date:'mediumDate' }} → {{ r.date_to | date:'mediumDate' }})</span>
+          </h2>
+          <button (click)="exportEmployeesCsv()" type="button" class="text-xs text-brand-600 hover:underline">Exportar CSV</button>
+        </div>
+        <table class="min-w-full text-sm">
+          <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300">
+            <tr>
+              <th class="text-left px-3 py-2 font-medium">Código</th>
+              <th class="text-left px-3 py-2 font-medium">Empleado</th>
+              <th class="text-left px-3 py-2 font-medium">Cargo</th>
+              <th class="text-right px-3 py-2 font-medium">Días presente</th>
+              <th class="text-right px-3 py-2 font-medium">Horas</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+            @if (r.items.length === 0) {
+              <tr><td colspan="5" class="px-3 py-6 text-center text-slate-500">Sin asistencias registradas.</td></tr>
+            } @else {
+              @for (it of r.items; track it.employee_id) {
+                <tr>
+                  <td class="px-3 py-2 font-mono text-xs">{{ it.employee_code }}</td>
+                  <td class="px-3 py-2">{{ it.employee_name }}</td>
+                  <td class="px-3 py-2 text-slate-600 dark:text-slate-400">{{ it.position_name || '—' }}</td>
+                  <td class="px-3 py-2 text-right">{{ it.days_present }}</td>
+                  <td class="px-3 py-2 text-right">{{ +it.hours_worked | number:'1.0-2' }}</td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+</div>

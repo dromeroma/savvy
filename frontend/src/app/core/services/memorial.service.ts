@@ -64,6 +64,12 @@ import {
   LeadListItem,
   LeadCommunication,
   LeadCommunicationCreate,
+  IncomeReport,
+  ServicesByTypeReport,
+  PlanRankingReport,
+  EmployeeRankingReport,
+  OperationalKpis,
+  AuditLogEntry,
 } from '../models/memorial.model';
 
 @Injectable({ providedIn: 'root' })
@@ -525,5 +531,50 @@ export class MemorialApiService {
   }
   deleteLeadCommunication(commId: string): Observable<void> {
     return this.api.delete(`/memorial/crm/communications/${commId}`);
+  }
+
+  // ---- Reports ----
+  incomeReport(params?: { date_from?: string; date_to?: string }): Observable<IncomeReport> {
+    const clean: Record<string, string> = {};
+    if (params?.date_from) clean['date_from'] = params.date_from;
+    if (params?.date_to) clean['date_to'] = params.date_to;
+    return this.api.get<IncomeReport>('/memorial/reports/income', clean);
+  }
+  servicesByType(params?: { date_from?: string; date_to?: string }): Observable<ServicesByTypeReport> {
+    const clean: Record<string, string> = {};
+    if (params?.date_from) clean['date_from'] = params.date_from;
+    if (params?.date_to) clean['date_to'] = params.date_to;
+    return this.api.get<ServicesByTypeReport>('/memorial/reports/services-by-type', clean);
+  }
+  planRanking(): Observable<PlanRankingReport> {
+    return this.api.get<PlanRankingReport>('/memorial/reports/plan-ranking');
+  }
+  employeeRanking(params?: { date_from?: string; date_to?: string }): Observable<EmployeeRankingReport> {
+    const clean: Record<string, string> = {};
+    if (params?.date_from) clean['date_from'] = params.date_from;
+    if (params?.date_to) clean['date_to'] = params.date_to;
+    return this.api.get<EmployeeRankingReport>('/memorial/reports/employee-ranking', clean);
+  }
+  operationalKpis(days = 30): Observable<OperationalKpis> {
+    return this.api.get<OperationalKpis>('/memorial/reports/operational-kpis', { days });
+  }
+
+  // ---- Audit ----
+  listAudit(params?: {
+    resource_type?: string; resource_id?: string;
+    action?: string; actor_user_id?: string;
+    date_from?: string; date_to?: string;
+    limit?: number; offset?: number;
+  }): Observable<AuditLogEntry[]> {
+    const clean: Record<string, string | number> = {};
+    if (params?.resource_type) clean['resource_type'] = params.resource_type;
+    if (params?.resource_id) clean['resource_id'] = params.resource_id;
+    if (params?.action) clean['action'] = params.action;
+    if (params?.actor_user_id) clean['actor_user_id'] = params.actor_user_id;
+    if (params?.date_from) clean['date_from'] = params.date_from;
+    if (params?.date_to) clean['date_to'] = params.date_to;
+    if (params?.limit !== undefined) clean['limit'] = params.limit;
+    if (params?.offset !== undefined) clean['offset'] = params.offset;
+    return this.api.get<AuditLogEntry[]>('/memorial/audit/log', clean);
   }
 }
