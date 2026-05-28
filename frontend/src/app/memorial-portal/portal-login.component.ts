@@ -20,13 +20,13 @@ import { MemorialPortalService } from './portal.service';
             <span class="text-xs text-slate-600 dark:text-slate-400">Funeraria (slug)</span>
             <input [(ngModel)]="orgSlug" name="org_slug" required
               placeholder="ej: memorial-demo"
-              class="mt-1 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+              class="mt-1 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm" />
           </label>
 
           <label class="block">
             <span class="text-xs text-slate-600 dark:text-slate-400">Email del titular</span>
             <input [(ngModel)]="email" name="email" type="email"
-              class="mt-1 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+              class="mt-1 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm" />
           </label>
 
           <div class="text-center text-xs text-slate-400">— o —</div>
@@ -34,7 +34,7 @@ import { MemorialPortalService } from './portal.service';
           <label class="block">
             <span class="text-xs text-slate-600 dark:text-slate-400">Número de documento</span>
             <input [(ngModel)]="documentNumber" name="document_number"
-              class="mt-1 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+              class="mt-1 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm" />
           </label>
 
           @if (error()) {

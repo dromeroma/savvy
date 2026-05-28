@@ -19,12 +19,12 @@ import { AuditLogEntry } from '../../../core/models/memorial.model';
           <span class="mb-1">Acción</span>
           <input [(ngModel)]="filterAction" (keyup.enter)="refresh()"
             placeholder="ej: service.created"
-            class="w-48 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+            class="w-48 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm" />
         </label>
         <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
           <span class="mb-1">Tipo recurso</span>
           <select [(ngModel)]="filterResourceType" (change)="refresh()"
-            class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm">
+            class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm">
             <option value="">— Todos —</option>
             <option value="service">Servicio</option>
             <option value="contract">Contrato</option>
@@ -38,12 +38,12 @@ import { AuditLogEntry } from '../../../core/models/memorial.model';
         <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
           <span class="mb-1">Desde</span>
           <input [(ngModel)]="dateFrom" type="date"
-            class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+            class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm" />
         </label>
         <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
           <span class="mb-1">Hasta</span>
           <input [(ngModel)]="dateTo" type="date"
-            class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+            class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm" />
         </label>
         <button (click)="refresh()" type="button"
           class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
@@ -53,11 +53,11 @@ import { AuditLogEntry } from '../../../core/models/memorial.model';
 
       <section>
         @if (loading()) {
-          <p class="text-sm text-slate-500">Cargando...</p>
+          <p class="text-sm text-slate-500 dark:text-slate-400">Cargando...</p>
         } @else if (entries().length === 0) {
           <div class="rounded-lg border border-dashed border-slate-300 dark:border-slate-700 p-8 text-center">
-            <p class="text-sm text-slate-500">No hay registros de auditoría que coincidan.</p>
-            <p class="text-xs text-slate-400 mt-2">
+            <p class="text-sm text-slate-500 dark:text-slate-400">No hay registros de auditoría que coincidan.</p>
+            <p class="text-xs text-slate-400 dark:text-slate-500 mt-2">
               Las entradas aparecen aquí cuando los módulos las registran mediante el helper <code class="font-mono">record_audit()</code>.
             </p>
           </div>
@@ -66,10 +66,10 @@ import { AuditLogEntry } from '../../../core/models/memorial.model';
             @for (e of entries(); track e.id) {
               <li class="ml-4">
                 <span class="absolute -left-[7px] mt-1.5 w-3 h-3 rounded-full bg-brand-500 border-2 border-white dark:border-slate-900"></span>
-                <div class="rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3">
+                <div class="rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 p-3">
                   <div class="flex flex-wrap items-baseline justify-between gap-2">
-                    <h3 class="text-sm font-medium font-mono">{{ e.action }}</h3>
-                    <time class="text-xs text-slate-500">{{ e.created_at | date:'medium' }}</time>
+                    <h3 class="text-sm font-medium font-mono text-slate-900 dark:text-slate-100">{{ e.action }}</h3>
+                    <time class="text-xs text-slate-500 dark:text-slate-400">{{ e.created_at | date:'medium' }}</time>
                   </div>
                   <div class="mt-1 text-xs text-slate-600 dark:text-slate-400 flex flex-wrap gap-3">
                     @if (e.resource_type) {

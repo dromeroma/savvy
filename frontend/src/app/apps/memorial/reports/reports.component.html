@@ -10,12 +10,12 @@
       <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
         <span class="mb-1">Desde</span>
         <input [(ngModel)]="dateFrom" type="date"
-          class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+          class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm" />
       </label>
       <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
         <span class="mb-1">Hasta</span>
         <input [(ngModel)]="dateTo" type="date"
-          class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+          class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm" />
       </label>
       <button (click)="loadAll()" type="button"
         class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
@@ -41,32 +41,32 @@
   </nav>
 
   @if (loading()) {
-    <p class="text-sm text-slate-500">Cargando...</p>
+    <p class="text-sm text-slate-500 dark:text-slate-400">Cargando...</p>
   }
 
   <!-- ====================== TAB KPIs ====================== -->
   @if (tab() === 'overview' && kpis(); as k) {
     <section class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
       <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
-        <p class="text-xs text-slate-500">Servicios abiertos</p>
+        <p class="text-xs text-slate-500 dark:text-slate-400">Servicios abiertos</p>
         <p class="text-2xl font-semibold mt-1">{{ k.services_open }}</p>
       </div>
       <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
-        <p class="text-xs text-slate-500">En proceso</p>
+        <p class="text-xs text-slate-500 dark:text-slate-400">En proceso</p>
         <p class="text-2xl font-semibold mt-1">{{ k.services_in_progress }}</p>
       </div>
       <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
-        <p class="text-xs text-slate-500">Cerrados (30d)</p>
+        <p class="text-xs text-slate-500 dark:text-slate-400">Cerrados (30d)</p>
         <p class="text-2xl font-semibold mt-1">{{ k.services_closed_period }}</p>
       </div>
       <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
-        <p class="text-xs text-slate-500">Cierre promedio (h)</p>
+        <p class="text-xs text-slate-500 dark:text-slate-400">Cierre promedio (h)</p>
         <p class="text-2xl font-semibold mt-1">
           {{ k.avg_close_hours !== null ? (k.avg_close_hours | number:'1.0-1') : '—' }}
         </p>
       </div>
       <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
-        <p class="text-xs text-slate-500">Contratos activos</p>
+        <p class="text-xs text-slate-500 dark:text-slate-400">Contratos activos</p>
         <p class="text-2xl font-semibold mt-1">{{ k.contracts_active }}</p>
       </div>
       <div class="rounded-lg border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-900/20 p-4">
@@ -74,7 +74,7 @@
         <p class="text-2xl font-semibold mt-1 text-rose-700 dark:text-rose-200">{{ k.contracts_overdue }}</p>
       </div>
       <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
-        <p class="text-xs text-slate-500">Leads abiertos</p>
+        <p class="text-xs text-slate-500 dark:text-slate-400">Leads abiertos</p>
         <p class="text-2xl font-semibold mt-1">{{ k.leads_open }}</p>
       </div>
       <div class="rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 p-4">
@@ -93,11 +93,11 @@
     <section class="space-y-4">
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
-          <p class="text-xs text-slate-500">Cuotas exequiales</p>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Cuotas exequiales</p>
           <p class="text-2xl font-semibold mt-1">$ {{ +r.total_dues | number:'1.0-0' }}</p>
         </div>
         <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
-          <p class="text-xs text-slate-500">Ingresos servicios</p>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Ingresos servicios</p>
           <p class="text-2xl font-semibold mt-1">$ {{ +r.total_services | number:'1.0-0' }}</p>
         </div>
         <div class="rounded-lg border border-brand-200 dark:border-brand-800 bg-brand-50 dark:bg-brand-900/20 p-4">
@@ -109,7 +109,7 @@
       <!-- Chart simple SVG -->
       @if (incomeChart(); as ic) {
         <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
-          <h2 class="text-sm font-semibold mb-3">Ingresos por período</h2>
+          <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3">Ingresos por período</h2>
           <div class="overflow-x-auto">
             <div class="flex items-end gap-3 min-h-[180px]">
               @for (p of ic.points; track p.period) {
@@ -134,11 +134,11 @@
       <!-- Tabla -->
       <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-x-auto">
         <div class="flex justify-between items-center px-4 py-3 border-b border-slate-200 dark:border-slate-700">
-          <h2 class="text-sm font-semibold">Detalle por período</h2>
+          <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-100">Detalle por período</h2>
           <button (click)="exportIncomeCsv()" type="button"
             class="text-xs text-brand-600 hover:underline">Exportar CSV</button>
         </div>
-        <table class="min-w-full text-sm">
+        <table class="min-w-full text-sm text-slate-800 dark:text-slate-200">
           <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300">
             <tr>
               <th class="text-left px-3 py-2 font-medium">Período</th>
@@ -149,7 +149,7 @@
           </thead>
           <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
             @if (r.points.length === 0) {
-              <tr><td colspan="4" class="px-3 py-6 text-center text-slate-500">Sin movimientos en el período.</td></tr>
+              <tr><td colspan="4" class="px-3 py-6 text-center text-slate-500 dark:text-slate-400">Sin movimientos en el período.</td></tr>
             } @else {
               @for (p of r.points; track p.period) {
                 <tr>
@@ -171,18 +171,18 @@
     <section class="space-y-4">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
-          <p class="text-xs text-slate-500">Servicios prestados</p>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Servicios prestados</p>
           <p class="text-2xl font-semibold mt-1">{{ r.total_count }}</p>
         </div>
         <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
-          <p class="text-xs text-slate-500">Ingresos totales</p>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Ingresos totales</p>
           <p class="text-2xl font-semibold mt-1">$ {{ +r.total_revenue | number:'1.0-0' }}</p>
         </div>
       </div>
 
       @if (servicesChart(); as sc) {
         <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
-          <h2 class="text-sm font-semibold mb-3">Distribución por tipo</h2>
+          <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3">Distribución por tipo</h2>
           <div class="space-y-2">
             @for (it of sc.items; track it.service_type) {
               <div>
@@ -201,10 +201,10 @@
 
       <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-x-auto">
         <div class="flex justify-between items-center px-4 py-3 border-b border-slate-200 dark:border-slate-700">
-          <h2 class="text-sm font-semibold">Detalle</h2>
+          <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-100">Detalle</h2>
           <button (click)="exportServicesCsv()" type="button" class="text-xs text-brand-600 hover:underline">Exportar CSV</button>
         </div>
-        <table class="min-w-full text-sm">
+        <table class="min-w-full text-sm text-slate-800 dark:text-slate-200">
           <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300">
             <tr>
               <th class="text-left px-3 py-2 font-medium">Tipo</th>
@@ -214,7 +214,7 @@
           </thead>
           <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
             @if (r.items.length === 0) {
-              <tr><td colspan="3" class="px-3 py-6 text-center text-slate-500">Sin servicios en el período.</td></tr>
+              <tr><td colspan="3" class="px-3 py-6 text-center text-slate-500 dark:text-slate-400">Sin servicios en el período.</td></tr>
             } @else {
               @for (it of r.items; track it.service_type) {
                 <tr>
@@ -235,10 +235,10 @@
     <section>
       <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-x-auto">
         <div class="flex justify-between items-center px-4 py-3 border-b border-slate-200 dark:border-slate-700">
-          <h2 class="text-sm font-semibold">Ranking de planes</h2>
+          <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-100">Ranking de planes</h2>
           <button (click)="exportPlansCsv()" type="button" class="text-xs text-brand-600 hover:underline">Exportar CSV</button>
         </div>
-        <table class="min-w-full text-sm">
+        <table class="min-w-full text-sm text-slate-800 dark:text-slate-200">
           <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300">
             <tr>
               <th class="text-left px-3 py-2 font-medium">Código</th>
@@ -250,7 +250,7 @@
           </thead>
           <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
             @if (r.items.length === 0) {
-              <tr><td colspan="5" class="px-3 py-6 text-center text-slate-500">Sin planes registrados.</td></tr>
+              <tr><td colspan="5" class="px-3 py-6 text-center text-slate-500 dark:text-slate-400">Sin planes registrados.</td></tr>
             } @else {
               @for (it of r.items; track it.plan_id) {
                 <tr>
@@ -273,13 +273,13 @@
     <section>
       <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-x-auto">
         <div class="flex justify-between items-center px-4 py-3 border-b border-slate-200 dark:border-slate-700">
-          <h2 class="text-sm font-semibold">
+          <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-100">
             Ranking de empleados
-            <span class="text-xs text-slate-500 font-normal">({{ r.date_from | date:'mediumDate' }} → {{ r.date_to | date:'mediumDate' }})</span>
+            <span class="text-xs text-slate-500 dark:text-slate-400 font-normal">({{ r.date_from | date:'mediumDate' }} → {{ r.date_to | date:'mediumDate' }})</span>
           </h2>
           <button (click)="exportEmployeesCsv()" type="button" class="text-xs text-brand-600 hover:underline">Exportar CSV</button>
         </div>
-        <table class="min-w-full text-sm">
+        <table class="min-w-full text-sm text-slate-800 dark:text-slate-200">
           <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300">
             <tr>
               <th class="text-left px-3 py-2 font-medium">Código</th>
@@ -291,7 +291,7 @@
           </thead>
           <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
             @if (r.items.length === 0) {
-              <tr><td colspan="5" class="px-3 py-6 text-center text-slate-500">Sin asistencias registradas.</td></tr>
+              <tr><td colspan="5" class="px-3 py-6 text-center text-slate-500 dark:text-slate-400">Sin asistencias registradas.</td></tr>
             } @else {
               @for (it of r.items; track it.employee_id) {
                 <tr>

@@ -52,7 +52,7 @@ type Tab = 'contract' | 'invoices' | 'payments' | 'services';
       <main class="max-w-5xl mx-auto px-4 py-6">
 
         @if (loading()) {
-          <p class="text-slate-500 text-sm">Cargando...</p>
+          <p class="text-slate-500 dark:text-slate-400 text-sm">Cargando...</p>
         } @else if (!contract()) {
           <p class="text-rose-600 text-sm">No se pudo cargar la información del contrato.</p>
         } @else {
@@ -63,8 +63,8 @@ type Tab = 'contract' | 'invoices' | 'payments' | 'services';
             @case ('contract') {
               <section class="grid gap-4 sm:grid-cols-2">
                 <div class="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
-                  <p class="text-xs text-slate-500">Contrato</p>
-                  <p class="text-lg font-semibold font-mono">{{ contract()!.code }}</p>
+                  <p class="text-xs text-slate-500 dark:text-slate-400">Contrato</p>
+                  <p class="text-lg font-semibold font-mono text-slate-900 dark:text-slate-100">{{ contract()!.code }}</p>
                   <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">
                     Plan: <span class="font-medium">{{ contract()!.plan_name }}</span>
                   </p>
@@ -73,8 +73,8 @@ type Tab = 'contract' | 'invoices' | 'payments' | 'services';
                 </div>
 
                 <div class="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
-                  <p class="text-xs text-slate-500">Cuota</p>
-                  <p class="text-2xl font-semibold">$ {{ contract()!.fee_amount | number:'1.0-0' }}</p>
+                  <p class="text-xs text-slate-500 dark:text-slate-400">Cuota</p>
+                  <p class="text-2xl font-semibold text-slate-900 dark:text-slate-100">$ {{ contract()!.fee_amount | number:'1.0-0' }}</p>
                   <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">
                     Frecuencia: <span class="capitalize">{{ freqLabel(contract()!.payment_frequency) }}</span>
                   </p>
@@ -86,26 +86,26 @@ type Tab = 'contract' | 'invoices' | 'payments' | 'services';
                 </div>
 
                 <div class="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-4 sm:col-span-2">
-                  <h2 class="text-sm font-semibold mb-3">Titular</h2>
+                  <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3">Titular</h2>
                   <dl class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                    <div><dt class="text-xs text-slate-500">Nombre</dt><dd>{{ titularName() }}</dd></div>
-                    <div><dt class="text-xs text-slate-500">Email</dt><dd>{{ contract()!.titular_email || '—' }}</dd></div>
-                    <div><dt class="text-xs text-slate-500">Teléfono</dt><dd>{{ contract()!.titular_phone || contract()!.titular_mobile || '—' }}</dd></div>
-                    <div><dt class="text-xs text-slate-500">Dirección</dt><dd>{{ contract()!.titular_address || '—' }}</dd></div>
+                    <div><dt class="text-xs text-slate-500 dark:text-slate-400">Nombre</dt><dd>{{ titularName() }}</dd></div>
+                    <div><dt class="text-xs text-slate-500 dark:text-slate-400">Email</dt><dd>{{ contract()!.titular_email || '—' }}</dd></div>
+                    <div><dt class="text-xs text-slate-500 dark:text-slate-400">Teléfono</dt><dd>{{ contract()!.titular_phone || contract()!.titular_mobile || '—' }}</dd></div>
+                    <div><dt class="text-xs text-slate-500 dark:text-slate-400">Dirección</dt><dd>{{ contract()!.titular_address || '—' }}</dd></div>
                   </dl>
                 </div>
 
                 <div class="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-4 sm:col-span-2">
-                  <h2 class="text-sm font-semibold mb-3">Beneficiarios ({{ contract()!.beneficiaries.length }})</h2>
+                  <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3">Beneficiarios ({{ contract()!.beneficiaries.length }})</h2>
                   @if (contract()!.beneficiaries.length === 0) {
-                    <p class="text-sm text-slate-500">Sin beneficiarios registrados.</p>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">Sin beneficiarios registrados.</p>
                   } @else {
                     <ul class="divide-y divide-slate-100 dark:divide-slate-800">
                       @for (b of contract()!.beneficiaries; track b.id) {
                         <li class="py-2 flex items-center justify-between">
                           <div>
-                            <p class="text-sm font-medium">{{ b.first_name }} {{ b.last_name }}</p>
-                            <p class="text-xs text-slate-500">
+                            <p class="text-sm font-medium text-slate-900 dark:text-slate-100">{{ b.first_name }} {{ b.last_name }}</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">
                               {{ b.relationship || 'Beneficiario' }}
                               @if (b.document_number) { · doc: {{ b.document_number }} }
                             </p>
@@ -124,10 +124,10 @@ type Tab = 'contract' | 'invoices' | 'payments' | 'services';
             <!-- ============ Facturas ============ -->
             @case ('invoices') {
               @if (invoices().length === 0) {
-                <p class="text-sm text-slate-500">Aún no hay facturas asociadas.</p>
+                <p class="text-sm text-slate-500 dark:text-slate-400">Aún no hay facturas asociadas.</p>
               } @else {
                 <div class="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 overflow-x-auto">
-                  <table class="min-w-full text-sm">
+                  <table class="min-w-full text-sm text-slate-800 dark:text-slate-200">
                     <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300">
                       <tr>
                         <th class="text-left px-3 py-2 font-medium">Código</th>
@@ -168,10 +168,10 @@ type Tab = 'contract' | 'invoices' | 'payments' | 'services';
             <!-- ============ Pagos ============ -->
             @case ('payments') {
               @if (payments().length === 0) {
-                <p class="text-sm text-slate-500">Aún no hay pagos registrados.</p>
+                <p class="text-sm text-slate-500 dark:text-slate-400">Aún no hay pagos registrados.</p>
               } @else {
                 <div class="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 overflow-x-auto">
-                  <table class="min-w-full text-sm">
+                  <table class="min-w-full text-sm text-slate-800 dark:text-slate-200">
                     <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300">
                       <tr>
                         <th class="text-left px-3 py-2 font-medium">Código</th>
@@ -200,13 +200,13 @@ type Tab = 'contract' | 'invoices' | 'payments' | 'services';
             <!-- ============ Servicios ============ -->
             @case ('services') {
               @if (services().length === 0) {
-                <p class="text-sm text-slate-500">Sin servicios prestados bajo este contrato.</p>
+                <p class="text-sm text-slate-500 dark:text-slate-400">Sin servicios prestados bajo este contrato.</p>
               } @else {
                 <ul class="space-y-3">
                   @for (s of services(); track s.id) {
                     <li class="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
-                      <p class="text-xs text-slate-500 font-mono">{{ s.code }}</p>
-                      <p class="text-base font-semibold mt-1">{{ s.deceased_first_name }} {{ s.deceased_last_name }}</p>
+                      <p class="text-xs text-slate-500 dark:text-slate-400 font-mono">{{ s.code }}</p>
+                      <p class="text-base font-semibold text-slate-900 dark:text-slate-100 mt-1">{{ s.deceased_first_name }} {{ s.deceased_last_name }}</p>
                       <p class="text-sm text-slate-600 dark:text-slate-400">
                         Fallecimiento: {{ s.deceased_death_date | date:'mediumDate' }}
                       </p>

@@ -193,7 +193,10 @@
     cursor: pointer;
   }
   body {
-    @apply relative font-normal font-outfit z-1 bg-gray-50 scrollbar-brand;
+    @apply relative font-normal font-outfit z-1 bg-gray-50 text-gray-800 scrollbar-brand;
+  }
+  .dark body {
+    @apply bg-gray-950 text-gray-200;
   }
 }
 

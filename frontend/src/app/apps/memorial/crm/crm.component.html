@@ -4,7 +4,7 @@
   <header class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
     <div>
       <h1 class="text-2xl font-semibold text-slate-900 dark:text-slate-100">CRM</h1>
-      <p class="text-sm text-slate-500 dark:text-slate-400">Prospectos, seguimiento y conversión a contratos o servicios.</p>
+      <p class="text-sm text-slate-600 dark:text-slate-400">Prospectos, seguimiento y conversión a contratos o servicios.</p>
     </div>
     <button (click)="openForm()" type="button"
       class="inline-flex items-center gap-2 rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
@@ -36,7 +36,7 @@
     <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
       <span class="mb-1">Origen</span>
       <select [(ngModel)]="filterSource" (change)="refresh()"
-        class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm">
+        class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm">
         <option value="">— Todos —</option>
         @for (s of sources; track s.value) { <option [value]="s.value">{{ s.label }}</option> }
       </select>
@@ -49,7 +49,7 @@
 
   <!-- Tabla -->
   <section class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
-    <table class="min-w-full text-sm">
+    <table class="min-w-full text-sm text-slate-800 dark:text-slate-200">
       <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300">
         <tr>
           <th class="text-left px-4 py-2 font-medium">Código</th>
@@ -103,9 +103,9 @@
   <!-- ===================== Modal lead ===================== -->
   @if (formOpen()) {
     <div class="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/50 px-4 py-6">
-      <div class="bg-white dark:bg-slate-900 rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+      <div class="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
         <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-          <h2 class="text-lg font-semibold">{{ editingId() ? 'Editar lead' : 'Nuevo lead' }}</h2>
+          <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ editingId() ? 'Editar lead' : 'Nuevo lead' }}</h2>
           <button (click)="closeForm()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" type="button">✕</button>
         </div>
         <form (ngSubmit)="saveForm()" class="px-5 py-4 space-y-4">
@@ -117,83 +117,83 @@
             <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
               <span class="mb-1">Nombres</span>
               <input [(ngModel)]="form.first_name" name="first_name"
-                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm" />
             </label>
             <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
               <span class="mb-1">Apellidos</span>
               <input [(ngModel)]="form.last_name" name="last_name"
-                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm" />
             </label>
             <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400 sm:col-span-2">
               <span class="mb-1">Razón social (si aplica)</span>
               <input [(ngModel)]="form.business_name" name="business_name"
-                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm" />
             </label>
 
             <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
               <span class="mb-1">Tipo doc.</span>
               <input [(ngModel)]="form.document_type" name="document_type" maxlength="10"
-                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm" />
             </label>
             <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
               <span class="mb-1">Número documento</span>
               <input [(ngModel)]="form.document_number" name="document_number"
-                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm" />
             </label>
 
             <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
               <span class="mb-1">Email</span>
               <input [(ngModel)]="form.email" name="email" type="email"
-                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm" />
             </label>
             <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
               <span class="mb-1">Celular</span>
               <input [(ngModel)]="form.mobile" name="mobile"
-                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm" />
             </label>
             <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
               <span class="mb-1">Teléfono</span>
               <input [(ngModel)]="form.phone" name="phone"
-                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm" />
             </label>
             <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
               <span class="mb-1">Dirección</span>
               <input [(ngModel)]="form.address" name="address"
-                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm" />
             </label>
 
             <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
               <span class="mb-1">Origen</span>
               <select [(ngModel)]="form.source" name="source"
-                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm">
+                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm">
                 @for (s of sources; track s.value) { <option [value]="s.value">{{ s.label }}</option> }
               </select>
             </label>
             <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
               <span class="mb-1">Interés</span>
               <select [(ngModel)]="form.interest" name="interest"
-                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm">
+                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm">
                 @for (i of interests; track i.value) { <option [value]="i.value">{{ i.label }}</option> }
               </select>
             </label>
             <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
               <span class="mb-1">Prioridad</span>
               <select [(ngModel)]="form.priority" name="priority"
-                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm">
+                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm">
                 @for (p of priorities; track p.value) { <option [value]="p.value">{{ p.label }}</option> }
               </select>
             </label>
             <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
               <span class="mb-1">Próximo seguimiento</span>
               <input [(ngModel)]="form.next_follow_up_at" name="next_follow_up_at" type="datetime-local"
-                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm" />
             </label>
 
             @if (editingId()) {
               <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400">
                 <span class="mb-1">Estado</span>
                 <select [(ngModel)]="form.status" name="status"
-                  class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm">
+                  class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm">
                   @for (s of statuses; track s.value) { <option [value]="s.value">{{ s.label }}</option> }
                 </select>
               </label>
@@ -202,7 +202,7 @@
             <label class="flex flex-col text-xs text-slate-600 dark:text-slate-400 sm:col-span-2">
               <span class="mb-1">Notas</span>
               <textarea [(ngModel)]="form.notes" name="notes" rows="3"
-                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm"></textarea>
+                class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm"></textarea>
             </label>
           </div>
 
@@ -225,16 +225,16 @@
       <div class="ml-auto h-full w-full max-w-2xl bg-white dark:bg-slate-900 overflow-y-auto shadow-xl">
         <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-900 z-10">
           <div>
-            <span class="text-xs text-slate-500 font-mono">{{ d.code }}</span>
-            <h2 class="text-lg font-semibold">{{ leadName(d) }}</h2>
+            <span class="text-xs text-slate-500 dark:text-slate-400 font-mono">{{ d.code }}</span>
+            <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ leadName(d) }}</h2>
           </div>
           <button (click)="closeDetail()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" type="button">✕</button>
         </div>
 
-        <div class="px-5 py-4 space-y-5">
+        <div class="px-5 py-4 space-y-5 text-slate-800 dark:text-slate-200">
           <!-- Status changer -->
           <section>
-            <p class="text-xs text-slate-500 mb-2">Cambiar estado:</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">Cambiar estado:</p>
             <div class="flex flex-wrap gap-2">
               @for (s of statuses; track s.value) {
                 <button type="button" (click)="changeStatus(s.value)"
@@ -248,14 +248,14 @@
 
           <!-- Contact -->
           <section class="grid grid-cols-2 gap-3 text-sm">
-            <div><span class="text-xs text-slate-500">Email</span><p>{{ d.email || '—' }}</p></div>
-            <div><span class="text-xs text-slate-500">Celular</span><p>{{ d.mobile || d.phone || '—' }}</p></div>
-            <div><span class="text-xs text-slate-500">Documento</span><p>{{ d.document_type }} {{ d.document_number || '—' }}</p></div>
-            <div><span class="text-xs text-slate-500">Dirección</span><p>{{ d.address || '—' }}</p></div>
-            <div><span class="text-xs text-slate-500">Origen</span><p>{{ sourceLabel(d.source) }}</p></div>
-            <div><span class="text-xs text-slate-500">Interés</span><p>{{ interestLabel(d.interest) }}</p></div>
+            <div><span class="text-xs text-slate-500 dark:text-slate-400">Email</span><p>{{ d.email || '—' }}</p></div>
+            <div><span class="text-xs text-slate-500 dark:text-slate-400">Celular</span><p>{{ d.mobile || d.phone || '—' }}</p></div>
+            <div><span class="text-xs text-slate-500 dark:text-slate-400">Documento</span><p>{{ d.document_type }} {{ d.document_number || '—' }}</p></div>
+            <div><span class="text-xs text-slate-500 dark:text-slate-400">Dirección</span><p>{{ d.address || '—' }}</p></div>
+            <div><span class="text-xs text-slate-500 dark:text-slate-400">Origen</span><p>{{ sourceLabel(d.source) }}</p></div>
+            <div><span class="text-xs text-slate-500 dark:text-slate-400">Interés</span><p>{{ interestLabel(d.interest) }}</p></div>
             @if (d.notes) {
-              <div class="col-span-2"><span class="text-xs text-slate-500">Notas</span><p class="whitespace-pre-wrap">{{ d.notes }}</p></div>
+              <div class="col-span-2"><span class="text-xs text-slate-500 dark:text-slate-400">Notas</span><p class="whitespace-pre-wrap">{{ d.notes }}</p></div>
             }
             @if (d.converted_contract_id) {
               <div class="col-span-2 rounded-md bg-emerald-50 dark:bg-emerald-900/20 p-2 text-xs text-emerald-700 dark:text-emerald-300">
@@ -291,14 +291,14 @@
 
           <!-- Comunicaciones -->
           <section>
-            <h3 class="text-sm font-semibold mb-2">Comunicaciones</h3>
+            <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-2">Comunicaciones</h3>
             <div class="rounded-md border border-slate-200 dark:border-slate-700 p-3 mb-3">
               @if (commError()) { <p class="text-xs text-rose-600 mb-2">{{ commError() }}</p> }
               <div class="grid grid-cols-2 gap-2">
-                <select [(ngModel)]="commForm.channel" class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1.5 text-sm">
+                <select [(ngModel)]="commForm.channel" class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-2 py-1.5 text-sm">
                   @for (c of channels; track c.value) { <option [value]="c.value">{{ c.label }}</option> }
                 </select>
-                <select [(ngModel)]="commForm.direction" class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1.5 text-sm">
+                <select [(ngModel)]="commForm.direction" class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-2 py-1.5 text-sm">
                   @for (d of directions; track d.value) { <option [value]="d.value">{{ d.label }}</option> }
                 </select>
               </div>
@@ -315,7 +315,7 @@
             </div>
 
             @if (comms().length === 0) {
-              <p class="text-xs text-slate-500">Sin comunicaciones aún.</p>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Sin comunicaciones aún.</p>
             } @else {
               <ul class="space-y-2">
                 @for (c of comms(); track c.id) {
@@ -323,7 +323,7 @@
                     <div class="flex justify-between items-start">
                       <div>
                         <span class="text-xs font-medium">{{ channelLabel(c.channel) }} · {{ directionLabel(c.direction) }}</span>
-                        <span class="text-xs text-slate-500 ml-2">{{ c.occurred_at | slice:0:16 }}</span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400 ml-2">{{ c.occurred_at | slice:0:16 }}</span>
                       </div>
                       <button (click)="removeComm(c)" type="button" class="text-xs text-rose-600 hover:underline">✕</button>
                     </div>
