@@ -61,8 +61,22 @@ from src.apps.hr.service_phase3 import (
     PayrollPeriodsService,
     PayrollsService,
 )
+from src.apps.hr.service_phase4 import (
+    EvaluationCyclesService,
+    EvaluationsService,
+    ReportsService,
+    TrainingCoursesService,
+    TrainingEnrollmentsService,
+)
 from src.apps.hr.schemas import (
     CalculationResult,
+    EvaluationCycleCreate,
+    EvaluationCycleResponse,
+    EvaluationCycleUpdate,
+    EvaluationResponseInput,
+    EvaluationResponseItem,
+    EvaluationResponseSchema,
+    EvaluationWithResponses,
     PayrollConceptCreate,
     PayrollConceptResponse,
     PayrollConceptUpdate,
@@ -73,6 +87,17 @@ from src.apps.hr.schemas import (
     PayrollPeriodUpdate,
     PayrollResponse,
     PayrollWithItems,
+    ReportAbsenteeismResponse,
+    ReportCostResponse,
+    ReportHeadcountResponse,
+    ReportTenureResponse,
+    ReportTrainingSummary,
+    TrainingCourseCreate,
+    TrainingCourseResponse,
+    TrainingCourseUpdate,
+    TrainingEnrollmentCreate,
+    TrainingEnrollmentResponse,
+    TrainingEnrollmentUpdate,
 )
 from src.core.dependencies import get_current_user, get_db, get_org_id
 from src.modules.apps.permissions import require_permission
@@ -120,6 +145,20 @@ def _perm_payroll_run():
 
 def _perm_payroll_approve():
     return Depends(require_permission("hr", "hr.payroll.approve"))
+
+
+def _perm_eval_manage():
+    return Depends(require_permission("hr", "hr.evaluations.manage"))
+
+
+def _perm_eval_respond():
+    return Depends(require_permission(
+        "hr", "hr.evaluations.respond", "hr.evaluations.manage",
+    ))
+
+
+def _perm_training():
+    return Depends(require_permission("hr", "hr.training.manage"))
 
 
 # ============================================================ Departments
@@ -936,3 +975,282 @@ async def get_payroll_pdf(
         media_type="application/pdf",
         headers={"Content-Disposition": f'inline; filename="{filename}"'},
     )
+
+
+# ============================================================ Fase 4 — Evaluation cycles
+
+
+@router.get("/evaluation-cycles", response_model=list[EvaluationCycleResponse], dependencies=[_perm_read()])
+async def list_evaluation_cycles(
+    status_: str | None = Query(None, alias="status"),
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await EvaluationCyclesService.list_(db, org_id, status=status_)
+
+
+@router.get("/evaluation-cycles/{cid}", response_model=EvaluationCycleResponse, dependencies=[_perm_read()])
+async def get_evaluation_cycle(
+    cid: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await EvaluationCyclesService.get(db, org_id, cid)
+
+
+@router.post(
+    "/evaluation-cycles", response_model=EvaluationCycleResponse,
+    status_code=status.HTTP_201_CREATED, dependencies=[_perm_eval_manage()],
+)
+async def create_evaluation_cycle(
+    data: EvaluationCycleCreate,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+    user: dict[str, Any] = Depends(get_current_user),
+) -> Any:
+    return await EvaluationCyclesService.create(db, org_id, data, _user_uuid(user))
+
+
+@router.patch("/evaluation-cycles/{cid}", response_model=EvaluationCycleResponse, dependencies=[_perm_eval_manage()])
+async def update_evaluation_cycle(
+    cid: uuid.UUID,
+    data: EvaluationCycleUpdate,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await EvaluationCyclesService.update(db, org_id, cid, data)
+
+
+@router.delete(
+    "/evaluation-cycles/{cid}", status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None, dependencies=[_perm_eval_manage()],
+)
+async def delete_evaluation_cycle(
+    cid: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> None:
+    await EvaluationCyclesService.delete(db, org_id, cid)
+
+
+@router.post(
+    "/evaluation-cycles/{cid}/open", dependencies=[_perm_eval_manage()],
+)
+async def open_evaluation_cycle(
+    cid: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await EvaluationCyclesService.open_cycle(db, org_id, cid)
+
+
+@router.post(
+    "/evaluation-cycles/{cid}/close",
+    response_model=EvaluationCycleResponse, dependencies=[_perm_eval_manage()],
+)
+async def close_evaluation_cycle(
+    cid: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await EvaluationCyclesService.close_cycle(db, org_id, cid)
+
+
+# ============================================================ Fase 4 — Evaluations
+
+
+@router.get(
+    "/evaluation-cycles/{cid}/evaluations",
+    response_model=list[EvaluationResponseSchema], dependencies=[_perm_read()],
+)
+async def list_evaluations_by_cycle(
+    cid: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await EvaluationsService.list_by_cycle(db, org_id, cid)
+
+
+@router.get("/evaluations/{eid}", response_model=EvaluationWithResponses, dependencies=[_perm_read()])
+async def get_evaluation_detail(
+    eid: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    e = await EvaluationsService.get(db, org_id, eid)
+    responses = await EvaluationsService.get_responses(db, e.id)
+    return {
+        **{c.name: getattr(e, c.name) for c in e.__table__.columns},
+        "responses": responses,
+    }
+
+
+@router.post(
+    "/evaluations/{eid}/responses",
+    response_model=EvaluationResponseItem,
+    status_code=status.HTTP_201_CREATED, dependencies=[_perm_eval_respond()],
+)
+async def submit_evaluation_response(
+    eid: uuid.UUID,
+    data: EvaluationResponseInput,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+    user: dict[str, Any] = Depends(get_current_user),
+) -> Any:
+    return await EvaluationsService.submit_response(db, org_id, eid, data, _user_uuid(user))
+
+
+# ============================================================ Fase 4 — Training courses
+
+
+@router.get("/training-courses", response_model=list[TrainingCourseResponse], dependencies=[_perm_read()])
+async def list_training_courses(
+    active_only: bool = Query(False),
+    category: str | None = Query(None),
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await TrainingCoursesService.list_(db, org_id, active_only=active_only, category=category)
+
+
+@router.get("/training-courses/{cid}", response_model=TrainingCourseResponse, dependencies=[_perm_read()])
+async def get_training_course(
+    cid: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await TrainingCoursesService.get(db, org_id, cid)
+
+
+@router.post(
+    "/training-courses", response_model=TrainingCourseResponse,
+    status_code=status.HTTP_201_CREATED, dependencies=[_perm_training()],
+)
+async def create_training_course(
+    data: TrainingCourseCreate,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await TrainingCoursesService.create(db, org_id, data)
+
+
+@router.patch("/training-courses/{cid}", response_model=TrainingCourseResponse, dependencies=[_perm_training()])
+async def update_training_course(
+    cid: uuid.UUID,
+    data: TrainingCourseUpdate,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await TrainingCoursesService.update(db, org_id, cid, data)
+
+
+@router.delete(
+    "/training-courses/{cid}", status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None, dependencies=[_perm_training()],
+)
+async def delete_training_course(
+    cid: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> None:
+    await TrainingCoursesService.delete(db, org_id, cid)
+
+
+# ============================================================ Fase 4 — Training enrollments
+
+
+@router.get("/training-enrollments", response_model=list[TrainingEnrollmentResponse], dependencies=[_perm_read()])
+async def list_training_enrollments(
+    course_id: uuid.UUID | None = Query(None),
+    employee_id: uuid.UUID | None = Query(None),
+    status_: str | None = Query(None, alias="status"),
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await TrainingEnrollmentsService.list_(
+        db, org_id, course_id=course_id, employee_id=employee_id, status=status_,
+    )
+
+
+@router.post(
+    "/training-enrollments", response_model=TrainingEnrollmentResponse,
+    status_code=status.HTTP_201_CREATED, dependencies=[_perm_training()],
+)
+async def create_training_enrollment(
+    data: TrainingEnrollmentCreate,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+    user: dict[str, Any] = Depends(get_current_user),
+) -> Any:
+    return await TrainingEnrollmentsService.create(db, org_id, data, _user_uuid(user))
+
+
+@router.patch("/training-enrollments/{eid}", response_model=TrainingEnrollmentResponse, dependencies=[_perm_training()])
+async def update_training_enrollment(
+    eid: uuid.UUID,
+    data: TrainingEnrollmentUpdate,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await TrainingEnrollmentsService.update(db, org_id, eid, data)
+
+
+@router.delete(
+    "/training-enrollments/{eid}", status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None, dependencies=[_perm_training()],
+)
+async def delete_training_enrollment(
+    eid: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> None:
+    await TrainingEnrollmentsService.delete(db, org_id, eid)
+
+
+# ============================================================ Fase 4 — Reports
+
+
+@router.get("/reports/headcount-by-department", response_model=ReportHeadcountResponse, dependencies=[_perm_read()])
+async def report_headcount_by_department(
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await ReportsService.headcount_by_department(db, org_id)
+
+
+@router.get("/reports/tenure-distribution", response_model=ReportTenureResponse, dependencies=[_perm_read()])
+async def report_tenure_distribution(
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await ReportsService.tenure_distribution(db, org_id)
+
+
+@router.get(
+    "/reports/cost-by-department/{period_id}",
+    response_model=ReportCostResponse, dependencies=[_perm_read()],
+)
+async def report_cost_by_department(
+    period_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await ReportsService.cost_by_department(db, org_id, period_id)
+
+
+@router.get("/reports/absenteeism", response_model=ReportAbsenteeismResponse, dependencies=[_perm_read()])
+async def report_absenteeism(
+    date_from: _date = Query(...),
+    date_to: _date = Query(...),
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await ReportsService.absenteeism(db, org_id, date_from, date_to)
+
+
+@router.get("/reports/training-summary", response_model=list[ReportTrainingSummary], dependencies=[_perm_read()])
+async def report_training_summary(
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await ReportsService.training_summary(db, org_id)

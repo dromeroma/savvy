@@ -599,3 +599,225 @@ export interface HrPayrollCalculationResult {
   total_deductions: string;
   total_net: string;
 }
+
+// =================================================== Fase 4 — Evaluations
+
+export type HrEvaluationCycleStatus = 'draft' | 'open' | 'closed' | 'cancelled';
+export type HrEvaluationStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
+export type HrEvaluatorType = 'self' | 'supervisor' | 'peer' | 'subordinate';
+
+export interface HrCompetency {
+  code: string;
+  name: string;
+  weight: string | number;
+  description?: string | null;
+}
+
+export interface HrEvaluationCycle {
+  id: string;
+  organization_id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  period_label: string | null;
+  start_date: string;
+  end_date: string;
+  enable_self: boolean;
+  enable_supervisor: boolean;
+  enable_360: boolean;
+  scale_min: string;
+  scale_max: string;
+  competencies: HrCompetency[];
+  status: HrEvaluationCycleStatus;
+  opened_at: string | null;
+  closed_at: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface HrEvaluationCycleCreate {
+  code: string;
+  name: string;
+  description?: string | null;
+  period_label?: string | null;
+  start_date: string;
+  end_date: string;
+  enable_self?: boolean;
+  enable_supervisor?: boolean;
+  enable_360?: boolean;
+  scale_min?: string;
+  scale_max?: string;
+  competencies: HrCompetency[];
+  notes?: string | null;
+}
+
+export interface HrEvaluation {
+  id: string;
+  organization_id: string;
+  cycle_id: string;
+  employee_id: string;
+  supervisor_id: string | null;
+  self_completed: boolean;
+  self_score: string | null;
+  supervisor_completed: boolean;
+  supervisor_score: string | null;
+  peer_count: number;
+  peer_avg: string | null;
+  overall_score: string | null;
+  status: HrEvaluationStatus;
+  completed_at: string | null;
+  improvement_plan: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface HrEvaluationResponseItem {
+  id: string;
+  evaluator_type: HrEvaluatorType;
+  evaluator_user_id: string | null;
+  evaluator_employee_id: string | null;
+  scores: Record<string, number>;
+  overall_score: string | null;
+  comments: string | null;
+  submitted_at: string;
+}
+
+export interface HrEvaluationWithResponses extends HrEvaluation {
+  responses: HrEvaluationResponseItem[];
+}
+
+export interface HrEvaluationResponseInput {
+  evaluator_type: HrEvaluatorType;
+  evaluator_employee_id?: string | null;
+  scores: Record<string, number>;
+  comments?: string | null;
+}
+
+// =================================================== Fase 4 — Training
+
+export type HrDeliveryMode =
+  | 'in_person' | 'virtual_live' | 'virtual_async' | 'hybrid' | 'external';
+export type HrEnrollmentStatus =
+  | 'enrolled' | 'in_progress' | 'completed' | 'failed' | 'cancelled';
+
+export interface HrTrainingCourse {
+  id: string;
+  organization_id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  category: string;
+  duration_hours: string | null;
+  delivery_mode: HrDeliveryMode;
+  is_mandatory: boolean;
+  provider: string | null;
+  cost_per_seat: string | null;
+  certificate_template_url: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface HrTrainingCourseCreate {
+  code: string;
+  name: string;
+  description?: string | null;
+  category?: string;
+  duration_hours?: string | null;
+  delivery_mode?: HrDeliveryMode;
+  is_mandatory?: boolean;
+  provider?: string | null;
+  cost_per_seat?: string | null;
+  certificate_template_url?: string | null;
+  is_active?: boolean;
+}
+
+export interface HrTrainingEnrollment {
+  id: string;
+  organization_id: string;
+  course_id: string;
+  employee_id: string;
+  scheduled_date: string | null;
+  completed_date: string | null;
+  completion_status: HrEnrollmentStatus;
+  score: string | null;
+  attendance_pct: string | null;
+  certificate_url: string | null;
+  certificate_number: string | null;
+  cost: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface HrTrainingEnrollmentCreate {
+  course_id: string;
+  employee_id: string;
+  scheduled_date?: string | null;
+  notes?: string | null;
+}
+
+// =================================================== Fase 4 — Reports
+
+export interface HrReportHeadcountRow {
+  label: string;
+  count: number;
+  percentage: number;
+}
+export interface HrReportHeadcountResponse {
+  total: number;
+  rows: HrReportHeadcountRow[];
+}
+
+export interface HrReportTenureBucket {
+  label: string;
+  min_years: number;
+  max_years: number | null;
+  count: number;
+}
+export interface HrReportTenureResponse {
+  total: number;
+  avg_years: number;
+  buckets: HrReportTenureBucket[];
+}
+
+export interface HrReportCostRow {
+  department_id: string | null;
+  department_name: string;
+  employee_count: number;
+  total_cost: string;
+}
+export interface HrReportCostResponse {
+  period_id: string;
+  period_code: string;
+  total: string;
+  rows: HrReportCostRow[];
+}
+
+export interface HrReportAbsenteeismRow {
+  employee_id: string;
+  employee_code: string;
+  employee_name: string;
+  absent_days: number;
+  late_days: number;
+  leave_days: number;
+  total_days: number;
+}
+export interface HrReportAbsenteeismResponse {
+  date_from: string;
+  date_to: string;
+  rows: HrReportAbsenteeismRow[];
+}
+
+export interface HrReportTrainingSummary {
+  course_id: string;
+  course_code: string;
+  course_name: string;
+  enrollments: number;
+  completed: number;
+  in_progress: number;
+  avg_score: number | null;
+  total_cost: string;
+}

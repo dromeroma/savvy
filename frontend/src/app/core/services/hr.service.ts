@@ -15,6 +15,12 @@ import {
   HrEmployeeDocumentCreate,
   HrEmployeeListItem,
   HrEmployeeUpdate,
+  HrEvaluation,
+  HrEvaluationCycle,
+  HrEvaluationCycleCreate,
+  HrEvaluationResponseInput,
+  HrEvaluationResponseItem,
+  HrEvaluationWithResponses,
   HrLeave,
   HrLeaveCreate,
   HrPayroll,
@@ -26,8 +32,17 @@ import {
   HrPayrollWithItems,
   HrPosition,
   HrPositionCreate,
+  HrReportAbsenteeismResponse,
+  HrReportCostResponse,
+  HrReportHeadcountResponse,
+  HrReportTenureResponse,
+  HrReportTrainingSummary,
   HrShift,
   HrShiftCreate,
+  HrTrainingCourse,
+  HrTrainingCourseCreate,
+  HrTrainingEnrollment,
+  HrTrainingEnrollmentCreate,
   HrVacationBalance,
   HrVacationBalanceAdjust,
   HrVacationRequest,
@@ -305,5 +320,91 @@ export class HrApiService {
   }
   downloadPayrollPdf(id: string): Observable<{ blob: Blob; filename: string | null }> {
     return this.api.getBlob(`/hr/payrolls/${id}/pdf`);
+  }
+
+  // ============================================================ Fase 4
+
+  // ---- Evaluation Cycles ----
+  listEvaluationCycles(params?: { status?: string }): Observable<HrEvaluationCycle[]> {
+    const clean: Record<string, string> = {};
+    if (params?.status) clean['status'] = params.status;
+    return this.api.get<HrEvaluationCycle[]>('/hr/evaluation-cycles', clean);
+  }
+  getEvaluationCycle(id: string): Observable<HrEvaluationCycle> {
+    return this.api.get<HrEvaluationCycle>(`/hr/evaluation-cycles/${id}`);
+  }
+  createEvaluationCycle(data: HrEvaluationCycleCreate): Observable<HrEvaluationCycle> {
+    return this.api.post<HrEvaluationCycle>('/hr/evaluation-cycles', data);
+  }
+  updateEvaluationCycle(id: string, data: Partial<HrEvaluationCycleCreate>): Observable<HrEvaluationCycle> {
+    return this.api.patch<HrEvaluationCycle>(`/hr/evaluation-cycles/${id}`, data);
+  }
+  deleteEvaluationCycle(id: string): Observable<void> {
+    return this.api.delete(`/hr/evaluation-cycles/${id}`);
+  }
+  openEvaluationCycle(id: string): Observable<{ cycle_id: string; evaluations_created: number; total_employees: number }> {
+    return this.api.post<{ cycle_id: string; evaluations_created: number; total_employees: number }>(`/hr/evaluation-cycles/${id}/open`, {});
+  }
+  closeEvaluationCycle(id: string): Observable<HrEvaluationCycle> {
+    return this.api.post<HrEvaluationCycle>(`/hr/evaluation-cycles/${id}/close`, {});
+  }
+  listEvaluationsByCycle(cycleId: string): Observable<HrEvaluation[]> {
+    return this.api.get<HrEvaluation[]>(`/hr/evaluation-cycles/${cycleId}/evaluations`);
+  }
+  getEvaluationDetail(id: string): Observable<HrEvaluationWithResponses> {
+    return this.api.get<HrEvaluationWithResponses>(`/hr/evaluations/${id}`);
+  }
+  submitEvaluationResponse(id: string, data: HrEvaluationResponseInput): Observable<HrEvaluationResponseItem> {
+    return this.api.post<HrEvaluationResponseItem>(`/hr/evaluations/${id}/responses`, data);
+  }
+
+  // ---- Training ----
+  listTrainingCourses(params?: { active_only?: boolean; category?: string }): Observable<HrTrainingCourse[]> {
+    const clean: Record<string, string | number | boolean> = {};
+    if (params?.active_only !== undefined) clean['active_only'] = params.active_only;
+    if (params?.category) clean['category'] = params.category;
+    return this.api.get<HrTrainingCourse[]>('/hr/training-courses', clean);
+  }
+  createTrainingCourse(data: HrTrainingCourseCreate): Observable<HrTrainingCourse> {
+    return this.api.post<HrTrainingCourse>('/hr/training-courses', data);
+  }
+  updateTrainingCourse(id: string, data: Partial<HrTrainingCourseCreate>): Observable<HrTrainingCourse> {
+    return this.api.patch<HrTrainingCourse>(`/hr/training-courses/${id}`, data);
+  }
+  deleteTrainingCourse(id: string): Observable<void> {
+    return this.api.delete(`/hr/training-courses/${id}`);
+  }
+  listTrainingEnrollments(params?: { course_id?: string; employee_id?: string; status?: string }): Observable<HrTrainingEnrollment[]> {
+    const clean: Record<string, string> = {};
+    if (params?.course_id) clean['course_id'] = params.course_id;
+    if (params?.employee_id) clean['employee_id'] = params.employee_id;
+    if (params?.status) clean['status'] = params.status;
+    return this.api.get<HrTrainingEnrollment[]>('/hr/training-enrollments', clean);
+  }
+  createTrainingEnrollment(data: HrTrainingEnrollmentCreate): Observable<HrTrainingEnrollment> {
+    return this.api.post<HrTrainingEnrollment>('/hr/training-enrollments', data);
+  }
+  updateTrainingEnrollment(id: string, data: Partial<HrTrainingEnrollmentCreate> & { completion_status?: string; score?: string; completed_date?: string; certificate_url?: string }): Observable<HrTrainingEnrollment> {
+    return this.api.patch<HrTrainingEnrollment>(`/hr/training-enrollments/${id}`, data);
+  }
+  deleteTrainingEnrollment(id: string): Observable<void> {
+    return this.api.delete(`/hr/training-enrollments/${id}`);
+  }
+
+  // ---- Reports ----
+  reportHeadcountByDepartment(): Observable<HrReportHeadcountResponse> {
+    return this.api.get<HrReportHeadcountResponse>('/hr/reports/headcount-by-department');
+  }
+  reportTenureDistribution(): Observable<HrReportTenureResponse> {
+    return this.api.get<HrReportTenureResponse>('/hr/reports/tenure-distribution');
+  }
+  reportCostByDepartment(periodId: string): Observable<HrReportCostResponse> {
+    return this.api.get<HrReportCostResponse>(`/hr/reports/cost-by-department/${periodId}`);
+  }
+  reportAbsenteeism(date_from: string, date_to: string): Observable<HrReportAbsenteeismResponse> {
+    return this.api.get<HrReportAbsenteeismResponse>('/hr/reports/absenteeism', { date_from, date_to });
+  }
+  reportTrainingSummary(): Observable<HrReportTrainingSummary[]> {
+    return this.api.get<HrReportTrainingSummary[]>('/hr/reports/training-summary');
   }
 }

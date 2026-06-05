@@ -3,7 +3,12 @@
     "allow": [
       "mcp__supabase-savvitrix__list_tables",
       "Bash(npm run *)",
-      "Bash(curl -s https://app.savvytrix.com/)"
+      "Bash(curl -s https://app.savvytrix.com/)",
+      "Bash(cat /tmp/claude/c--Users-deimer-Documents-0--Enterprises-Savvitrix-Solutions-Code-Savvy/6a286a3b-504b-45e6-8c56-4f5135bacbd1/tasks/b2uy6vbr6.output | tail -40)",
+      "Read(//tmp/claude/c--Users-deimer-Documents-0--Enterprises-Savvitrix-Solutions-Code-Savvy/6a286a3b-504b-45e6-8c56-4f5135bacbd1/tasks/**)",
+      "Bash(echo \"EXIT: $?\")",
+      "Read(//tmp/**)",
+      "Bash(NODE_OPTIONS=\"--max-old-space-size=4096\" npm run build)"
     ]
   }
 }

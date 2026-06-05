@@ -598,3 +598,181 @@ class HrPayrollItem(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False,
     )
+
+
+# ============================================================ Fase 4 — Evaluation cycle
+
+
+class HrEvaluationCycle(BaseMixin, OrgMixin, Base):
+    """Ciclo de evaluación: plantilla de competencias + escala + período."""
+
+    __tablename__ = "hr_evaluation_cycles"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "code", name="uq_hr_eval_cycle_code"),
+        CheckConstraint(
+            "status IN ('draft','open','closed','cancelled')",
+            name="chk_hr_eval_cycle_status",
+        ),
+        CheckConstraint("end_date >= start_date", name="chk_hr_eval_cycle_dates"),
+    )
+
+    code: Mapped[str] = mapped_column(String(40), nullable=False)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    period_label: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    start_date: Mapped[date] = mapped_column(Date, nullable=False)
+    end_date: Mapped[date] = mapped_column(Date, nullable=False)
+    enable_self: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    enable_supervisor: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    enable_360: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    scale_min: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=Decimal("1"), nullable=False)
+    scale_max: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=Decimal("5"), nullable=False)
+    # competencies: [{code, name, weight, description}]
+    competencies: Mapped[list[dict]] = mapped_column(JSONB, default=list, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="draft", nullable=False)
+    opened_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+    )
+
+
+# ============================================================ Fase 4 — Evaluation
+
+
+class HrEvaluation(BaseMixin, OrgMixin, Base):
+    """Evaluación de un empleado en un ciclo concreto."""
+
+    __tablename__ = "hr_evaluations"
+    __table_args__ = (
+        UniqueConstraint("cycle_id", "employee_id", name="uq_hr_eval_cycle_emp"),
+        CheckConstraint(
+            "status IN ('pending','in_progress','completed','cancelled')",
+            name="chk_hr_eval_status",
+        ),
+    )
+
+    cycle_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("hr_evaluation_cycles.id", ondelete="CASCADE"), nullable=False,
+    )
+    employee_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("hr_employees.id", ondelete="CASCADE"), nullable=False,
+    )
+    supervisor_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("hr_employees.id", ondelete="SET NULL"), nullable=True,
+    )
+    self_completed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    self_score: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    supervisor_completed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    supervisor_score: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    peer_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    peer_avg: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    overall_score: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    improvement_plan: Mapped[str | None] = mapped_column(Text, nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+# ============================================================ Fase 4 — Evaluation response
+
+
+class HrEvaluationResponse(Base):
+    """Respuesta individual a una evaluación: auto, jefe, peer, subordinate."""
+
+    __tablename__ = "hr_evaluation_responses"
+    __table_args__ = (
+        CheckConstraint(
+            "evaluator_type IN ('self','supervisor','peer','subordinate')",
+            name="chk_hr_eval_resp_type",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("organizations.id", ondelete="CASCADE"),
+        index=True, nullable=False,
+    )
+    evaluation_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("hr_evaluations.id", ondelete="CASCADE"), nullable=False,
+    )
+    evaluator_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    evaluator_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+    )
+    evaluator_employee_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("hr_employees.id", ondelete="SET NULL"), nullable=True,
+    )
+    # scores: {competency_code: score, ...}
+    scores: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
+    overall_score: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    comments: Mapped[str | None] = mapped_column(Text, nullable=True)
+    submitted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False,
+    )
+
+
+# ============================================================ Fase 4 — Training course
+
+
+class HrTrainingCourse(BaseMixin, OrgMixin, Base):
+    """Curso del catálogo de capacitaciones."""
+
+    __tablename__ = "hr_training_courses"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "code", name="uq_hr_training_courses_code"),
+        CheckConstraint(
+            "delivery_mode IN ('in_person','virtual_live','virtual_async','hybrid','external')",
+            name="chk_hr_training_mode",
+        ),
+    )
+
+    code: Mapped[str] = mapped_column(String(40), nullable=False)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    category: Mapped[str] = mapped_column(String(40), default="general", nullable=False)
+    duration_hours: Mapped[Decimal | None] = mapped_column(Numeric(6, 2), nullable=True)
+    delivery_mode: Mapped[str] = mapped_column(String(20), default="in_person", nullable=False)
+    is_mandatory: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    provider: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    cost_per_seat: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
+    certificate_template_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+
+# ============================================================ Fase 4 — Training enrollment
+
+
+class HrTrainingEnrollment(BaseMixin, OrgMixin, Base):
+    """Inscripción de empleado en un curso."""
+
+    __tablename__ = "hr_training_enrollments"
+    __table_args__ = (
+        CheckConstraint(
+            "completion_status IN ('enrolled','in_progress','completed','failed','cancelled')",
+            name="chk_hr_training_enr_status",
+        ),
+    )
+
+    course_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("hr_training_courses.id", ondelete="CASCADE"), nullable=False,
+    )
+    employee_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("hr_employees.id", ondelete="CASCADE"), nullable=False,
+    )
+    scheduled_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    completed_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    completion_status: Mapped[str] = mapped_column(String(20), default="enrolled", nullable=False)
+    score: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    attendance_pct: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    certificate_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    certificate_number: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    cost: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    enrolled_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+    )

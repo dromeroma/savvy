@@ -206,6 +206,9 @@ const APP_MENUS: Record<string, { icon: string; items: { label: string; route: s
       { label: 'Incapacidades', route: '/hr/leaves' },
       { label: 'Nómina · Períodos', route: '/hr/payroll/periods' },
       { label: 'Nómina · Conceptos', route: '/hr/payroll/concepts' },
+      { label: 'Evaluaciones', route: '/hr/evaluations' },
+      { label: 'Capacitaciones', route: '/hr/training' },
+      { label: 'Reportes', route: '/hr/reports' },
     ],
   },
 };

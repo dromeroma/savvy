@@ -226,6 +226,8 @@ class DashboardService:
             metrics.extend(await DashboardService._family_metrics(db, org_id))
         if "crm" in app_codes:
             metrics.extend(await DashboardService._crm_metrics(db, org_id))
+        if "hr" in app_codes:
+            metrics.extend(await DashboardService._hr_metrics(db, org_id))
         return metrics
 
     # ------------------------------------------------------------------
@@ -1074,6 +1076,113 @@ class DashboardService:
                 icon="trending-up",
                 color="#059669",
                 app_code="crm",
+            ),
+        ]
+
+    # ------------------------------------------------------------------
+    # HR KPIs
+    # ------------------------------------------------------------------
+    @staticmethod
+    async def _hr_metrics(
+        db: AsyncSession, org_id: uuid.UUID,
+    ) -> list[DashboardMetric]:
+        from src.apps.hr.models import (
+            HrEmployee,
+            HrLeave,
+            HrPayrollPeriod,
+            HrVacationRequest,
+        )
+        from datetime import date as _date
+
+        today = _date.today()
+        first_of_month = today.replace(day=1)
+
+        active = await db.scalar(
+            select(func.count(HrEmployee.id)).where(
+                HrEmployee.organization_id == org_id,
+                HrEmployee.status == "active",
+            )
+        ) or 0
+
+        on_leave = await db.scalar(
+            select(func.count(HrEmployee.id)).where(
+                HrEmployee.organization_id == org_id,
+                HrEmployee.status == "on_leave",
+            )
+        ) or 0
+
+        # Costo nómina del mes (suma de total_net de períodos pagados este mes)
+        cost = await db.scalar(
+            select(func.coalesce(func.sum(HrPayrollPeriod.total_net), 0)).where(
+                HrPayrollPeriod.organization_id == org_id,
+                HrPayrollPeriod.status.in_(["paid", "closed"]),
+                HrPayrollPeriod.payment_date >= first_of_month,
+                HrPayrollPeriod.payment_date <= today,
+            )
+        ) or 0
+
+        # Vacaciones pendientes de aprobar
+        pending_vac = await db.scalar(
+            select(func.count(HrVacationRequest.id)).where(
+                HrVacationRequest.organization_id == org_id,
+                HrVacationRequest.status == "pending",
+            )
+        ) or 0
+
+        # Incapacidades activas
+        active_leaves = await db.scalar(
+            select(func.count(HrLeave.id)).where(
+                HrLeave.organization_id == org_id,
+                HrLeave.status == "active",
+                HrLeave.end_date >= today,
+            )
+        ) or 0
+
+        return [
+            DashboardMetric(
+                key="hr.headcount",
+                label="Empleados activos",
+                value=_fmt_int(int(active)),
+                raw_value=float(active),
+                icon="users",
+                color="#EC4899",
+                app_code="hr",
+            ),
+            DashboardMetric(
+                key="hr.on_leave",
+                label="En licencia",
+                value=_fmt_int(int(on_leave)),
+                raw_value=float(on_leave),
+                icon="briefcase",
+                color="#F59E0B",
+                app_code="hr",
+            ),
+            DashboardMetric(
+                key="hr.payroll_cost.expense",
+                label="Costo nómina (mes)",
+                value=_fmt_money(cost),
+                raw_value=float(cost),
+                icon="dollar-sign",
+                color="#0EA5E9",
+                app_code="hr",
+            ),
+            DashboardMetric(
+                key="hr.vacations_pending.alert",
+                label="Vacaciones por aprobar",
+                value=_fmt_int(int(pending_vac)),
+                raw_value=float(pending_vac),
+                icon="alert-triangle",
+                color="#F59E0B",
+                app_code="hr",
+            ),
+            DashboardMetric(
+                key="hr.leaves_active",
+                label="Incapacidades activas",
+                value=_fmt_int(int(active_leaves)),
+                raw_value=float(active_leaves),
+                icon="activity",
+                color="#8B5CF6",
+                app_code="hr",
             ),
         ]
 

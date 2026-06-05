@@ -718,3 +718,260 @@ class CalculationResult(BaseModel):
 class PayrollPaymentRequest(BaseModel):
     payment_reference: str | None = None
     create_finance_transaction: bool = True
+
+
+# ============================================================ Fase 4 — Evaluations
+
+EvaluationCycleStatus = Literal["draft", "open", "closed", "cancelled"]
+EvaluationStatus = Literal["pending", "in_progress", "completed", "cancelled"]
+EvaluatorType = Literal["self", "supervisor", "peer", "subordinate"]
+
+
+class Competency(BaseModel):
+    code: str = Field(..., min_length=1, max_length=40)
+    name: str = Field(..., min_length=1, max_length=150)
+    weight: Decimal = Field(default=Decimal("1"), ge=0)
+    description: str | None = None
+
+
+class EvaluationCycleBase(BaseModel):
+    code: str = Field(..., min_length=1, max_length=40)
+    name: str = Field(..., min_length=1, max_length=200)
+    description: str | None = None
+    period_label: str | None = Field(None, max_length=40)
+    start_date: date
+    end_date: date
+    enable_self: bool = True
+    enable_supervisor: bool = True
+    enable_360: bool = False
+    scale_min: Decimal = Field(default=Decimal("1"), ge=0)
+    scale_max: Decimal = Field(default=Decimal("5"), gt=0)
+    competencies: list[Competency] = []
+    notes: str | None = None
+
+
+class EvaluationCycleCreate(EvaluationCycleBase):
+    pass
+
+
+class EvaluationCycleUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    period_label: str | None = None
+    end_date: date | None = None
+    enable_self: bool | None = None
+    enable_supervisor: bool | None = None
+    enable_360: bool | None = None
+    scale_min: Decimal | None = None
+    scale_max: Decimal | None = None
+    competencies: list[Competency] | None = None
+    notes: str | None = None
+
+
+class EvaluationCycleResponse(EvaluationCycleBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    organization_id: uuid.UUID
+    status: EvaluationCycleStatus
+    opened_at: datetime | None = None
+    closed_at: datetime | None = None
+    created_by: uuid.UUID | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class EvaluationResponseInput(BaseModel):
+    evaluator_type: EvaluatorType
+    evaluator_employee_id: uuid.UUID | None = None
+    scores: dict[str, float] = Field(default_factory=dict)
+    comments: str | None = None
+
+
+class EvaluationResponseItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    evaluator_type: EvaluatorType
+    evaluator_user_id: uuid.UUID | None = None
+    evaluator_employee_id: uuid.UUID | None = None
+    scores: dict
+    overall_score: Decimal | None = None
+    comments: str | None = None
+    submitted_at: datetime
+
+
+class EvaluationResponseSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    organization_id: uuid.UUID
+    cycle_id: uuid.UUID
+    employee_id: uuid.UUID
+    supervisor_id: uuid.UUID | None = None
+    self_completed: bool
+    self_score: Decimal | None = None
+    supervisor_completed: bool
+    supervisor_score: Decimal | None = None
+    peer_count: int
+    peer_avg: Decimal | None = None
+    overall_score: Decimal | None = None
+    status: EvaluationStatus
+    completed_at: datetime | None = None
+    improvement_plan: str | None = None
+    notes: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class EvaluationWithResponses(EvaluationResponseSchema):
+    responses: list[EvaluationResponseItem] = []
+
+
+# ============================================================ Fase 4 — Training
+
+DeliveryMode = Literal["in_person", "virtual_live", "virtual_async", "hybrid", "external"]
+EnrollmentStatus = Literal["enrolled", "in_progress", "completed", "failed", "cancelled"]
+
+
+class TrainingCourseBase(BaseModel):
+    code: str = Field(..., min_length=1, max_length=40)
+    name: str = Field(..., min_length=1, max_length=200)
+    description: str | None = None
+    category: str = Field("general", max_length=40)
+    duration_hours: Decimal | None = Field(None, ge=0)
+    delivery_mode: DeliveryMode = "in_person"
+    is_mandatory: bool = False
+    provider: str | None = Field(None, max_length=150)
+    cost_per_seat: Decimal | None = Field(None, ge=0)
+    certificate_template_url: str | None = None
+    is_active: bool = True
+
+
+class TrainingCourseCreate(TrainingCourseBase):
+    pass
+
+
+class TrainingCourseUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    category: str | None = None
+    duration_hours: Decimal | None = None
+    delivery_mode: DeliveryMode | None = None
+    is_mandatory: bool | None = None
+    provider: str | None = None
+    cost_per_seat: Decimal | None = None
+    certificate_template_url: str | None = None
+    is_active: bool | None = None
+
+
+class TrainingCourseResponse(TrainingCourseBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    organization_id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+
+
+class TrainingEnrollmentBase(BaseModel):
+    course_id: uuid.UUID
+    employee_id: uuid.UUID
+    scheduled_date: date | None = None
+    notes: str | None = None
+
+
+class TrainingEnrollmentCreate(TrainingEnrollmentBase):
+    pass
+
+
+class TrainingEnrollmentUpdate(BaseModel):
+    scheduled_date: date | None = None
+    completed_date: date | None = None
+    completion_status: EnrollmentStatus | None = None
+    score: Decimal | None = None
+    attendance_pct: Decimal | None = None
+    certificate_url: str | None = None
+    certificate_number: str | None = None
+    cost: Decimal | None = None
+    notes: str | None = None
+
+
+class TrainingEnrollmentResponse(TrainingEnrollmentBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    organization_id: uuid.UUID
+    completed_date: date | None = None
+    completion_status: EnrollmentStatus
+    score: Decimal | None = None
+    attendance_pct: Decimal | None = None
+    certificate_url: str | None = None
+    certificate_number: str | None = None
+    cost: Decimal | None = None
+    enrolled_by: uuid.UUID | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+# ============================================================ Fase 4 — Reports
+
+
+class ReportHeadcountRow(BaseModel):
+    label: str
+    count: int
+    percentage: float
+
+
+class ReportHeadcountResponse(BaseModel):
+    total: int
+    rows: list[ReportHeadcountRow]
+
+
+class ReportTenureBucket(BaseModel):
+    label: str
+    min_years: float
+    max_years: float | None = None
+    count: int
+
+
+class ReportTenureResponse(BaseModel):
+    total: int
+    avg_years: float
+    buckets: list[ReportTenureBucket]
+
+
+class ReportCostRow(BaseModel):
+    department_id: uuid.UUID | None = None
+    department_name: str
+    employee_count: int
+    total_cost: Decimal
+
+
+class ReportCostResponse(BaseModel):
+    period_id: uuid.UUID
+    period_code: str
+    total: Decimal
+    rows: list[ReportCostRow]
+
+
+class ReportAbsenteeismRow(BaseModel):
+    employee_id: uuid.UUID
+    employee_code: str
+    employee_name: str
+    absent_days: float
+    late_days: float
+    leave_days: float
+    total_days: float
+
+
+class ReportAbsenteeismResponse(BaseModel):
+    date_from: date
+    date_to: date
+    rows: list[ReportAbsenteeismRow]
+
+
+class ReportTrainingSummary(BaseModel):
+    course_id: uuid.UUID
+    course_code: str
+    course_name: str
+    enrollments: int
+    completed: int
+    in_progress: int
+    avg_score: float | None = None
+    total_cost: Decimal

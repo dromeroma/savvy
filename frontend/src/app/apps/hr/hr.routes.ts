@@ -72,6 +72,21 @@ export const HR_ROUTES: Routes = [
         loadComponent: () =>
           import('./payroll/period-detail.component').then((m) => m.HrPayrollPeriodDetailComponent),
       },
+      {
+        path: 'evaluations',
+        loadComponent: () =>
+          import('./evaluations/evaluations.component').then((m) => m.HrEvaluationsComponent),
+      },
+      {
+        path: 'training',
+        loadComponent: () =>
+          import('./training/training.component').then((m) => m.HrTrainingComponent),
+      },
+      {
+        path: 'reports',
+        loadComponent: () =>
+          import('./reports/reports.component').then((m) => m.HrReportsComponent),
+      },
     ],
   },
 ];
