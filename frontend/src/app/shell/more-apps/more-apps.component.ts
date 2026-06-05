@@ -49,12 +49,6 @@ export class MoreAppsComponent implements OnInit {
       icon: `<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>`,
     },
     {
-      name: 'SavvyHR',
-      description: 'Gestión de talento humano: empleados, nómina, vacaciones, evaluaciones y capacitación',
-      color: '#EC4899',
-      icon: `<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>`,
-    },
-    {
       name: 'SavvySecure',
       description: 'Seguridad física y vigilancia: cámaras, rondas, control de acceso, incidentes y reportes',
       color: '#EF4444',
