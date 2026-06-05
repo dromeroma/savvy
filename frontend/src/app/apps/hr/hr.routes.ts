@@ -37,6 +37,26 @@ export const HR_ROUTES: Routes = [
         loadComponent: () =>
           import('./contracts/contracts-list.component').then((m) => m.HrContractsListComponent),
       },
+      {
+        path: 'shifts',
+        loadComponent: () =>
+          import('./shifts/shifts.component').then((m) => m.HrShiftsComponent),
+      },
+      {
+        path: 'attendance',
+        loadComponent: () =>
+          import('./attendance/attendance.component').then((m) => m.HrAttendanceComponent),
+      },
+      {
+        path: 'vacations',
+        loadComponent: () =>
+          import('./vacations/vacations.component').then((m) => m.HrVacationsComponent),
+      },
+      {
+        path: 'leaves',
+        loadComponent: () =>
+          import('./leaves/leaves.component').then((m) => m.HrLeavesComponent),
+      },
     ],
   },
 ];

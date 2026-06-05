@@ -310,3 +310,238 @@ class DocumentResponse(DocumentBase):
     uploaded_by: uuid.UUID | None = None
     created_at: datetime
     updated_at: datetime
+
+
+# ============================================================ Fase 2 — Shifts
+
+from datetime import time as _time  # noqa: E402
+
+ShiftType = Literal["morning", "afternoon", "night", "rotating", "flexible", "administrative"]
+
+
+class ShiftBase(BaseModel):
+    code: str = Field(..., min_length=1, max_length=40)
+    name: str = Field(..., min_length=1, max_length=150)
+    description: str | None = None
+    shift_type: ShiftType = "morning"
+    start_time: _time | None = None
+    end_time: _time | None = None
+    break_minutes: int = Field(default=0, ge=0, le=480)
+    days_of_week: list[int] = Field(default_factory=lambda: [1, 2, 3, 4, 5])
+    weekly_hours: Decimal | None = Field(None, ge=0, le=168)
+    is_active: bool = True
+
+
+class ShiftCreate(ShiftBase):
+    pass
+
+
+class ShiftUpdate(BaseModel):
+    name: str | None = Field(None, max_length=150)
+    description: str | None = None
+    shift_type: ShiftType | None = None
+    start_time: _time | None = None
+    end_time: _time | None = None
+    break_minutes: int | None = Field(None, ge=0, le=480)
+    days_of_week: list[int] | None = None
+    weekly_hours: Decimal | None = None
+    is_active: bool | None = None
+
+
+class ShiftResponse(ShiftBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    organization_id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+
+
+# ============================================================ Fase 2 — Attendance
+
+AttendanceStatus = Literal[
+    "present", "absent", "late", "early_leave", "justified",
+    "vacation", "sick_leave", "permit", "holiday",
+]
+
+
+class AttendanceBase(BaseModel):
+    employee_id: uuid.UUID
+    work_date: date
+    shift_id: uuid.UUID | None = None
+    check_in_at: datetime | None = None
+    check_out_at: datetime | None = None
+    planned_hours: Decimal | None = Field(None, ge=0, le=24)
+    worked_hours: Decimal | None = Field(None, ge=0, le=24)
+    overtime_day_hours: Decimal = Field(default=Decimal("0"), ge=0, le=24)
+    overtime_night_hours: Decimal = Field(default=Decimal("0"), ge=0, le=24)
+    overtime_holiday_hours: Decimal = Field(default=Decimal("0"), ge=0, le=24)
+    status: AttendanceStatus = "present"
+    notes: str | None = None
+
+
+class AttendanceCreate(AttendanceBase):
+    pass
+
+
+class AttendanceUpdate(BaseModel):
+    shift_id: uuid.UUID | None = None
+    check_in_at: datetime | None = None
+    check_out_at: datetime | None = None
+    planned_hours: Decimal | None = None
+    worked_hours: Decimal | None = None
+    overtime_day_hours: Decimal | None = None
+    overtime_night_hours: Decimal | None = None
+    overtime_holiday_hours: Decimal | None = None
+    status: AttendanceStatus | None = None
+    notes: str | None = None
+
+
+class AttendanceResponse(AttendanceBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    organization_id: uuid.UUID
+    recorded_by: uuid.UUID | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class AttendanceListItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    employee_id: uuid.UUID
+    employee_code: str
+    employee_name: str
+    work_date: date
+    check_in_at: datetime | None = None
+    check_out_at: datetime | None = None
+    worked_hours: Decimal | None = None
+    overtime_total: Decimal = Decimal("0")
+    status: AttendanceStatus
+
+
+# ============================================================ Fase 2 — Vacations
+
+VacationRequestType = Literal["paid", "compensation", "unpaid"]
+VacationStatus = Literal["pending", "approved", "rejected", "cancelled", "completed"]
+
+
+class VacationBalanceResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    organization_id: uuid.UUID
+    employee_id: uuid.UUID
+    period_year: int
+    days_accrued: Decimal
+    days_taken: Decimal
+    days_pending: Decimal
+    days_compensated: Decimal
+    last_accrual_at: datetime | None = None
+    notes: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class VacationBalanceAdjust(BaseModel):
+    """Ajuste manual del saldo (carga inicial o corrección)."""
+    period_year: int = Field(..., ge=2000, le=2100)
+    days_accrued: Decimal | None = Field(None, ge=0)
+    days_taken: Decimal | None = Field(None, ge=0)
+    days_compensated: Decimal | None = Field(None, ge=0)
+    notes: str | None = None
+
+
+class VacationRequestBase(BaseModel):
+    employee_id: uuid.UUID
+    request_type: VacationRequestType = "paid"
+    start_date: date
+    end_date: date
+    days_count: Decimal = Field(..., gt=0)
+    request_reason: str | None = None
+    compensation_amount: Decimal | None = Field(None, ge=0)
+    notes: str | None = None
+
+
+class VacationRequestCreate(VacationRequestBase):
+    pass
+
+
+class VacationRequestResponse(VacationRequestBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    organization_id: uuid.UUID
+    request_number: str
+    status: VacationStatus
+    rejection_reason: str | None = None
+    requested_at: datetime
+    approved_at: datetime | None = None
+    approved_by: uuid.UUID | None = None
+    rejected_at: datetime | None = None
+    rejected_by: uuid.UUID | None = None
+    cancelled_at: datetime | None = None
+    created_by: uuid.UUID | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class VacationApproval(BaseModel):
+    notes: str | None = None
+
+
+class VacationRejection(BaseModel):
+    rejection_reason: str = Field(..., min_length=1, max_length=500)
+
+
+# ============================================================ Fase 2 — Leaves
+
+LeaveType = Literal[
+    "medical", "maternity", "paternity", "bereavement",
+    "unpaid", "paid_other", "study", "remunerated_permit",
+]
+LeaveStatus = Literal["active", "completed", "cancelled"]
+
+
+class LeaveBase(BaseModel):
+    employee_id: uuid.UUID
+    leave_type: LeaveType
+    subtype: str | None = Field(None, max_length=40)
+    start_date: date
+    end_date: date
+    days_count: Decimal = Field(..., gt=0)
+    is_paid: bool = True
+    paid_percentage: Decimal | None = Field(None, ge=0, le=100)
+    amount_paid: Decimal | None = Field(None, ge=0)
+    supporting_doc_url: str | None = None
+    supporting_doc_number: str | None = Field(None, max_length=80)
+    supporting_doc_issuer: str | None = Field(None, max_length=150)
+    diagnosis_code: str | None = Field(None, max_length=20)
+    notes: str | None = None
+
+
+class LeaveCreate(LeaveBase):
+    pass
+
+
+class LeaveUpdate(BaseModel):
+    subtype: str | None = None
+    end_date: date | None = None
+    days_count: Decimal | None = None
+    is_paid: bool | None = None
+    paid_percentage: Decimal | None = None
+    amount_paid: Decimal | None = None
+    supporting_doc_url: str | None = None
+    supporting_doc_number: str | None = None
+    supporting_doc_issuer: str | None = None
+    diagnosis_code: str | None = None
+    status: LeaveStatus | None = None
+    notes: str | None = None
+
+
+class LeaveResponse(LeaveBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    organization_id: uuid.UUID
+    leave_number: str
+    status: LeaveStatus
+    created_by: uuid.UUID | None = None
+    created_at: datetime
+    updated_at: datetime

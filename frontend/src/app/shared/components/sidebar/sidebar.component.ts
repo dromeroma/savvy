@@ -200,6 +200,10 @@ const APP_MENUS: Record<string, { icon: string; items: { label: string; route: s
       { label: 'Departamentos', route: '/hr/departments' },
       { label: 'Cargos', route: '/hr/positions' },
       { label: 'Contratos', route: '/hr/contracts' },
+      { label: 'Turnos', route: '/hr/shifts' },
+      { label: 'Asistencia', route: '/hr/attendance' },
+      { label: 'Vacaciones', route: '/hr/vacations' },
+      { label: 'Incapacidades', route: '/hr/leaves' },
     ],
   },
 };

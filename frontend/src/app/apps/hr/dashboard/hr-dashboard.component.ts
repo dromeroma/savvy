@@ -5,7 +5,9 @@ import { HrApiService } from '../../../core/services/hr.service';
 import {
   HrDepartment,
   HrEmployeeListItem,
+  HrLeave,
   HrPosition,
+  HrVacationRequest,
 } from '../../../core/models/hr.model';
 
 @Component({
@@ -39,6 +41,28 @@ import {
           <p class="text-xs text-amber-700 dark:text-amber-300">En licencia / suspendidos</p>
           <p class="text-2xl font-bold text-amber-800 dark:text-amber-200 mt-1">{{ onLeaveCount() }}</p>
         </div>
+      </section>
+
+      <!-- KPIs Fase 2 -->
+      <section class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <a routerLink="/hr/vacations" class="rounded-2xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4 hover:border-amber-400 transition">
+          <p class="text-xs text-amber-700 dark:text-amber-300">Vacaciones pendientes</p>
+          <p class="text-2xl font-bold text-amber-800 dark:text-amber-200 mt-1">{{ pendingVacations() }}</p>
+          <p class="text-[11px] text-amber-700 dark:text-amber-300 mt-1">de aprobar</p>
+        </a>
+        <a routerLink="/hr/vacations" class="rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 p-4 hover:border-emerald-400 transition">
+          <p class="text-xs text-emerald-700 dark:text-emerald-300">Vacaciones aprobadas</p>
+          <p class="text-2xl font-bold text-emerald-800 dark:text-emerald-200 mt-1">{{ approvedVacations() }}</p>
+          <p class="text-[11px] text-emerald-700 dark:text-emerald-300 mt-1">vigentes</p>
+        </a>
+        <a routerLink="/hr/leaves" class="rounded-2xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-4 hover:border-blue-400 transition">
+          <p class="text-xs text-blue-700 dark:text-blue-300">Incapacidades activas</p>
+          <p class="text-2xl font-bold text-blue-800 dark:text-blue-200 mt-1">{{ activeLeaves() }}</p>
+        </a>
+        <a routerLink="/hr/attendance" class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 hover:border-brand-400 transition">
+          <p class="text-xs text-slate-500 dark:text-slate-400">Asistencia hoy</p>
+          <p class="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">Ver →</p>
+        </a>
       </section>
 
       <!-- Distribución por departamento -->
@@ -87,11 +111,16 @@ export class HrDashboardComponent implements OnInit {
   employees = signal<HrEmployeeListItem[]>([]);
   departments = signal<HrDepartment[]>([]);
   positions = signal<HrPosition[]>([]);
+  vacations = signal<HrVacationRequest[]>([]);
+  leaves = signal<HrLeave[]>([]);
 
   activeCount = computed(() => this.employees().filter((e) => e.status === 'active').length);
   onLeaveCount = computed(
     () => this.employees().filter((e) => e.status === 'on_leave' || e.status === 'suspended').length,
   );
+  pendingVacations = computed(() => this.vacations().filter((v) => v.status === 'pending').length);
+  approvedVacations = computed(() => this.vacations().filter((v) => v.status === 'approved').length);
+  activeLeaves = computed(() => this.leaves().filter((l) => l.status === 'active').length);
 
   byDepartment = computed(() => {
     const counts = new Map<string, number>();
@@ -110,5 +139,7 @@ export class HrDashboardComponent implements OnInit {
     this.hr.listEmployees().subscribe({ next: (r) => this.employees.set(r) });
     this.hr.listDepartments().subscribe({ next: (r) => this.departments.set(r) });
     this.hr.listPositions().subscribe({ next: (r) => this.positions.set(r) });
+    this.hr.listVacationRequests().subscribe({ next: (r) => this.vacations.set(r) });
+    this.hr.listLeaves().subscribe({ next: (r) => this.leaves.set(r) });
   }
 }

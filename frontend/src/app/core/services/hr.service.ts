@@ -2,6 +2,9 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
 import {
+  HrAttendance,
+  HrAttendanceCreate,
+  HrAttendanceListItem,
   HrContract,
   HrContractCreate,
   HrDepartment,
@@ -12,8 +15,16 @@ import {
   HrEmployeeDocumentCreate,
   HrEmployeeListItem,
   HrEmployeeUpdate,
+  HrLeave,
+  HrLeaveCreate,
   HrPosition,
   HrPositionCreate,
+  HrShift,
+  HrShiftCreate,
+  HrVacationBalance,
+  HrVacationBalanceAdjust,
+  HrVacationRequest,
+  HrVacationRequestCreate,
 } from '../models/hr.model';
 
 @Injectable({ providedIn: 'root' })
@@ -119,5 +130,102 @@ export class HrApiService {
   }
   deleteDocument(id: string): Observable<void> {
     return this.api.delete(`/hr/documents/${id}`);
+  }
+
+  // ============================================================ Fase 2
+
+  // ---- Shifts ----
+  listShifts(activeOnly = false): Observable<HrShift[]> {
+    return this.api.get<HrShift[]>('/hr/shifts', { active_only: activeOnly });
+  }
+  createShift(data: HrShiftCreate): Observable<HrShift> {
+    return this.api.post<HrShift>('/hr/shifts', data);
+  }
+  updateShift(id: string, data: Partial<HrShiftCreate>): Observable<HrShift> {
+    return this.api.patch<HrShift>(`/hr/shifts/${id}`, data);
+  }
+  deleteShift(id: string): Observable<void> {
+    return this.api.delete(`/hr/shifts/${id}`);
+  }
+
+  // ---- Attendance ----
+  listAttendance(params?: {
+    employee_id?: string; date_from?: string; date_to?: string;
+    status?: string; limit?: number; offset?: number;
+  }): Observable<HrAttendanceListItem[]> {
+    const clean: Record<string, string | number | boolean> = {};
+    if (params?.employee_id) clean['employee_id'] = params.employee_id;
+    if (params?.date_from) clean['date_from'] = params.date_from;
+    if (params?.date_to) clean['date_to'] = params.date_to;
+    if (params?.status) clean['status'] = params.status;
+    if (params?.limit !== undefined) clean['limit'] = params.limit;
+    if (params?.offset !== undefined) clean['offset'] = params.offset;
+    return this.api.get<HrAttendanceListItem[]>('/hr/attendance', clean);
+  }
+  upsertAttendance(data: HrAttendanceCreate): Observable<HrAttendance> {
+    return this.api.post<HrAttendance>('/hr/attendance', data);
+  }
+  updateAttendance(id: string, data: Partial<HrAttendanceCreate>): Observable<HrAttendance> {
+    return this.api.patch<HrAttendance>(`/hr/attendance/${id}`, data);
+  }
+  deleteAttendance(id: string): Observable<void> {
+    return this.api.delete(`/hr/attendance/${id}`);
+  }
+
+  // ---- Vacation balances ----
+  listVacationBalances(period_year?: number): Observable<HrVacationBalance[]> {
+    const clean: Record<string, string | number> = {};
+    if (period_year !== undefined) clean['period_year'] = period_year;
+    return this.api.get<HrVacationBalance[]>('/hr/vacation-balances', clean);
+  }
+  employeeVacationBalances(employeeId: string): Observable<HrVacationBalance[]> {
+    return this.api.get<HrVacationBalance[]>(`/hr/employees/${employeeId}/vacation-balances`);
+  }
+  adjustVacationBalance(employeeId: string, data: HrVacationBalanceAdjust): Observable<HrVacationBalance> {
+    return this.api.post<HrVacationBalance>(`/hr/employees/${employeeId}/vacation-balances/adjust`, data);
+  }
+  runMonthlyAccrual(daysPerMonth = 1.25): Observable<{ accrued_employees: number }> {
+    return this.api.post<{ accrued_employees: number }>(`/hr/vacation-balances/accrue?days_per_month=${daysPerMonth}`, {});
+  }
+
+  // ---- Vacation requests ----
+  listVacationRequests(params?: { employee_id?: string; status?: string }): Observable<HrVacationRequest[]> {
+    const clean: Record<string, string> = {};
+    if (params?.employee_id) clean['employee_id'] = params.employee_id;
+    if (params?.status) clean['status'] = params.status;
+    return this.api.get<HrVacationRequest[]>('/hr/vacation-requests', clean);
+  }
+  createVacationRequest(data: HrVacationRequestCreate): Observable<HrVacationRequest> {
+    return this.api.post<HrVacationRequest>('/hr/vacation-requests', data);
+  }
+  approveVacation(rid: string, notes?: string): Observable<HrVacationRequest> {
+    return this.api.post<HrVacationRequest>(`/hr/vacation-requests/${rid}/approve`, { notes });
+  }
+  rejectVacation(rid: string, rejection_reason: string): Observable<HrVacationRequest> {
+    return this.api.post<HrVacationRequest>(`/hr/vacation-requests/${rid}/reject`, { rejection_reason });
+  }
+  cancelVacation(rid: string): Observable<HrVacationRequest> {
+    return this.api.post<HrVacationRequest>(`/hr/vacation-requests/${rid}/cancel`, {});
+  }
+
+  // ---- Leaves ----
+  listLeaves(params?: { employee_id?: string; leave_type?: string; status?: string }): Observable<HrLeave[]> {
+    const clean: Record<string, string> = {};
+    if (params?.employee_id) clean['employee_id'] = params.employee_id;
+    if (params?.leave_type) clean['leave_type'] = params.leave_type;
+    if (params?.status) clean['status'] = params.status;
+    return this.api.get<HrLeave[]>('/hr/leaves', clean);
+  }
+  getLeave(id: string): Observable<HrLeave> {
+    return this.api.get<HrLeave>(`/hr/leaves/${id}`);
+  }
+  createLeave(data: HrLeaveCreate): Observable<HrLeave> {
+    return this.api.post<HrLeave>('/hr/leaves', data);
+  }
+  updateLeave(id: string, data: Partial<HrLeaveCreate> & { status?: string }): Observable<HrLeave> {
+    return this.api.patch<HrLeave>(`/hr/leaves/${id}`, data);
+  }
+  deleteLeave(id: string): Observable<void> {
+    return this.api.delete(`/hr/leaves/${id}`);
   }
 }

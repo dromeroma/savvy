@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date, datetime
+from datetime import date, datetime, time
 from decimal import Decimal
 
 from sqlalchemy import (
@@ -16,10 +16,12 @@ from sqlalchemy import (
     Numeric,
     String,
     Text,
+    Time,
     UniqueConstraint,
     Uuid,
     func,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.core.database import Base
@@ -252,5 +254,189 @@ class HrEmployeeDocument(BaseMixin, OrgMixin, Base):
     reference_code: Mapped[str | None] = mapped_column(String(100), nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="valid", nullable=False)
     uploaded_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+    )
+
+
+# ============================================================ Fase 2 — Shifts
+
+
+class HrShift(BaseMixin, OrgMixin, Base):
+    """Turno configurable (mañana, tarde, noche, rotativo, flexible)."""
+
+    __tablename__ = "hr_shifts"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "code", name="uq_hr_shifts_org_code"),
+        CheckConstraint(
+            "shift_type IN ('morning','afternoon','night','rotating','flexible','administrative')",
+            name="chk_hr_shifts_type",
+        ),
+    )
+
+    code: Mapped[str] = mapped_column(String(40), nullable=False)
+    name: Mapped[str] = mapped_column(String(150), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    shift_type: Mapped[str] = mapped_column(String(20), default="morning", nullable=False)
+    start_time: Mapped[time | None] = mapped_column(Time, nullable=True)
+    end_time: Mapped[time | None] = mapped_column(Time, nullable=True)
+    break_minutes: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    days_of_week: Mapped[list[int]] = mapped_column(
+        JSONB, default=lambda: [1, 2, 3, 4, 5], nullable=False,
+    )
+    weekly_hours: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+
+# ============================================================ Fase 2 — Attendance
+
+
+class HrAttendance(BaseMixin, OrgMixin, Base):
+    """Registro de asistencia diario por empleado."""
+
+    __tablename__ = "hr_attendance"
+    __table_args__ = (
+        UniqueConstraint("employee_id", "work_date", name="uq_hr_att_emp_date"),
+        CheckConstraint(
+            "status IN ('present','absent','late','early_leave','justified','vacation','sick_leave','permit','holiday')",
+            name="chk_hr_att_status",
+        ),
+    )
+
+    employee_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("hr_employees.id", ondelete="CASCADE"), nullable=False,
+    )
+    shift_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("hr_shifts.id", ondelete="SET NULL"), nullable=True,
+    )
+    work_date: Mapped[date] = mapped_column(Date, nullable=False)
+    check_in_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    check_out_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    planned_hours: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    worked_hours: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    overtime_day_hours: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=Decimal("0"), nullable=False)
+    overtime_night_hours: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=Decimal("0"), nullable=False)
+    overtime_holiday_hours: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=Decimal("0"), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="present", nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    recorded_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+    )
+
+
+# ============================================================ Fase 2 — Vacation balances
+
+
+class HrVacationBalance(BaseMixin, OrgMixin, Base):
+    """Saldo anual de vacaciones por empleado.
+
+    days_available = days_accrued - days_taken - days_pending - days_compensated
+    """
+
+    __tablename__ = "hr_vacation_balances"
+    __table_args__ = (
+        UniqueConstraint("employee_id", "period_year", name="uq_hr_vac_bal_emp_year"),
+    )
+
+    employee_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("hr_employees.id", ondelete="CASCADE"), nullable=False,
+    )
+    period_year: Mapped[int] = mapped_column(Integer, nullable=False)
+    days_accrued: Mapped[Decimal] = mapped_column(Numeric(6, 2), default=Decimal("0"), nullable=False)
+    days_taken: Mapped[Decimal] = mapped_column(Numeric(6, 2), default=Decimal("0"), nullable=False)
+    days_pending: Mapped[Decimal] = mapped_column(Numeric(6, 2), default=Decimal("0"), nullable=False)
+    days_compensated: Mapped[Decimal] = mapped_column(Numeric(6, 2), default=Decimal("0"), nullable=False)
+    last_accrual_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+# ============================================================ Fase 2 — Vacation requests
+
+
+class HrVacationRequest(BaseMixin, OrgMixin, Base):
+    """Solicitud de vacaciones con flujo de aprobación."""
+
+    __tablename__ = "hr_vacation_requests"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "request_number", name="uq_hr_vac_req_org_number"),
+        CheckConstraint(
+            "request_type IN ('paid','compensation','unpaid')",
+            name="chk_hr_vac_req_type",
+        ),
+        CheckConstraint(
+            "status IN ('pending','approved','rejected','cancelled','completed')",
+            name="chk_hr_vac_req_status",
+        ),
+        CheckConstraint("end_date >= start_date", name="chk_hr_vac_req_dates"),
+    )
+
+    employee_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("hr_employees.id", ondelete="CASCADE"), nullable=False,
+    )
+    request_number: Mapped[str] = mapped_column(String(40), nullable=False)
+    request_type: Mapped[str] = mapped_column(String(20), default="paid", nullable=False)
+    start_date: Mapped[date] = mapped_column(Date, nullable=False)
+    end_date: Mapped[date] = mapped_column(Date, nullable=False)
+    days_count: Mapped[Decimal] = mapped_column(Numeric(6, 2), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)
+    request_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    rejection_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    compensation_amount: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
+    requested_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False,
+    )
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    approved_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+    )
+    rejected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    rejected_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+    )
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+    )
+
+
+# ============================================================ Fase 2 — Leaves
+
+
+class HrLeave(BaseMixin, OrgMixin, Base):
+    """Incapacidad, licencia o permiso. Distinta de vacaciones."""
+
+    __tablename__ = "hr_leaves"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "leave_number", name="uq_hr_leaves_org_number"),
+        CheckConstraint(
+            "leave_type IN ('medical','maternity','paternity','bereavement','unpaid','paid_other','study','remunerated_permit')",
+            name="chk_hr_leaves_type",
+        ),
+        CheckConstraint(
+            "status IN ('active','completed','cancelled')",
+            name="chk_hr_leaves_status",
+        ),
+        CheckConstraint("end_date >= start_date", name="chk_hr_leaves_dates"),
+    )
+
+    employee_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("hr_employees.id", ondelete="CASCADE"), nullable=False,
+    )
+    leave_number: Mapped[str] = mapped_column(String(40), nullable=False)
+    leave_type: Mapped[str] = mapped_column(String(30), nullable=False)
+    subtype: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    start_date: Mapped[date] = mapped_column(Date, nullable=False)
+    end_date: Mapped[date] = mapped_column(Date, nullable=False)
+    days_count: Mapped[Decimal] = mapped_column(Numeric(6, 2), nullable=False)
+    is_paid: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    paid_percentage: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    amount_paid: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
+    supporting_doc_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    supporting_doc_number: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    supporting_doc_issuer: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    diagnosis_code: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="active", nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
     )
