@@ -34,6 +34,7 @@ from src.apps.water.router import router as water_router
 from src.apps.memorial.router import router as memorial_router
 from src.apps.memorial.portal.router import router as memorial_portal_router
 from src.apps.hr.router import router as hr_router
+from src.apps.hr.portal.router import router as hr_portal_router
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -69,3 +70,4 @@ api_router.include_router(water_router)
 api_router.include_router(memorial_router)
 api_router.include_router(memorial_portal_router)
 api_router.include_router(hr_router)
+api_router.include_router(hr_portal_router)

@@ -182,5 +182,10 @@ export const routes: Routes = [
         (m) => m.MEMORIAL_PORTAL_ROUTES,
       ),
   },
+  {
+    path: 'hr-portal',
+    loadChildren: () =>
+      import('./hr-portal/hr-portal.routes').then((m) => m.HR_PORTAL_ROUTES),
+  },
   { path: '**', redirectTo: 'dashboard' },
 ];
