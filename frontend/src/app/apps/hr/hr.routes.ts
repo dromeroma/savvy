@@ -57,6 +57,21 @@ export const HR_ROUTES: Routes = [
         loadComponent: () =>
           import('./leaves/leaves.component').then((m) => m.HrLeavesComponent),
       },
+      {
+        path: 'payroll/concepts',
+        loadComponent: () =>
+          import('./payroll/concepts.component').then((m) => m.HrPayrollConceptsComponent),
+      },
+      {
+        path: 'payroll/periods',
+        loadComponent: () =>
+          import('./payroll/periods-list.component').then((m) => m.HrPayrollPeriodsComponent),
+      },
+      {
+        path: 'payroll/periods/:id',
+        loadComponent: () =>
+          import('./payroll/period-detail.component').then((m) => m.HrPayrollPeriodDetailComponent),
+      },
     ],
   },
 ];

@@ -17,6 +17,13 @@ import {
   HrEmployeeUpdate,
   HrLeave,
   HrLeaveCreate,
+  HrPayroll,
+  HrPayrollCalculationResult,
+  HrPayrollConcept,
+  HrPayrollConceptCreate,
+  HrPayrollPeriod,
+  HrPayrollPeriodCreate,
+  HrPayrollWithItems,
   HrPosition,
   HrPositionCreate,
   HrShift,
@@ -227,5 +234,76 @@ export class HrApiService {
   }
   deleteLeave(id: string): Observable<void> {
     return this.api.delete(`/hr/leaves/${id}`);
+  }
+
+  // ============================================================ Fase 3
+
+  // ---- Payroll Concepts ----
+  listPayrollConcepts(params?: { active_only?: boolean; concept_type?: string }): Observable<HrPayrollConcept[]> {
+    const clean: Record<string, string | number | boolean> = {};
+    if (params?.active_only !== undefined) clean['active_only'] = params.active_only;
+    if (params?.concept_type) clean['concept_type'] = params.concept_type;
+    return this.api.get<HrPayrollConcept[]>('/hr/payroll-concepts', clean);
+  }
+  createPayrollConcept(data: HrPayrollConceptCreate): Observable<HrPayrollConcept> {
+    return this.api.post<HrPayrollConcept>('/hr/payroll-concepts', data);
+  }
+  updatePayrollConcept(id: string, data: Partial<HrPayrollConceptCreate>): Observable<HrPayrollConcept> {
+    return this.api.patch<HrPayrollConcept>(`/hr/payroll-concepts/${id}`, data);
+  }
+  deletePayrollConcept(id: string): Observable<void> {
+    return this.api.delete(`/hr/payroll-concepts/${id}`);
+  }
+  seedPayrollCountryTemplate(country = 'CO'): Observable<{ country_code: string; created: number }> {
+    return this.api.post<{ country_code: string; created: number }>(`/hr/payroll-concepts/seed-country?country_code=${country}`, {});
+  }
+
+  // ---- Payroll Periods ----
+  listPayrollPeriods(params?: { status?: string; year?: number }): Observable<HrPayrollPeriod[]> {
+    const clean: Record<string, string | number> = {};
+    if (params?.status) clean['status'] = params.status;
+    if (params?.year !== undefined) clean['year'] = params.year;
+    return this.api.get<HrPayrollPeriod[]>('/hr/payroll-periods', clean);
+  }
+  getPayrollPeriod(id: string): Observable<HrPayrollPeriod> {
+    return this.api.get<HrPayrollPeriod>(`/hr/payroll-periods/${id}`);
+  }
+  createPayrollPeriod(data: HrPayrollPeriodCreate): Observable<HrPayrollPeriod> {
+    return this.api.post<HrPayrollPeriod>('/hr/payroll-periods', data);
+  }
+  updatePayrollPeriod(id: string, data: Partial<HrPayrollPeriodCreate>): Observable<HrPayrollPeriod> {
+    return this.api.patch<HrPayrollPeriod>(`/hr/payroll-periods/${id}`, data);
+  }
+  deletePayrollPeriod(id: string): Observable<void> {
+    return this.api.delete(`/hr/payroll-periods/${id}`);
+  }
+  calculatePayroll(id: string): Observable<HrPayrollCalculationResult> {
+    return this.api.post<HrPayrollCalculationResult>(`/hr/payroll-periods/${id}/calculate`, {});
+  }
+  approvePayrollPeriod(id: string): Observable<HrPayrollPeriod> {
+    return this.api.post<HrPayrollPeriod>(`/hr/payroll-periods/${id}/approve`, {});
+  }
+  payPayrollPeriod(id: string, payment_reference?: string): Observable<HrPayrollPeriod> {
+    return this.api.post<HrPayrollPeriod>(`/hr/payroll-periods/${id}/pay`, {
+      payment_reference,
+      create_finance_transaction: true,
+    });
+  }
+  closePayrollPeriod(id: string): Observable<HrPayrollPeriod> {
+    return this.api.post<HrPayrollPeriod>(`/hr/payroll-periods/${id}/close`, {});
+  }
+
+  // ---- Payrolls ----
+  listPayrollsByPeriod(periodId: string): Observable<HrPayroll[]> {
+    return this.api.get<HrPayroll[]>(`/hr/payroll-periods/${periodId}/payrolls`);
+  }
+  getPayroll(id: string): Observable<HrPayrollWithItems> {
+    return this.api.get<HrPayrollWithItems>(`/hr/payrolls/${id}`);
+  }
+  payrollPdfUrl(id: string): string {
+    return `/api/v1/hr/payrolls/${id}/pdf`;
+  }
+  downloadPayrollPdf(id: string): Observable<{ blob: Blob; filename: string | null }> {
+    return this.api.getBlob(`/hr/payrolls/${id}/pdf`);
   }
 }

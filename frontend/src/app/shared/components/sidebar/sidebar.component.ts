@@ -204,6 +204,8 @@ const APP_MENUS: Record<string, { icon: string; items: { label: string; route: s
       { label: 'Asistencia', route: '/hr/attendance' },
       { label: 'Vacaciones', route: '/hr/vacations' },
       { label: 'Incapacidades', route: '/hr/leaves' },
+      { label: 'Nómina · Períodos', route: '/hr/payroll/periods' },
+      { label: 'Nómina · Conceptos', route: '/hr/payroll/concepts' },
     ],
   },
 };

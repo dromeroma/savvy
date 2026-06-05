@@ -440,3 +440,161 @@ class HrLeave(BaseMixin, OrgMixin, Base):
     created_by: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
     )
+
+
+# ============================================================ Fase 3 — Payroll concepts
+
+
+class HrPayrollConcept(BaseMixin, OrgMixin, Base):
+    """Catálogo configurable de conceptos de nómina (devengados, deducciones,
+    prestaciones, aportes patronales). Soporta multi-país."""
+
+    __tablename__ = "hr_payroll_concepts"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "code", name="uq_hr_concepts_org_code"),
+        CheckConstraint(
+            "concept_type IN ('earning','deduction','benefit','employer_contribution','informative')",
+            name="chk_hr_concept_type",
+        ),
+        CheckConstraint(
+            "calculation_method IN ('fixed','percentage','formula','quantity_rate')",
+            name="chk_hr_concept_method",
+        ),
+    )
+
+    code: Mapped[str] = mapped_column(String(40), nullable=False)
+    name: Mapped[str] = mapped_column(String(150), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    concept_type: Mapped[str] = mapped_column(String(30), nullable=False)
+    category: Mapped[str] = mapped_column(String(40), nullable=False)
+    calculation_method: Mapped[str] = mapped_column(String(20), default="fixed", nullable=False)
+    formula: Mapped[str | None] = mapped_column(Text, nullable=True)
+    percentage_value: Mapped[Decimal | None] = mapped_column(Numeric(8, 4), nullable=True)
+    fixed_value: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
+    base_concept_code: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    country_code: Mapped[str | None] = mapped_column(String(3), nullable=True)
+    is_taxable: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    sort_order: Mapped[int] = mapped_column(Integer, default=100, nullable=False)
+
+
+# ============================================================ Fase 3 — Payroll period
+
+
+class HrPayrollPeriod(BaseMixin, OrgMixin, Base):
+    """Período de nómina (mensual, quincenal, semanal)."""
+
+    __tablename__ = "hr_payroll_periods"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "code", name="uq_hr_periods_org_code"),
+        CheckConstraint(
+            "period_type IN ('monthly','biweekly','weekly')",
+            name="chk_hr_period_type",
+        ),
+        CheckConstraint(
+            "status IN ('draft','calculating','calculated','approved','paid','closed','cancelled')",
+            name="chk_hr_period_status",
+        ),
+        CheckConstraint("end_date >= start_date", name="chk_hr_period_dates"),
+    )
+
+    code: Mapped[str] = mapped_column(String(40), nullable=False)
+    name: Mapped[str] = mapped_column(String(150), nullable=False)
+    period_type: Mapped[str] = mapped_column(String(20), default="monthly", nullable=False)
+    start_date: Mapped[date] = mapped_column(Date, nullable=False)
+    end_date: Mapped[date] = mapped_column(Date, nullable=False)
+    payment_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="draft", nullable=False)
+    total_gross: Mapped[Decimal] = mapped_column(Numeric(15, 2), default=Decimal("0"), nullable=False)
+    total_deductions: Mapped[Decimal] = mapped_column(Numeric(15, 2), default=Decimal("0"), nullable=False)
+    total_net: Mapped[Decimal] = mapped_column(Numeric(15, 2), default=Decimal("0"), nullable=False)
+    employee_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    calculated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    approved_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+    )
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    paid_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+    )
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+    )
+
+
+# ============================================================ Fase 3 — Payroll (liquidación por empleado)
+
+
+class HrPayroll(BaseMixin, OrgMixin, Base):
+    """Liquidación de un empleado en un período concreto."""
+
+    __tablename__ = "hr_payrolls"
+    __table_args__ = (
+        UniqueConstraint("period_id", "employee_id", name="uq_hr_payroll_period_emp"),
+        CheckConstraint(
+            "status IN ('pending','calculated','approved','paid','cancelled')",
+            name="chk_hr_payroll_status",
+        ),
+    )
+
+    period_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("hr_payroll_periods.id", ondelete="CASCADE"), nullable=False,
+    )
+    employee_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("hr_employees.id", ondelete="CASCADE"), nullable=False,
+    )
+    contract_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("hr_contracts.id", ondelete="SET NULL"), nullable=True,
+    )
+    employee_code: Mapped[str] = mapped_column(String(40), nullable=False)
+    employee_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    department_name: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    position_name: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    base_salary: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0"), nullable=False)
+    worked_days: Mapped[Decimal] = mapped_column(Numeric(6, 2), default=Decimal("30"), nullable=False)
+    absence_days: Mapped[Decimal] = mapped_column(Numeric(6, 2), default=Decimal("0"), nullable=False)
+    total_earnings: Mapped[Decimal] = mapped_column(Numeric(15, 2), default=Decimal("0"), nullable=False)
+    total_deductions: Mapped[Decimal] = mapped_column(Numeric(15, 2), default=Decimal("0"), nullable=False)
+    total_benefits: Mapped[Decimal] = mapped_column(Numeric(15, 2), default=Decimal("0"), nullable=False)
+    total_employer_contrib: Mapped[Decimal] = mapped_column(Numeric(15, 2), default=Decimal("0"), nullable=False)
+    net_amount: Mapped[Decimal] = mapped_column(Numeric(15, 2), default=Decimal("0"), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="calculated", nullable=False)
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    payment_reference: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    finance_transaction_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    pay_transaction_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+# ============================================================ Fase 3 — Payroll items (líneas)
+
+
+class HrPayrollItem(Base):
+    """Línea detalle de una liquidación: concepto × monto."""
+
+    __tablename__ = "hr_payroll_items"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    payroll_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("hr_payrolls.id", ondelete="CASCADE"), nullable=False,
+    )
+    concept_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("hr_payroll_concepts.id", ondelete="SET NULL"), nullable=True,
+    )
+    concept_code: Mapped[str] = mapped_column(String(40), nullable=False)
+    concept_name: Mapped[str] = mapped_column(String(150), nullable=False)
+    concept_type: Mapped[str] = mapped_column(String(30), nullable=False)
+    category: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    quantity: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
+    rate: Mapped[Decimal | None] = mapped_column(Numeric(14, 4), nullable=True)
+    base_amount: Mapped[Decimal | None] = mapped_column(Numeric(15, 2), nullable=True)
+    percentage: Mapped[Decimal | None] = mapped_column(Numeric(8, 4), nullable=True)
+    amount: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=100, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False,
+    )

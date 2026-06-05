@@ -545,3 +545,176 @@ class LeaveResponse(LeaveBase):
     created_by: uuid.UUID | None = None
     created_at: datetime
     updated_at: datetime
+
+
+# ============================================================ Fase 3 — Payroll concepts
+
+ConceptType = Literal["earning", "deduction", "benefit", "employer_contribution", "informative"]
+CalculationMethod = Literal["fixed", "percentage", "formula", "quantity_rate"]
+
+
+class PayrollConceptBase(BaseModel):
+    code: str = Field(..., min_length=1, max_length=40)
+    name: str = Field(..., min_length=1, max_length=150)
+    description: str | None = None
+    concept_type: ConceptType
+    category: str = Field(..., min_length=1, max_length=40)
+    calculation_method: CalculationMethod = "fixed"
+    formula: str | None = None
+    percentage_value: Decimal | None = Field(None, ge=0)
+    fixed_value: Decimal | None = Field(None, ge=0)
+    base_concept_code: str | None = Field(None, max_length=40)
+    country_code: str | None = Field(None, max_length=3)
+    is_taxable: bool = True
+    is_active: bool = True
+    sort_order: int = 100
+
+
+class PayrollConceptCreate(PayrollConceptBase):
+    pass
+
+
+class PayrollConceptUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    percentage_value: Decimal | None = None
+    fixed_value: Decimal | None = None
+    base_concept_code: str | None = None
+    formula: str | None = None
+    is_taxable: bool | None = None
+    is_active: bool | None = None
+    sort_order: int | None = None
+
+
+class PayrollConceptResponse(PayrollConceptBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    organization_id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+
+
+# ============================================================ Fase 3 — Payroll periods
+
+PayrollPeriodType = Literal["monthly", "biweekly", "weekly"]
+PayrollPeriodStatus = Literal[
+    "draft", "calculating", "calculated", "approved", "paid", "closed", "cancelled",
+]
+
+
+class PayrollPeriodBase(BaseModel):
+    code: str = Field(..., min_length=1, max_length=40)
+    name: str = Field(..., min_length=1, max_length=150)
+    period_type: PayrollPeriodType = "monthly"
+    start_date: date
+    end_date: date
+    payment_date: date | None = None
+    notes: str | None = None
+
+
+class PayrollPeriodCreate(PayrollPeriodBase):
+    pass
+
+
+class PayrollPeriodUpdate(BaseModel):
+    name: str | None = None
+    payment_date: date | None = None
+    notes: str | None = None
+
+
+class PayrollPeriodResponse(PayrollPeriodBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    organization_id: uuid.UUID
+    status: PayrollPeriodStatus
+    total_gross: Decimal
+    total_deductions: Decimal
+    total_net: Decimal
+    employee_count: int
+    calculated_at: datetime | None = None
+    approved_at: datetime | None = None
+    approved_by: uuid.UUID | None = None
+    paid_at: datetime | None = None
+    paid_by: uuid.UUID | None = None
+    closed_at: datetime | None = None
+    created_by: uuid.UUID | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+# ============================================================ Fase 3 — Payrolls (employee)
+
+PayrollStatus = Literal["pending", "calculated", "approved", "paid", "cancelled"]
+
+
+class PayrollItemResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    concept_code: str
+    concept_name: str
+    concept_type: ConceptType
+    category: str | None = None
+    quantity: Decimal | None = None
+    rate: Decimal | None = None
+    base_amount: Decimal | None = None
+    percentage: Decimal | None = None
+    amount: Decimal
+    sort_order: int
+
+
+class PayrollResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    organization_id: uuid.UUID
+    period_id: uuid.UUID
+    employee_id: uuid.UUID
+    contract_id: uuid.UUID | None = None
+    employee_code: str
+    employee_name: str
+    department_name: str | None = None
+    position_name: str | None = None
+    base_salary: Decimal
+    worked_days: Decimal
+    absence_days: Decimal
+    total_earnings: Decimal
+    total_deductions: Decimal
+    total_benefits: Decimal
+    total_employer_contrib: Decimal
+    net_amount: Decimal
+    status: PayrollStatus
+    paid_at: datetime | None = None
+    payment_reference: str | None = None
+    notes: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class PayrollWithItems(PayrollResponse):
+    items: list[PayrollItemResponse] = []
+
+
+class PayrollListItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    employee_id: uuid.UUID
+    employee_code: str
+    employee_name: str
+    department_name: str | None = None
+    base_salary: Decimal
+    total_earnings: Decimal
+    total_deductions: Decimal
+    net_amount: Decimal
+    status: PayrollStatus
+
+
+class CalculationResult(BaseModel):
+    period_id: uuid.UUID
+    employees_processed: int
+    total_gross: Decimal
+    total_deductions: Decimal
+    total_net: Decimal
+
+
+class PayrollPaymentRequest(BaseModel):
+    payment_reference: str | None = None
+    create_finance_transaction: bool = True

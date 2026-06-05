@@ -462,3 +462,140 @@ export interface HrLeaveCreate {
   diagnosis_code?: string | null;
   notes?: string | null;
 }
+
+// =================================================== Fase 3 — Payroll
+
+export type HrPayrollConceptType =
+  | 'earning' | 'deduction' | 'benefit' | 'employer_contribution' | 'informative';
+export type HrPayrollCalcMethod = 'fixed' | 'percentage' | 'formula' | 'quantity_rate';
+
+export interface HrPayrollConcept {
+  id: string;
+  organization_id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  concept_type: HrPayrollConceptType;
+  category: string;
+  calculation_method: HrPayrollCalcMethod;
+  formula: string | null;
+  percentage_value: string | null;
+  fixed_value: string | null;
+  base_concept_code: string | null;
+  country_code: string | null;
+  is_taxable: boolean;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface HrPayrollConceptCreate {
+  code: string;
+  name: string;
+  description?: string | null;
+  concept_type: HrPayrollConceptType;
+  category: string;
+  calculation_method?: HrPayrollCalcMethod;
+  formula?: string | null;
+  percentage_value?: string | null;
+  fixed_value?: string | null;
+  base_concept_code?: string | null;
+  country_code?: string | null;
+  is_taxable?: boolean;
+  is_active?: boolean;
+  sort_order?: number;
+}
+
+export type HrPayrollPeriodType = 'monthly' | 'biweekly' | 'weekly';
+export type HrPayrollPeriodStatus =
+  | 'draft' | 'calculating' | 'calculated' | 'approved' | 'paid' | 'closed' | 'cancelled';
+
+export interface HrPayrollPeriod {
+  id: string;
+  organization_id: string;
+  code: string;
+  name: string;
+  period_type: HrPayrollPeriodType;
+  start_date: string;
+  end_date: string;
+  payment_date: string | null;
+  status: HrPayrollPeriodStatus;
+  total_gross: string;
+  total_deductions: string;
+  total_net: string;
+  employee_count: number;
+  calculated_at: string | null;
+  approved_at: string | null;
+  approved_by: string | null;
+  paid_at: string | null;
+  paid_by: string | null;
+  closed_at: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface HrPayrollPeriodCreate {
+  code: string;
+  name: string;
+  period_type?: HrPayrollPeriodType;
+  start_date: string;
+  end_date: string;
+  payment_date?: string | null;
+  notes?: string | null;
+}
+
+export type HrPayrollStatus = 'pending' | 'calculated' | 'approved' | 'paid' | 'cancelled';
+
+export interface HrPayrollItem {
+  id: string;
+  concept_code: string;
+  concept_name: string;
+  concept_type: HrPayrollConceptType;
+  category: string | null;
+  quantity: string | null;
+  rate: string | null;
+  base_amount: string | null;
+  percentage: string | null;
+  amount: string;
+  sort_order: number;
+}
+
+export interface HrPayroll {
+  id: string;
+  organization_id: string;
+  period_id: string;
+  employee_id: string;
+  contract_id: string | null;
+  employee_code: string;
+  employee_name: string;
+  department_name: string | null;
+  position_name: string | null;
+  base_salary: string;
+  worked_days: string;
+  absence_days: string;
+  total_earnings: string;
+  total_deductions: string;
+  total_benefits: string;
+  total_employer_contrib: string;
+  net_amount: string;
+  status: HrPayrollStatus;
+  paid_at: string | null;
+  payment_reference: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface HrPayrollWithItems extends HrPayroll {
+  items: HrPayrollItem[];
+}
+
+export interface HrPayrollCalculationResult {
+  period_id: string;
+  employees_processed: number;
+  total_gross: string;
+  total_deductions: string;
+  total_net: string;
+}

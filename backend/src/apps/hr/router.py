@@ -56,6 +56,24 @@ from src.apps.hr.service_phase2 import (
     VacationBalancesService,
     VacationRequestsService,
 )
+from src.apps.hr.service_phase3 import (
+    PayrollConceptsService,
+    PayrollPeriodsService,
+    PayrollsService,
+)
+from src.apps.hr.schemas import (
+    CalculationResult,
+    PayrollConceptCreate,
+    PayrollConceptResponse,
+    PayrollConceptUpdate,
+    PayrollListItem,
+    PayrollPaymentRequest,
+    PayrollPeriodCreate,
+    PayrollPeriodResponse,
+    PayrollPeriodUpdate,
+    PayrollResponse,
+    PayrollWithItems,
+)
 from src.core.dependencies import get_current_user, get_db, get_org_id
 from src.modules.apps.permissions import require_permission
 
@@ -94,6 +112,14 @@ def _perm_vacations_approve():
 
 def _perm_leaves():
     return Depends(require_permission("hr", "hr.leaves.manage"))
+
+
+def _perm_payroll_run():
+    return Depends(require_permission("hr", "hr.payroll.run"))
+
+
+def _perm_payroll_approve():
+    return Depends(require_permission("hr", "hr.payroll.approve"))
 
 
 # ============================================================ Departments
@@ -682,3 +708,231 @@ async def delete_leave(
     org_id: uuid.UUID = Depends(get_org_id),
 ) -> None:
     await LeavesService.delete(db, org_id, lid)
+
+
+# ============================================================ Fase 3 — Payroll concepts
+
+
+@router.get("/payroll-concepts", response_model=list[PayrollConceptResponse], dependencies=[_perm_read()])
+async def list_concepts(
+    active_only: bool = Query(False),
+    concept_type: str | None = Query(None),
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await PayrollConceptsService.list_(
+        db, org_id, active_only=active_only, concept_type=concept_type,
+    )
+
+
+@router.get("/payroll-concepts/{cid}", response_model=PayrollConceptResponse, dependencies=[_perm_read()])
+async def get_concept(
+    cid: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await PayrollConceptsService.get(db, org_id, cid)
+
+
+@router.post(
+    "/payroll-concepts", response_model=PayrollConceptResponse,
+    status_code=status.HTTP_201_CREATED, dependencies=[_perm_payroll_run()],
+)
+async def create_concept(
+    data: PayrollConceptCreate,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await PayrollConceptsService.create(db, org_id, data)
+
+
+@router.patch("/payroll-concepts/{cid}", response_model=PayrollConceptResponse, dependencies=[_perm_payroll_run()])
+async def update_concept(
+    cid: uuid.UUID,
+    data: PayrollConceptUpdate,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await PayrollConceptsService.update(db, org_id, cid, data)
+
+
+@router.delete(
+    "/payroll-concepts/{cid}", status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None, dependencies=[_perm_payroll_run()],
+)
+async def delete_concept(
+    cid: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> None:
+    await PayrollConceptsService.delete(db, org_id, cid)
+
+
+@router.post(
+    "/payroll-concepts/seed-country",
+    dependencies=[_perm_payroll_run()],
+)
+async def seed_country_template(
+    country_code: str = Query("CO", min_length=2, max_length=3),
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    created = await PayrollConceptsService.seed_country_template(db, org_id, country_code)
+    return {"country_code": country_code.upper(), "created": created}
+
+
+# ============================================================ Fase 3 — Payroll periods
+
+
+@router.get("/payroll-periods", response_model=list[PayrollPeriodResponse], dependencies=[_perm_read()])
+async def list_periods(
+    status_: str | None = Query(None, alias="status"),
+    year: int | None = Query(None),
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await PayrollPeriodsService.list_(db, org_id, status=status_, year=year)
+
+
+@router.get("/payroll-periods/{pid}", response_model=PayrollPeriodResponse, dependencies=[_perm_read()])
+async def get_period(
+    pid: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await PayrollPeriodsService.get(db, org_id, pid)
+
+
+@router.post(
+    "/payroll-periods", response_model=PayrollPeriodResponse,
+    status_code=status.HTTP_201_CREATED, dependencies=[_perm_payroll_run()],
+)
+async def create_period(
+    data: PayrollPeriodCreate,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+    user: dict[str, Any] = Depends(get_current_user),
+) -> Any:
+    return await PayrollPeriodsService.create(db, org_id, data, _user_uuid(user))
+
+
+@router.patch("/payroll-periods/{pid}", response_model=PayrollPeriodResponse, dependencies=[_perm_payroll_run()])
+async def update_period(
+    pid: uuid.UUID,
+    data: PayrollPeriodUpdate,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await PayrollPeriodsService.update(db, org_id, pid, data)
+
+
+@router.delete(
+    "/payroll-periods/{pid}", status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None, dependencies=[_perm_payroll_run()],
+)
+async def delete_period(
+    pid: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> None:
+    await PayrollPeriodsService.delete(db, org_id, pid)
+
+
+@router.post(
+    "/payroll-periods/{pid}/calculate",
+    response_model=CalculationResult, dependencies=[_perm_payroll_run()],
+)
+async def calculate_period(
+    pid: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await PayrollPeriodsService.calculate(db, org_id, pid)
+
+
+@router.post(
+    "/payroll-periods/{pid}/approve",
+    response_model=PayrollPeriodResponse, dependencies=[_perm_payroll_approve()],
+)
+async def approve_period(
+    pid: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+    user: dict[str, Any] = Depends(get_current_user),
+) -> Any:
+    return await PayrollPeriodsService.approve(db, org_id, pid, _user_uuid(user))
+
+
+@router.post(
+    "/payroll-periods/{pid}/pay",
+    response_model=PayrollPeriodResponse, dependencies=[_perm_payroll_approve()],
+)
+async def pay_period(
+    pid: uuid.UUID,
+    data: PayrollPaymentRequest,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+    user: dict[str, Any] = Depends(get_current_user),
+) -> Any:
+    return await PayrollPeriodsService.pay(
+        db, org_id, pid, _user_uuid(user),
+        payment_reference=data.payment_reference,
+        create_finance_transaction=data.create_finance_transaction,
+    )
+
+
+@router.post(
+    "/payroll-periods/{pid}/close",
+    response_model=PayrollPeriodResponse, dependencies=[_perm_payroll_approve()],
+)
+async def close_period(
+    pid: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await PayrollPeriodsService.close(db, org_id, pid)
+
+
+# ============================================================ Fase 3 — Payrolls (read)
+
+
+@router.get("/payroll-periods/{pid}/payrolls", response_model=list[PayrollResponse], dependencies=[_perm_read()])
+async def list_payrolls(
+    pid: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await PayrollsService.list_by_period(db, org_id, pid)
+
+
+@router.get("/payrolls/{rid}", response_model=PayrollWithItems, dependencies=[_perm_read()])
+async def get_payroll(
+    rid: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    p = await PayrollsService.get(db, org_id, rid)
+    items = await PayrollsService.get_items(db, p.id)
+    return {
+        **{c.name: getattr(p, c.name) for c in p.__table__.columns},
+        "items": items,
+    }
+
+
+@router.get("/payrolls/{rid}/pdf", dependencies=[_perm_read()])
+async def get_payroll_pdf(
+    rid: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    from fastapi.responses import Response
+    from src.apps.hr.payroll_pdf import render_payroll_pdf
+    p = await PayrollsService.get(db, org_id, rid)
+    items = await PayrollsService.get_items(db, p.id)
+    period = await PayrollPeriodsService.get(db, org_id, p.period_id)
+    pdf_bytes, filename = await render_payroll_pdf(db, org_id, p, items, period)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+    )
