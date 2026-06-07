@@ -124,7 +124,7 @@ async def main() -> None:
             if exists is None:
                 await s.execute(
                     text("""
-                        INSERT INTO app_permission_catalog (id, app_code, code, label, category)
+                        INSERT INTO app_permission_catalog (id, app_code, code, name, category)
                         VALUES (gen_random_uuid(), :a, :c, :l, :cat)
                     """),
                     {"a": APP_CODE, "c": code, "l": label, "cat": category},

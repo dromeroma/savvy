@@ -315,8 +315,8 @@ async def _ensure_app_enrolled(conn, org_id: uuid.UUID, dry: bool) -> None:
         await conn.execute(
             text(
                 "INSERT INTO organization_apps "
-                "(id, organization_id, app_id, is_active, enabled_at, created_at, updated_at) "
-                "VALUES (:id, :org, :app, true, NOW(), NOW(), NOW())"
+                "(id, organization_id, app_id, status, activated_at, created_at, updated_at) "
+                "VALUES (:id, :org, :app, 'active', NOW(), NOW(), NOW())"
             ),
             {"id": uuid.uuid4(), "org": org_id, "app": app_id[0]},
         )
