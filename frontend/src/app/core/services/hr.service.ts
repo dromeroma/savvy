@@ -426,6 +426,9 @@ export class HrApiService {
   updateSettings(data: HrSettingsUpdate): Observable<HrSettings> {
     return this.api.patch<HrSettings>('/hr/settings', data);
   }
+  downloadSettingsPreviewPdf(template: LiquidationTemplate): Observable<{ blob: Blob; filename: string | null }> {
+    return this.api.getBlob(`/hr/settings/preview-pdf?template=${template}`);
+  }
 
   calculateLiquidation(data: LiquidationCalculationInput): Observable<LiquidationPreview> {
     return this.api.post<LiquidationPreview>('/hr/liquidations/calculate', data);

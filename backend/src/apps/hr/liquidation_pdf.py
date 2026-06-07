@@ -374,6 +374,131 @@ def _fmt(value) -> str:
         return str(value)
 
 
+async def render_liquidation_preview_pdf(
+    db: AsyncSession,
+    org_id: uuid.UUID,
+    template_key: str,
+) -> tuple[bytes, str]:
+    """Genera un PDF de DEMOSTRACIÓN con datos de prueba (no persiste nada).
+
+    Lo usa la página de configuración para que RRHH vea cómo queda cada plantilla
+    con el branding/firma/admin/logo ya configurados antes de hacer una real.
+    """
+    from datetime import date as _date
+    from decimal import Decimal as _D
+
+    if template_key not in TEMPLATES:
+        template_key = "formal"
+
+    org = (await db.execute(
+        select(Organization).where(Organization.id == org_id)
+    )).scalar_one()
+    settings = (await db.execute(
+        select(HrSettings).where(HrSettings.organization_id == org_id)
+    )).scalar_one_or_none()
+
+    # Liquidación + ítems fake (no se persisten)
+    class _LiqStub:
+        liquidation_number = "DEMO-2026-PREVIEW"
+        termination_date = _date(2026, 6, 15)
+        termination_reason = "without_cause"
+        last_worked_date = _date(2026, 6, 15)
+        contract_start_date = _date(2023, 1, 16)
+        days_worked_total = 1247
+        base_salary = _D("2500000")
+        average_salary = _D("2662000")
+        total_earnings = _D("12450000")
+        total_deductions = _D("450000")
+        net_amount = _D("12000000")
+        currency = "COP"
+        status = "draft"
+        notes = (settings.liquidation_notes_default
+                 if settings and settings.liquidation_notes_default
+                 else "Documento de demostración generado desde Configuración de RRHH.")
+
+    class _Item:
+        def __init__(self, code, name, kind, qty, base, rate, amount, notes=None):
+            self.concept_code = code
+            self.concept_name = name
+            self.kind = kind
+            self.quantity = _D(qty)
+            self.base_amount = _D(base)
+            self.rate = _D(rate) if rate is not None else None
+            self.amount = _D(amount)
+            self.notes = notes
+
+    items = [
+        _Item("salario_pendiente", "Salario pendiente (15 días)", "earning",
+              "15", "83333", None, "1250000"),
+        _Item("cesantias", "Cesantías", "earning",
+              "1247", "2662000", "0.0833", "9221517",
+              notes="1247 días sobre IBC $2,662,000"),
+        _Item("intereses_cesantias", "Intereses sobre cesantías (12%)", "earning",
+              "1247", "9221517", "0.12", "1106582"),
+        _Item("prima_servicios", "Prima de servicios", "earning",
+              "180", "2662000", "0.0833", "1331000",
+              notes="180 días del último semestre"),
+        _Item("vacaciones_proporcionales", "Vacaciones proporcionales", "earning",
+              "12.5", "83333", "0.0417", "1041663"),
+        _Item("salud_emp", "Aporte salud empleado", "deduction",
+              "1", "2662000", "0.04", "266200"),
+        _Item("pension_emp", "Aporte pensión empleado", "deduction",
+              "1", "2662000", "0.04", "183800"),
+    ]
+
+    org_settings = (org.settings or {}) if hasattr(org, "settings") else {}
+    org_meta = {
+        "address": org_settings.get("address") or org_settings.get("street") or "Calle 45 # 12-34, demo",
+        "city": org_settings.get("city") or "Bogotá",
+        "tax_id": org_settings.get("tax_id") or org_settings.get("nit") or "900.123.456-7",
+    }
+
+    logo_url = (settings.logo_url if settings and settings.logo_url else
+                org_settings.get("logo_url"))
+    signature_url = settings.signature_url if settings else None
+    admin_name = (settings.admin_name if settings and settings.admin_name else
+                  org_settings.get("admin_name") or "Nombre del administrador")
+    admin_title = (settings.admin_title if settings else None) or "Representante Legal"
+    brand = (settings.brand_color if settings and settings.brand_color else
+             org_settings.get("brand_color") or "#EC4899")
+
+    emp = {
+        "full_name": "María Pérez Gómez (DEMO)",
+        "employee_code": "DEMO-001",
+        "document_type": "C.C.",
+        "document_number": "1.234.567.890",
+        "department_name": "Departamento de Ejemplo",
+        "position_name": "Cargo de Ejemplo",
+    }
+    earnings = [i for i in items if i.kind == "earning"]
+    deductions = [i for i in items if i.kind == "deduction"]
+
+    template = Template(TEMPLATES[template_key])
+    html = template.render(
+        liq=_LiqStub(),
+        emp=emp,
+        earnings=earnings,
+        deductions=deductions,
+        org_name=org.name,
+        org_meta=org_meta,
+        logo_url=logo_url,
+        signature_url=signature_url,
+        admin_name=admin_name,
+        admin_title=admin_title,
+        brand=brand,
+        reason_label=REASON_LABELS.get(_LiqStub.termination_reason, ""),
+        today=datetime.now().strftime("%Y-%m-%d"),
+        fmt=_fmt,
+    )
+
+    buf = io.BytesIO()
+    result = pisa.CreatePDF(src=html, dest=buf, encoding="utf-8")
+    if result.err:
+        raise RuntimeError(f"Error generando preview PDF: {result.err}")
+    filename = f"liquidacion-preview-{template_key}.pdf"
+    return buf.getvalue(), filename
+
+
 async def render_liquidation_pdf(
     db: AsyncSession,
     org_id: uuid.UUID,

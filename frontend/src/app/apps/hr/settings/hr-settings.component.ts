@@ -27,22 +27,31 @@ const TEMPLATES: { value: LiquidationTemplate; title: string; subtitle: string }
       } @else {
       <section class="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
         <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100 mb-4">Plantilla PDF de liquidación</h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">
+          Selecciona la plantilla por defecto. Usa <strong>Vista previa</strong> para descargar un PDF
+          de muestra con datos ficticios y comparar antes de guardar.
+        </p>
         <div class="grid gap-3 md:grid-cols-3">
           @for (t of templates; track t.value) {
-            <button type="button"
-              (click)="settings.default_liquidation_template = t.value"
-              class="text-left rounded-lg border-2 p-4 transition"
+            <div class="rounded-lg border-2 p-4 transition"
               [class.border-brand-600]="settings.default_liquidation_template === t.value"
               [class.bg-brand-50]="settings.default_liquidation_template === t.value"
               [class.dark:bg-brand-900/20]="settings.default_liquidation_template === t.value"
               [class.border-slate-200]="settings.default_liquidation_template !== t.value"
               [class.dark:border-slate-700]="settings.default_liquidation_template !== t.value">
-              <div class="font-semibold text-slate-900 dark:text-slate-100">{{ t.title }}</div>
-              <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">{{ t.subtitle }}</div>
-              @if (settings.default_liquidation_template === t.value) {
-                <div class="text-xs text-brand-600 mt-2 font-medium">✓ Plantilla por defecto</div>
-              }
-            </button>
+              <button type="button" (click)="settings.default_liquidation_template = t.value"
+                class="text-left w-full">
+                <div class="font-semibold text-slate-900 dark:text-slate-100">{{ t.title }}</div>
+                <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">{{ t.subtitle }}</div>
+                @if (settings.default_liquidation_template === t.value) {
+                  <div class="text-xs text-brand-600 mt-2 font-medium">✓ Plantilla por defecto</div>
+                }
+              </button>
+              <button type="button" (click)="previewPdf(t.value)" [disabled]="previewing() === t.value"
+                class="mt-3 w-full text-xs px-3 py-1.5 rounded-md border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50">
+                {{ previewing() === t.value ? 'Generando…' : '↓ Vista previa PDF' }}
+              </button>
+            </div>
           }
         </div>
       </section>
@@ -132,6 +141,7 @@ export class HrSettingsComponent implements OnInit {
 
   loading = signal(true);
   saving = signal(false);
+  previewing = signal<LiquidationTemplate | ''>('');
   savedMsg = signal('');
   errorMsg = signal('');
 
@@ -148,6 +158,23 @@ export class HrSettingsComponent implements OnInit {
     this.api.getSettings().subscribe({
       next: (s) => { this.settings = { ...s, brand_color: s.brand_color || '#8b5cf6' }; this.loading.set(false); },
       error: () => this.loading.set(false),
+    });
+  }
+
+  previewPdf(t: LiquidationTemplate): void {
+    this.previewing.set(t);
+    this.api.downloadSettingsPreviewPdf(t).subscribe({
+      next: ({ blob, filename }) => {
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        // Free after a small delay so the new tab can load the blob
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        this.previewing.set('');
+      },
+      error: (err) => {
+        this.previewing.set('');
+        this.errorMsg.set(err?.error?.detail || 'No se pudo generar la vista previa.');
+      },
     });
   }
 

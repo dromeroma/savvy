@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -152,7 +152,7 @@ import { PaginationComponent } from '../../../shared/components/pagination/pagin
                   class="mt-1 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm" />
               </label>
               <div class="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-700">
-                <button type="button" (click)="closeForm()"
+                <button type="button" (click)="closeForm(); $event.stopPropagation()"
                   class="rounded-md border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm">Cancelar</button>
                 <button type="submit" [disabled]="saving()"
                   class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50">
@@ -187,10 +187,6 @@ export class HrPayrollPeriodsComponent implements OnInit {
   formError = signal('');
   form: HrPayrollPeriodCreate = this.emptyForm();
 
-  constructor() {
-    effect(() => { this.periods(); this.page.set(0); }, { allowSignalWrites: true });
-  }
-
   ngOnInit(): void { this.load(); }
 
   load(): void {
@@ -198,7 +194,7 @@ export class HrPayrollPeriodsComponent implements OnInit {
     const params: { status?: string; year?: number } = { year: this.filterYear };
     if (this.filterStatus) params.status = this.filterStatus;
     this.hr.listPayrollPeriods(params).subscribe({
-      next: (r) => { this.periods.set(r); this.loading.set(false); },
+      next: (r) => { this.periods.set(r); this.page.set(0); this.loading.set(false); },
       error: () => { this.loading.set(false); },
     });
   }

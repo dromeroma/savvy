@@ -1259,7 +1259,7 @@ async def report_training_summary(
 # ============================================================ Fase 5: Settings + Liquidación
 
 from fastapi import Response  # noqa: E402
-from src.apps.hr.liquidation_pdf import render_liquidation_pdf  # noqa: E402
+from src.apps.hr.liquidation_pdf import render_liquidation_pdf, render_liquidation_preview_pdf  # noqa: E402
 from src.apps.hr.service_phase5 import HrSettingsService, LiquidationsService  # noqa: E402
 from src.apps.hr.schemas import (  # noqa: E402
     HrSettingsResponse,
@@ -1298,6 +1298,21 @@ async def update_hr_settings(
     org_id: uuid.UUID = Depends(get_org_id),
 ) -> Any:
     return await HrSettingsService.update(db, org_id, data)
+
+
+@router.get("/settings/preview-pdf", dependencies=[_perm_read()])
+async def liquidation_preview_pdf(
+    template: str = Query("formal", description="formal | moderna | compacta"),
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Response:
+    """PDF de muestra con datos de prueba para previsualizar la plantilla."""
+    pdf_bytes, filename = await render_liquidation_preview_pdf(db, org_id, template)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+    )
 
 
 # ---------- Liquidations ----------
