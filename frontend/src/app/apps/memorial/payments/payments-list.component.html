@@ -86,13 +86,68 @@
         <div class="space-y-3">
           <div>
             <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Contrato exequial *</label>
-            <select [(ngModel)]="form.contract_id" (ngModelChange)="onContractChange()"
-              class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm">
-              <option [ngValue]="null">— Seleccionar contrato —</option>
-              @for (c of contractsForPicker(); track c.id) {
-                <option [value]="c.id">{{ c.code }} — {{ c.titular_display }}</option>
-              }
-            </select>
+
+            @if (selectedContract(); as sc) {
+              <div class="rounded-lg border border-brand-300 dark:border-brand-700 bg-brand-50/40 dark:bg-brand-500/5 p-3 flex items-center justify-between">
+                <div class="min-w-0">
+                  <div class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ sc.code }}</div>
+                  <div class="font-semibold text-gray-800 dark:text-white/90 truncate">{{ sc.titular_display }}</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    {{ sc.plan_name }}
+                    @if (sc.titular_document_number) { · {{ sc.titular_document_number }} }
+                  </div>
+                </div>
+                <button type="button" (click)="clearContract(); $event.stopPropagation()"
+                  class="ml-3 text-xs px-2 py-1 rounded-md border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-800 shrink-0">
+                  Cambiar
+                </button>
+              </div>
+            } @else {
+              <div #contractPicker class="relative">
+                <input type="text"
+                  [value]="contractSearchTerm"
+                  (input)="onContractSearchInput($any($event.target).value)"
+                  (focus)="contractPickerOpen.set(true)"
+                  (keydown)="onPickerKey($event)"
+                  placeholder="Buscar por código, nombre, documento o plan…"
+                  autocomplete="off"
+                  class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" />
+
+                @if (contractPickerOpen()) {
+                  <div class="absolute left-0 right-0 mt-1 z-10 max-h-72 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg">
+                    @if (contractPickerLoading()) {
+                      <div class="px-3 py-2 text-xs text-gray-500 dark:text-gray-400">Buscando…</div>
+                    } @else if (contractsForPicker().length === 0) {
+                      <div class="px-3 py-3 text-xs text-gray-500 dark:text-gray-400">
+                        Sin resultados. Prueba con código, nombre o documento.
+                      </div>
+                    } @else {
+                      @for (c of contractsForPicker(); track c.id; let i = $index) {
+                        <button type="button" (click)="selectContract(c); $event.stopPropagation()"
+                          (mouseenter)="contractPickerHighlight.set(i)"
+                          class="w-full text-left px-3 py-2 border-b last:border-b-0 border-gray-100 dark:border-gray-800"
+                          [class.bg-brand-50]="contractPickerHighlight() === i"
+                          [class.dark:bg-brand-500/10]="contractPickerHighlight() === i">
+                          <div class="flex items-baseline justify-between gap-2">
+                            <span class="font-mono text-xs text-gray-500 dark:text-gray-400 shrink-0">{{ c.code }}</span>
+                            <span class="text-[10px] uppercase tracking-wide text-gray-400">{{ c.affiliate_type }}</span>
+                          </div>
+                          <div class="text-sm font-medium text-gray-800 dark:text-white/90 truncate">{{ c.titular_display }}</div>
+                          <div class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                            {{ c.plan_name }}
+                            @if (c.titular_document_number) { · doc {{ c.titular_document_number }} }
+                            @if (c.next_payment_date) { · próx. {{ c.next_payment_date }} }
+                          </div>
+                        </button>
+                      }
+                    }
+                  </div>
+                }
+              </div>
+              <p class="text-[11px] text-gray-400 mt-1">
+                Escribe al menos 1 carácter — máximo 50 resultados. Usa flechas ↑↓ y Enter para seleccionar.
+              </p>
+            }
           </div>
 
           @if (pendingInvoices().length > 0) {

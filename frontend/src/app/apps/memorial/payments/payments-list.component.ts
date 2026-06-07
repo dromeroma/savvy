@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, ElementRef, HostListener, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MemorialApiService } from '../../../core/services/memorial.service';
@@ -25,19 +25,21 @@ export class MemorialPaymentsListComponent implements OnInit {
   payments = signal<MemorialPaymentListItem[]>([]);
   contractsForPicker = signal<ExequialContractListItem[]>([]);
 
+  // Contract picker (searchable)
+  @ViewChild('contractPicker') contractPickerEl?: ElementRef<HTMLDivElement>;
+  contractSearchTerm = '';
+  contractPickerOpen = signal(false);
+  contractPickerLoading = signal(false);
+  contractPickerHighlight = signal(-1);
+  selectedContract = signal<ExequialContractListItem | null>(null);
+  private searchDebounce?: ReturnType<typeof setTimeout>;
+
   page = signal(0);
   pageSize = signal(20);
   paginatedPayments = computed(() => {
     const start = this.page() * this.pageSize();
     return this.payments().slice(start, start + this.pageSize());
   });
-
-  constructor() {
-    effect(() => {
-      this.payments();
-      this.page.set(0);
-    }, { allowSignalWrites: true });
-  }
 
   filterMethod = '';
   filterDateFrom = '';
@@ -66,9 +68,7 @@ export class MemorialPaymentsListComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
-    this.memorial.listContracts({ status: 'active', limit: 500 }).subscribe({
-      next: (data) => this.contractsForPicker.set(data),
-    });
+    this.searchContracts('');
   }
 
   load(): void {
@@ -78,7 +78,7 @@ export class MemorialPaymentsListComponent implements OnInit {
       date_from: this.filterDateFrom || undefined,
       date_to: this.filterDateTo || undefined,
     }).subscribe({
-      next: (data) => { this.payments.set(data); this.loading.set(false); },
+      next: (data) => { this.payments.set(data); this.page.set(0); this.loading.set(false); },
       error: () => this.loading.set(false),
     });
   }
@@ -87,26 +87,96 @@ export class MemorialPaymentsListComponent implements OnInit {
     this.form = this.emptyForm();
     this.pendingInvoices.set([]);
     this.formError.set('');
+    this.selectedContract.set(null);
+    this.contractSearchTerm = '';
+    this.searchContracts('');
     this.formOpen.set(true);
   }
 
-  closeForm(): void { this.formOpen.set(false); }
+  closeForm(): void {
+    this.formOpen.set(false);
+    this.contractPickerOpen.set(false);
+  }
 
-  onContractChange(): void {
-    // Cargar facturas pendientes del contrato seleccionado
-    if (!this.form.contract_id) {
-      this.pendingInvoices.set([]);
-      return;
-    }
-    // Tomar nombre del titular del contrato
-    const c = this.contractsForPicker().find(x => x.id === this.form.contract_id);
-    if (c) this.form.payer_name = c.titular_display;
-    this.memorial.listInvoices({
-      contract_id: this.form.contract_id,
-      unpaid_only: true,
+  // ============ Contract picker ============
+
+  searchContracts(term: string): void {
+    this.contractPickerLoading.set(true);
+    this.memorial.listContracts({
+      status: 'active',
+      search: term?.trim() || undefined,
+      limit: 50,
     }).subscribe({
+      next: (data) => {
+        this.contractsForPicker.set(data);
+        this.contractPickerHighlight.set(-1);
+        this.contractPickerLoading.set(false);
+      },
+      error: () => this.contractPickerLoading.set(false),
+    });
+  }
+
+  onContractSearchInput(value: string): void {
+    this.contractSearchTerm = value;
+    this.contractPickerOpen.set(true);
+    if (this.searchDebounce) clearTimeout(this.searchDebounce);
+    this.searchDebounce = setTimeout(() => this.searchContracts(value), 250);
+  }
+
+  selectContract(c: ExequialContractListItem): void {
+    this.form.contract_id = c.id;
+    this.selectedContract.set(c);
+    this.form.payer_name = c.titular_display;
+    this.contractSearchTerm = '';
+    this.contractPickerOpen.set(false);
+    this.loadPendingInvoices(c.id);
+  }
+
+  clearContract(): void {
+    this.form.contract_id = null;
+    this.selectedContract.set(null);
+    this.pendingInvoices.set([]);
+    this.contractSearchTerm = '';
+    this.searchContracts('');
+    this.contractPickerOpen.set(true);
+  }
+
+  private loadPendingInvoices(contractId: string): void {
+    this.memorial.listInvoices({ contract_id: contractId, unpaid_only: true }).subscribe({
       next: (data) => this.pendingInvoices.set(data),
     });
+  }
+
+  onPickerKey(ev: KeyboardEvent): void {
+    const list = this.contractsForPicker();
+    if (!this.contractPickerOpen()) {
+      if (ev.key === 'ArrowDown' || ev.key === 'Enter') {
+        this.contractPickerOpen.set(true);
+      }
+      return;
+    }
+    if (ev.key === 'ArrowDown') {
+      ev.preventDefault();
+      this.contractPickerHighlight.set(Math.min(this.contractPickerHighlight() + 1, list.length - 1));
+    } else if (ev.key === 'ArrowUp') {
+      ev.preventDefault();
+      this.contractPickerHighlight.set(Math.max(this.contractPickerHighlight() - 1, 0));
+    } else if (ev.key === 'Enter') {
+      ev.preventDefault();
+      const idx = this.contractPickerHighlight();
+      if (idx >= 0 && idx < list.length) this.selectContract(list[idx]);
+    } else if (ev.key === 'Escape') {
+      this.contractPickerOpen.set(false);
+    }
+  }
+
+  @HostListener('document:mousedown', ['$event'])
+  onDocClick(ev: MouseEvent): void {
+    if (!this.contractPickerOpen()) return;
+    const root = this.contractPickerEl?.nativeElement;
+    if (root && !root.contains(ev.target as Node)) {
+      this.contractPickerOpen.set(false);
+    }
   }
 
   submit(): void {
