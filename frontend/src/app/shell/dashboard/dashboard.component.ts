@@ -7,6 +7,10 @@ import {
   DashboardService,
   DashboardSummaryResponse,
 } from '../../core/services/dashboard.service';
+import {
+  HeroMetricCardComponent,
+  KpiCardComponent,
+} from '../../shared/components/bento';
 
 interface AppWithMetrics {
   code: string;
@@ -26,7 +30,10 @@ interface DashboardError {
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CommonModule, DatePipe, RouterLink],
+  imports: [
+    CommonModule, DatePipe, RouterLink,
+    HeroMetricCardComponent, KpiCardComponent,
+  ],
   templateUrl: './dashboard.component.html',
 })
 export class DashboardComponent implements OnInit {
@@ -36,6 +43,10 @@ export class DashboardComponent implements OnInit {
   loading = signal(true);
   error = signal<DashboardError | null>(null);
   data = signal<DashboardSummaryResponse | null>(null);
+
+  /** Serie histórica para el sparkline del HERO. Null hasta que el backend
+   *  exponga datos de tendencia — preferimos no inventar números. */
+  readonly incomeSeries = computed<number[] | null>(() => null);
 
   /** Apps merged with their headline metrics, ready to render as rich cards. */
   readonly appsWithMetrics = computed<AppWithMetrics[]>(() => {

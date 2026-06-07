@@ -5,102 +5,154 @@ import { HrApiService } from '../../../core/services/hr.service';
 import {
   HrDepartment,
   HrEmployeeListItem,
+  HrEvaluationCycle,
   HrLeave,
   HrPosition,
+  HrTrainingEnrollment,
   HrVacationRequest,
 } from '../../../core/models/hr.model';
+import {
+  BarChartComponent,
+  BarRow,
+  ChartCardComponent,
+  DonutChartComponent,
+  DonutSlice,
+  HeroMetricCardComponent,
+  KpiCardComponent,
+} from '../../../shared/components/bento';
 
 @Component({
   selector: 'app-hr-dashboard',
-  imports: [CommonModule, RouterLink],
+  imports: [
+    CommonModule, RouterLink,
+    HeroMetricCardComponent, KpiCardComponent, ChartCardComponent,
+    DonutChartComponent, BarChartComponent,
+  ],
   template: `
-    <div class="px-4 sm:px-6 py-6 space-y-6">
-      <header>
-        <h1 class="text-2xl font-semibold text-slate-900 dark:text-slate-100">SavvyHR · Talento Humano</h1>
-        <p class="text-sm text-slate-600 dark:text-slate-400">
-          Empleados, contratos, departamentos y cargos. Fase 1 — núcleo organizacional.
-        </p>
+    <div class="px-4 sm:px-6 py-6 space-y-7">
+      <header class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+        <div>
+          <p class="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 font-medium">
+            SavvyHR · Talento Humano
+          </p>
+          <h1 class="text-3xl font-bold text-slate-900 dark:text-white mt-1">
+            Resumen ejecutivo
+          </h1>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Headcount, ausentismo, evaluaciones y capacitaciones.
+          </p>
+        </div>
+        <div class="text-right">
+          <div class="text-[11px] uppercase tracking-wider text-slate-400">Última actualización</div>
+          <div class="text-xs text-slate-600 dark:text-slate-300 tabular-nums">{{ now }}</div>
+        </div>
       </header>
 
-      <!-- KPIs -->
-      <section class="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <a routerLink="/hr/employees" class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 hover:border-brand-400 transition">
-          <p class="text-xs text-slate-500 dark:text-slate-400">Empleados activos</p>
-          <p class="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">{{ activeCount() }}</p>
-          <p class="text-[11px] text-slate-400 mt-1">de {{ employees().length }} totales</p>
-        </a>
-        <a routerLink="/hr/departments" class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 hover:border-brand-400 transition">
-          <p class="text-xs text-slate-500 dark:text-slate-400">Departamentos</p>
-          <p class="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">{{ departments().length }}</p>
-        </a>
-        <a routerLink="/hr/positions" class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 hover:border-brand-400 transition">
-          <p class="text-xs text-slate-500 dark:text-slate-400">Cargos</p>
-          <p class="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">{{ positions().length }}</p>
-        </a>
-        <div class="rounded-2xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4">
-          <p class="text-xs text-amber-700 dark:text-amber-300">En licencia / suspendidos</p>
-          <p class="text-2xl font-bold text-amber-800 dark:text-amber-200 mt-1">{{ onLeaveCount() }}</p>
+      <!-- ============== BENTO superior: HERO + 4 KPIs ============== -->
+      <section class="grid grid-cols-1 lg:grid-cols-12 gap-4 auto-rows-min">
+        <!-- HERO: Headcount activo -->
+        <div class="lg:col-span-7 lg:row-span-2">
+          <app-hero-metric-card
+            label="Empleados activos"
+            [value]="activeCount()"
+            tone="violet"
+            icon="👥"
+            [subtitle]="totalLabel()"
+            [hint]="onLeaveCount() > 0 ? onLeaveCount() + ' en licencia o suspendidos' : 'sin ausencias'"
+            link="/hr/employees" />
+        </div>
+
+        <div class="lg:col-span-5 grid grid-cols-2 gap-4">
+          <app-kpi-card
+            label="Departamentos"
+            [value]="departments().length"
+            hint="unidades organizacionales"
+            tone="info"
+            link="/hr/departments" />
+
+          <app-kpi-card
+            label="Cargos"
+            [value]="positions().length"
+            hint="posiciones definidas"
+            tone="default"
+            link="/hr/positions" />
+
+          <app-kpi-card
+            label="Vacaciones pendientes"
+            [value]="pendingVacations()"
+            hint="de aprobar"
+            [tone]="pendingVacations() > 0 ? 'warn' : 'default'"
+            link="/hr/vacations" />
+
+          <app-kpi-card
+            label="Incapacidades activas"
+            [value]="activeLeaves()"
+            hint="vigentes"
+            [tone]="activeLeaves() > 0 ? 'info' : 'default'"
+            link="/hr/leaves" />
         </div>
       </section>
 
-      <!-- KPIs Fase 2 -->
-      <section class="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <a routerLink="/hr/vacations" class="rounded-2xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4 hover:border-amber-400 transition">
-          <p class="text-xs text-amber-700 dark:text-amber-300">Vacaciones pendientes</p>
-          <p class="text-2xl font-bold text-amber-800 dark:text-amber-200 mt-1">{{ pendingVacations() }}</p>
-          <p class="text-[11px] text-amber-700 dark:text-amber-300 mt-1">de aprobar</p>
-        </a>
-        <a routerLink="/hr/vacations" class="rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 p-4 hover:border-emerald-400 transition">
-          <p class="text-xs text-emerald-700 dark:text-emerald-300">Vacaciones aprobadas</p>
-          <p class="text-2xl font-bold text-emerald-800 dark:text-emerald-200 mt-1">{{ approvedVacations() }}</p>
-          <p class="text-[11px] text-emerald-700 dark:text-emerald-300 mt-1">vigentes</p>
-        </a>
-        <a routerLink="/hr/leaves" class="rounded-2xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-4 hover:border-blue-400 transition">
-          <p class="text-xs text-blue-700 dark:text-blue-300">Incapacidades activas</p>
-          <p class="text-2xl font-bold text-blue-800 dark:text-blue-200 mt-1">{{ activeLeaves() }}</p>
-        </a>
-        <a routerLink="/hr/attendance" class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 hover:border-brand-400 transition">
-          <p class="text-xs text-slate-500 dark:text-slate-400">Asistencia hoy</p>
-          <p class="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">Ver →</p>
-        </a>
-      </section>
+      <!-- ============== BENTO de capas: charts ============== -->
+      <section class="grid grid-cols-1 lg:grid-cols-12 gap-4 auto-rows-min">
+        <!-- Distribución por departamento -->
+        <div class="lg:col-span-7">
+          <app-chart-card title="Distribución por departamento"
+            subtitle="empleados activos por unidad"
+            [action]="{ label: 'Ver detalle', link: '/hr/departments' }">
+            <app-bar-chart [data]="byDepartment()" tone="violet" />
+          </app-chart-card>
+        </div>
 
-      <!-- Distribución por departamento -->
-      <section class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
-        <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3">Distribución por departamento</h2>
-        @if (byDepartment().length === 0) {
-          <p class="text-xs text-slate-500 dark:text-slate-400">Aún no hay empleados activos.</p>
-        } @else {
-          <div class="space-y-2">
-            @for (row of byDepartment(); track row.name) {
-              <div>
-                <div class="flex justify-between text-xs mb-1 text-slate-700 dark:text-slate-300">
-                  <span>{{ row.name }}</span>
-                  <span class="font-mono">{{ row.count }}</span>
-                </div>
-                <div class="h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                  <div class="h-full bg-brand-500" [style.width.%]="row.pct"></div>
-                </div>
+        <!-- Donut: estado de evaluaciones -->
+        <div class="lg:col-span-5">
+          <app-chart-card title="Evaluaciones de desempeño"
+            [subtitle]="evaluationCyclesActive() + ' ciclo(s) abierto(s)'"
+            [action]="{ label: 'Ver evaluaciones', link: '/hr/evaluations' }">
+            @if (evaluationStatus().length > 0) {
+              <app-donut-chart [data]="evaluationStatus()" totalLabel="evaluaciones en curso" />
+            } @else {
+              <div class="text-center py-8">
+                <p class="text-xs text-slate-400 dark:text-slate-500">
+                  Sin ciclos abiertos. <a routerLink="/hr/evaluations" class="text-brand-600 hover:underline">Iniciar uno</a>.
+                </p>
               </div>
             }
-          </div>
-        }
+          </app-chart-card>
+        </div>
+
+        <!-- Donut: vacaciones por estado -->
+        <div class="lg:col-span-5">
+          <app-chart-card title="Vacaciones por estado"
+            subtitle="último periodo"
+            [action]="{ label: 'Gestionar', link: '/hr/vacations' }">
+            <app-donut-chart [data]="vacationStatus()" totalLabel="solicitudes" />
+          </app-chart-card>
+        </div>
+
+        <!-- Capacitaciones -->
+        <div class="lg:col-span-7">
+          <app-chart-card title="Capacitaciones — progreso"
+            [subtitle]="trainingsTotal() + ' inscripciones'"
+            [action]="{ label: 'Ver cursos', link: '/hr/training' }">
+            <app-bar-chart [data]="trainingProgress()" tone="emerald" />
+          </app-chart-card>
+        </div>
       </section>
 
-      <!-- Quick links -->
-      <section class="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <a routerLink="/hr/employees" class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-sm text-slate-700 dark:text-slate-300 hover:border-brand-400">
-          → Empleados
-        </a>
-        <a routerLink="/hr/contracts" class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-sm text-slate-700 dark:text-slate-300 hover:border-brand-400">
-          → Contratos
-        </a>
-        <a routerLink="/hr/departments" class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-sm text-slate-700 dark:text-slate-300 hover:border-brand-400">
-          → Departamentos
-        </a>
-        <a routerLink="/hr/positions" class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-sm text-slate-700 dark:text-slate-300 hover:border-brand-400">
-          → Cargos
-        </a>
+      <!-- ============== Acciones rápidas ============== -->
+      <section>
+        <h2 class="text-base font-semibold text-slate-900 dark:text-white mb-3">Atajos</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          @for (link of quickLinks; track link.route) {
+            <a [routerLink]="link.route"
+              class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 hover:ring-2 hover:ring-brand-300 dark:hover:ring-brand-700 transition group">
+              <div class="text-2xl mb-1">{{ link.icon }}</div>
+              <div class="text-sm font-semibold text-slate-900 dark:text-white">{{ link.label }}</div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{{ link.hint }}</div>
+            </a>
+          }
+        </div>
       </section>
     </div>
   `,
@@ -113,26 +165,96 @@ export class HrDashboardComponent implements OnInit {
   positions = signal<HrPosition[]>([]);
   vacations = signal<HrVacationRequest[]>([]);
   leaves = signal<HrLeave[]>([]);
+  evaluationCycles = signal<HrEvaluationCycle[]>([]);
+  trainings = signal<HrTrainingEnrollment[]>([]);
+
+  readonly now = new Date().toLocaleString('es-CO', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+
+  readonly quickLinks = [
+    { route: '/hr/employees', icon: '👤', label: 'Empleados', hint: 'lista y detalle' },
+    { route: '/hr/payroll/periods', icon: '💵', label: 'Nómina', hint: 'períodos · desprendibles' },
+    { route: '/hr/liquidations', icon: '🧾', label: 'Liquidaciones', hint: 'cese de contrato' },
+    { route: '/hr/reports', icon: '📊', label: 'Reportes', hint: 'antigüedad · costo · ausentismo' },
+  ];
 
   activeCount = computed(() => this.employees().filter((e) => e.status === 'active').length);
   onLeaveCount = computed(
     () => this.employees().filter((e) => e.status === 'on_leave' || e.status === 'suspended').length,
   );
   pendingVacations = computed(() => this.vacations().filter((v) => v.status === 'pending').length);
-  approvedVacations = computed(() => this.vacations().filter((v) => v.status === 'approved').length);
   activeLeaves = computed(() => this.leaves().filter((l) => l.status === 'active').length);
+  evaluationCyclesActive = computed(() => this.evaluationCycles().filter((c) => c.status === 'open').length);
+  trainingsTotal = computed(() => this.trainings().length);
 
-  byDepartment = computed(() => {
+  totalLabel = computed(() => {
+    const total = this.employees().length;
+    if (total === 0) return 'sin empleados todavía';
+    return `de ${total} ${total === 1 ? 'registrado' : 'registrados'}`;
+  });
+
+  byDepartment = computed<BarRow[]>(() => {
     const counts = new Map<string, number>();
     for (const e of this.employees()) {
       if (e.status !== 'active') continue;
       const key = e.department_name || 'Sin departamento';
       counts.set(key, (counts.get(key) ?? 0) + 1);
     }
-    const total = Array.from(counts.values()).reduce((a, b) => a + b, 0);
     return Array.from(counts.entries())
-      .map(([name, count]) => ({ name, count, pct: total > 0 ? Math.round((count / total) * 100) : 0 }))
-      .sort((a, b) => b.count - a.count);
+      .map(([label, value]) => ({ label, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8);
+  });
+
+  evaluationStatus = computed<DonutSlice[]>(() => {
+    // No tenemos lista de evaluaciones a este nivel — usamos los ciclos como proxy.
+    const cycles = this.evaluationCycles();
+    if (cycles.length === 0) return [];
+    const buckets = { open: 0, closed: 0, draft: 0 };
+    for (const c of cycles) {
+      if (c.status === 'open') buckets.open++;
+      else if (c.status === 'closed') buckets.closed++;
+      else if (c.status === 'draft') buckets.draft++;
+    }
+    const out: DonutSlice[] = [];
+    if (buckets.open > 0) out.push({ label: 'Abiertos', value: buckets.open, color: '#6366f1' });
+    if (buckets.draft > 0) out.push({ label: 'Borrador', value: buckets.draft, color: '#94a3b8' });
+    if (buckets.closed > 0) out.push({ label: 'Cerrados', value: buckets.closed, color: '#10b981' });
+    return out;
+  });
+
+  vacationStatus = computed<DonutSlice[]>(() => {
+    const counts = { pending: 0, approved: 0, rejected: 0, cancelled: 0, completed: 0 };
+    for (const v of this.vacations()) {
+      if (v.status in counts) counts[v.status as keyof typeof counts]++;
+    }
+    return [
+      { label: 'Pendientes', value: counts.pending, color: '#f59e0b' },
+      { label: 'Aprobadas', value: counts.approved, color: '#10b981' },
+      { label: 'Completadas', value: counts.completed, color: '#06b6d4' },
+      { label: 'Rechazadas', value: counts.rejected, color: '#ef4444' },
+      { label: 'Canceladas', value: counts.cancelled, color: '#94a3b8' },
+    ].filter((s) => s.value > 0);
+  });
+
+  trainingProgress = computed<BarRow[]>(() => {
+    const counts = { enrolled: 0, in_progress: 0, completed: 0, failed: 0, cancelled: 0 };
+    for (const t of this.trainings()) {
+      if (t.completion_status in counts) counts[t.completion_status as keyof typeof counts]++;
+    }
+    const labels: Record<string, string> = {
+      enrolled: 'Inscritas',
+      in_progress: 'En curso',
+      completed: 'Completadas',
+      failed: 'No aprobadas',
+      cancelled: 'Canceladas',
+    };
+    return Object.entries(counts)
+      .filter(([, v]) => v > 0)
+      .map(([key, value]) => ({ label: labels[key], value }))
+      .sort((a, b) => b.value - a.value);
   });
 
   ngOnInit(): void {
@@ -141,5 +263,7 @@ export class HrDashboardComponent implements OnInit {
     this.hr.listPositions().subscribe({ next: (r) => this.positions.set(r) });
     this.hr.listVacationRequests().subscribe({ next: (r) => this.vacations.set(r) });
     this.hr.listLeaves().subscribe({ next: (r) => this.leaves.set(r) });
+    this.hr.listEvaluationCycles().subscribe({ next: (r) => this.evaluationCycles.set(r) });
+    this.hr.listTrainingEnrollments().subscribe({ next: (r) => this.trainings.set(r) });
   }
 }

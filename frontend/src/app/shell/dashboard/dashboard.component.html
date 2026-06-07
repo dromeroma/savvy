@@ -1,27 +1,27 @@
-<div class="space-y-6">
+<div class="space-y-7">
   @if (loading()) {
     <div class="flex items-center justify-center py-20">
       <div class="animate-spin rounded-full h-10 w-10 border-4 border-brand-200 border-t-brand-600"></div>
     </div>
   } @else if (error(); as err) {
-    <div class="p-5 bg-error-50 border border-error-200 dark:bg-error-500/10 dark:border-error-500/30 rounded-xl">
+    <div class="p-5 bg-rose-50 border border-rose-200 dark:bg-rose-500/10 dark:border-rose-500/30 rounded-2xl">
       <div class="flex items-start gap-3">
-        <svg class="w-5 h-5 text-error-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-5 h-5 text-rose-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/>
         </svg>
         <div class="flex-1 min-w-0">
-          <h3 class="text-sm font-semibold text-error-700 dark:text-error-400">
+          <h3 class="text-sm font-semibold text-rose-700 dark:text-rose-400">
             {{ err.message }}
           </h3>
           @if (err.status || err.detail) {
-            <p class="text-xs text-error-600 dark:text-error-400/80 mt-1 font-mono break-all">
+            <p class="text-xs text-rose-600 dark:text-rose-400/80 mt-1 font-mono break-all">
               @if (err.status) { HTTP {{ err.status }} }
               @if (err.status && err.detail) { · }
               @if (err.detail) { {{ err.detail }} }
             </p>
           }
         </div>
-        <button (click)="load()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-error-500 hover:bg-error-600 text-white shrink-0">
+        <button (click)="load()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-rose-500 hover:bg-rose-600 text-white shrink-0">
           Reintentar
         </button>
       </div>
@@ -29,151 +29,172 @@
   } @else if (data()) {
     @let d = data()!;
 
-    <!-- ORG HEADER -->
-    <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
-      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div>
-          <h1 class="text-2xl font-bold text-gray-800 dark:text-white/90">{{ d.organization.name }}</h1>
-          <div class="flex flex-wrap items-center gap-2 mt-2">
-            @if (d.organization.business_type_label) {
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-700 dark:bg-brand-500/20 dark:text-brand-300">
-                {{ d.organization.business_type_label }}
-              </span>
-            }
-            @if (d.organization.denomination_name) {
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-                {{ d.organization.denomination_name }}
-              </span>
-            }
-            @if (d.organization.zone_label) {
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-                {{ d.organization.zone_label }}
-              </span>
-            }
-            <span class="text-xs text-gray-400">Desde {{ d.organization.created_at | date:'MMM y' }}</span>
-          </div>
-        </div>
-        <div class="flex flex-wrap gap-3">
-          <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-4 py-2 min-w-[120px]">
-            <div class="text-xs text-gray-500 dark:text-gray-400">Miembros</div>
-            <div class="text-xl font-semibold text-gray-800 dark:text-white/90">{{ d.organization.member_count }}</div>
-          </div>
-          <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-4 py-2 min-w-[120px]">
-            <div class="text-xs text-gray-500 dark:text-gray-400">Apps activas</div>
-            <div class="text-xl font-semibold text-gray-800 dark:text-white/90">{{ d.active_apps.length }}</div>
-          </div>
-          <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-4 py-2 min-w-[140px]">
-            <div class="text-xs text-gray-500 dark:text-gray-400">Plan</div>
-            @if (d.subscription) {
-              <div class="text-xl font-semibold text-gray-800 dark:text-white/90">{{ d.subscription.plan_name }}</div>
-              <div class="text-[10px] text-gray-400 capitalize">{{ d.subscription.status }}</div>
-            } @else {
-              <div class="text-xl font-semibold text-gray-400">Sin plan</div>
-            }
-          </div>
+    <!-- ============== Encabezado de organización ============== -->
+    <header class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-3">
+      <div>
+        <p class="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 font-medium">
+          Bienvenido a tu cuadro de mando
+        </p>
+        <h1 class="text-3xl font-bold text-slate-900 dark:text-white mt-1.5">{{ d.organization.name }}</h1>
+        <div class="flex flex-wrap items-center gap-2 mt-2.5">
+          @if (d.organization.business_type_label) {
+            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
+              {{ d.organization.business_type_label }}
+            </span>
+          }
+          @if (d.organization.denomination_name) {
+            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+              {{ d.organization.denomination_name }}
+            </span>
+          }
+          @if (d.organization.zone_label) {
+            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+              {{ d.organization.zone_label }}
+            </span>
+          }
+          <span class="text-[11px] text-slate-400">Desde {{ d.organization.created_at | date:'MMM y' }}</span>
         </div>
       </div>
-    </div>
+      @if (d.subscription) {
+        <div class="text-right shrink-0">
+          <div class="text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400">Plan</div>
+          <div class="text-base font-semibold text-slate-900 dark:text-white">{{ d.subscription.plan_name }}</div>
+          <div class="text-[11px] text-slate-400 capitalize">{{ d.subscription.status }}</div>
+        </div>
+      }
+    </header>
 
-    <!-- EXECUTIVE TOTALS (cross-app, solo si hay >= 2 apps activas) -->
+    <!-- ============== BENTO: Vista consolidada (HERO + KPIs) ============== -->
     @if (d.totals && d.active_apps.length >= 2) {
       @let t = d.totals;
-      <div>
-        <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">Vista consolidada</h2>
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div class="rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 p-4">
-            <div class="text-xs text-emerald-700 dark:text-emerald-300">Ingresos del mes (todas las apps)</div>
-            <div class="text-2xl font-bold text-emerald-800 dark:text-emerald-200 mt-1">{{ t.income_month }}</div>
+      <section>
+        <div class="flex items-baseline justify-between mb-3">
+          <h2 class="text-base font-semibold text-slate-900 dark:text-white">Vista consolidada</h2>
+          <span class="text-[11px] text-slate-400">cross-app · este mes</span>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 auto-rows-min">
+          <!-- HERO: ingresos del mes (8 cols en lg) -->
+          <div class="lg:col-span-7 lg:row-span-2">
+            <app-hero-metric-card
+              label="Ingresos del mes"
+              [value]="t.income_month"
+              tone="emerald"
+              icon="$"
+              subtitle="todas las apps activas"
+              [hint]="t.active_apps_count + ' apps reportando'"
+              [series]="incomeSeries()" />
           </div>
-          <div class="rounded-2xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4">
-            <div class="text-xs text-amber-700 dark:text-amber-300">Cartera por cobrar</div>
-            <div class="text-2xl font-bold text-amber-800 dark:text-amber-200 mt-1">{{ t.receivables_total }}</div>
-          </div>
-          @if (t.alerts_count > 0) {
-            <div class="rounded-2xl border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-900/20 p-4">
-              <div class="text-xs text-rose-700 dark:text-rose-300">Alertas críticas</div>
-              <div class="text-2xl font-bold text-rose-800 dark:text-rose-200 mt-1">{{ t.alerts_count }}</div>
-            </div>
-          } @else {
-            <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
-              <div class="text-xs text-gray-500 dark:text-gray-400">Alertas críticas</div>
-              <div class="text-2xl font-bold text-gray-800 dark:text-white mt-1">0</div>
-            </div>
-          }
-          <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
-            <div class="text-xs text-gray-500 dark:text-gray-400">Apps activas</div>
-            <div class="text-2xl font-bold text-gray-800 dark:text-white mt-1">{{ t.active_apps_count }}</div>
+
+          <!-- KPIs derecha -->
+          <div class="lg:col-span-5 grid grid-cols-2 gap-4">
+            <app-kpi-card
+              label="Cartera por cobrar"
+              [value]="t.receivables_total"
+              hint="saldo pendiente"
+              tone="warn" size="md" />
+
+            <app-kpi-card
+              label="Alertas críticas"
+              [value]="t.alerts_count"
+              [tone]="t.alerts_count > 0 ? 'danger' : 'default'"
+              [hint]="t.alerts_count > 0 ? 'requieren atención' : 'sin alertas'" />
+
+            <app-kpi-card
+              label="Apps activas"
+              [value]="t.active_apps_count"
+              hint="de 12 disponibles"
+              tone="info" />
+
+            <app-kpi-card
+              label="Miembros"
+              [value]="d.organization.member_count"
+              hint="usuarios con acceso"
+              tone="violet" />
           </div>
         </div>
-      </div>
+      </section>
+    } @else {
+      <!-- Sin vista consolidada — mostrar igual los datos básicos -->
+      <section class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <app-kpi-card label="Miembros" [value]="d.organization.member_count"
+          hint="usuarios con acceso" tone="violet" />
+        <app-kpi-card label="Apps activas" [value]="d.active_apps.length"
+          hint="vinculadas a tu plan" tone="info" />
+        <app-kpi-card label="Plan"
+          [value]="d.subscription?.plan_name || 'Sin plan'"
+          [hint]="d.subscription?.status || null"
+          tone="default" />
+      </section>
     }
 
-    <!-- APPS AS RICH CARDS (each card = launcher + headline KPIs + drill-in) -->
-    <div>
+    <!-- ============== Tus apps ============== -->
+    <section>
       <div class="flex items-center justify-between mb-3">
-        <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Tus apps</h2>
-        <a routerLink="/more-apps" class="text-xs font-medium text-brand-500 hover:text-brand-600">
-          + Activar más apps
+        <h2 class="text-base font-semibold text-slate-900 dark:text-white">Tus aplicaciones</h2>
+        <a routerLink="/more-apps" class="text-xs font-medium text-brand-600 dark:text-brand-400 hover:underline">
+          + Activar más
         </a>
       </div>
 
       @if (appsWithMetrics().length === 0) {
-        <div class="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 text-center">
-          <p class="text-sm text-gray-500 dark:text-gray-400">
+        <div class="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-10 text-center">
+          <p class="text-sm text-slate-500 dark:text-slate-400">
             Aún no tienes apps activas. Activa una desde
-            <a routerLink="/more-apps" class="text-brand-500 hover:text-brand-600 font-medium">Más aplicaciones</a>.
+            <a routerLink="/more-apps" class="text-brand-600 dark:text-brand-400 hover:underline font-medium">Más aplicaciones</a>.
           </p>
         </div>
       } @else {
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           @for (app of appsWithMetrics(); track app.code) {
-            <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden hover:shadow-theme-md transition flex flex-col">
-              <div class="h-1.5" [style.background-color]="app.color || '#6B7280'"></div>
-              <div class="p-5 flex-1 flex flex-col">
-                <!-- Header -->
+            <button (click)="openApp(app.code)" type="button"
+              class="group relative text-left rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden hover:ring-2 hover:ring-brand-300 dark:hover:ring-brand-700 transition flex flex-col">
+              <!-- Gradiente decorativo top -->
+              <div class="absolute inset-x-0 top-0 h-32 opacity-10 group-hover:opacity-20 transition pointer-events-none"
+                [style.background]="'linear-gradient(180deg, ' + (app.color || '#6366f1') + ', transparent)'"></div>
+
+              <div class="relative p-5 flex-1 flex flex-col">
                 <div class="flex items-center gap-3 mb-4">
-                  <div class="w-10 h-10 rounded-lg flex items-center justify-center text-white text-lg font-semibold shrink-0"
-                    [style.background-color]="app.color || '#6B7280'">
+                  <div class="w-11 h-11 rounded-xl flex items-center justify-center text-white text-lg font-bold shrink-0 shadow-lg"
+                    [style.background-color]="app.color || '#6366f1'">
                     {{ app.name.substring(0, 1) }}
                   </div>
                   <div class="flex-1 min-w-0">
-                    <div class="text-sm font-semibold text-gray-800 dark:text-white/90 truncate">{{ app.name }}</div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                    <div class="text-sm font-semibold text-slate-900 dark:text-white truncate">{{ app.name }}</div>
+                    <div class="text-[11px] text-slate-500 dark:text-slate-400 capitalize">
                       {{ app.status === 'trial' ? 'Prueba' : 'Activa' }}
                       @if (app.user_role) { · {{ app.user_role }} }
                     </div>
                   </div>
                 </div>
 
-                <!-- Headline metrics -->
                 @if (app.metrics.length > 0) {
-                  <div class="grid grid-cols-2 gap-3 mb-4">
+                  <div class="grid grid-cols-2 gap-x-3 gap-y-2.5 mb-4">
                     @for (m of app.metrics; track m.key) {
                       <div>
-                        <div class="text-[10px] uppercase tracking-wider text-gray-400">{{ m.label }}</div>
-                        <div class="text-xl font-semibold text-gray-800 dark:text-white/90 mt-0.5">{{ m.value }}</div>
+                        <div class="text-[10px] uppercase tracking-wider text-slate-400">{{ m.label }}</div>
+                        <div class="text-base font-semibold tabular-nums text-slate-900 dark:text-white mt-0.5">{{ m.value }}</div>
                       </div>
                     }
                   </div>
                 } @else {
-                  <div class="text-xs text-gray-400 italic mb-4">
-                    Sin métricas todavía para esta app.
+                  <div class="text-[11px] text-slate-400 italic mb-4">
+                    Sin métricas todavía.
                   </div>
                 }
 
-                <!-- Action -->
-                <button (click)="openApp(app.code)"
-                  class="mt-auto w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-gray-50 dark:bg-gray-700/40 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-                  Ver dashboard
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="mt-auto pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <span class="text-xs font-medium text-brand-600 dark:text-brand-400">Abrir dashboard</span>
+                  <svg class="w-4 h-4 text-brand-600 dark:text-brand-400 group-hover:translate-x-1 transition-transform"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                   </svg>
-                </button>
+                </div>
               </div>
-            </div>
+            </button>
           }
         </div>
       }
-    </div>
+    </section>
   }
 </div>
