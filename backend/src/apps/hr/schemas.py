@@ -975,3 +975,157 @@ class ReportTrainingSummary(BaseModel):
     in_progress: int
     avg_score: float | None = None
     total_cost: Decimal
+
+
+# ================================================================== Fase 5
+
+LiquidationTemplate = Literal["formal", "moderna", "compacta"]
+LiquidationStatus = Literal["draft", "finalized", "paid", "cancelled"]
+TerminationReason = Literal[
+    "voluntary", "mutual", "with_cause", "without_cause",
+    "end_of_contract", "retirement", "death", "other",
+]
+LiquidationItemKind = Literal["earning", "deduction"]
+
+
+# -------- HR settings (per organization) --------
+
+class HrSettingsBase(BaseModel):
+    default_liquidation_template: LiquidationTemplate = "formal"
+    liquidation_notes_default: str | None = None
+    admin_name: str | None = Field(None, max_length=150)
+    admin_title: str | None = Field(None, max_length=150)
+    signature_url: str | None = None
+    logo_url: str | None = None
+    brand_color: str | None = Field(None, max_length=20)
+
+
+class HrSettingsUpdate(BaseModel):
+    default_liquidation_template: LiquidationTemplate | None = None
+    liquidation_notes_default: str | None = None
+    admin_name: str | None = None
+    admin_title: str | None = None
+    signature_url: str | None = None
+    logo_url: str | None = None
+    brand_color: str | None = None
+
+
+class HrSettingsResponse(HrSettingsBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    organization_id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+
+
+# -------- Liquidation --------
+
+class LiquidationCalculationInput(BaseModel):
+    """Input para preview de cálculo sin guardar."""
+    employee_id: uuid.UUID
+    termination_date: date
+    termination_reason: TerminationReason
+    last_worked_date: date | None = None
+    pending_period_days: int = 0
+    vacation_days_pending: Decimal = Decimal("0")
+    has_legal_protection: bool = False
+
+
+class LiquidationItemSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID | None = None
+    concept_code: str
+    concept_name: str
+    kind: LiquidationItemKind
+    quantity: Decimal = Decimal("1")
+    base_amount: Decimal = Decimal("0")
+    rate: Decimal | None = None
+    amount: Decimal
+    is_manual: bool = False
+    sort_order: int = 0
+    notes: str | None = None
+
+
+class LiquidationCalculationPreview(BaseModel):
+    base_salary: Decimal
+    average_salary: Decimal
+    days_worked_total: int
+    contract_start_date: date
+    last_worked_date: date
+    termination_date: date
+    termination_reason: TerminationReason
+    total_earnings: Decimal
+    total_deductions: Decimal
+    net_amount: Decimal
+    items: list[LiquidationItemSchema]
+
+
+class LiquidationCreate(BaseModel):
+    """Crear liquidación a partir del cálculo + override de ítems opcional."""
+    employee_id: uuid.UUID
+    termination_date: date
+    termination_reason: TerminationReason
+    last_worked_date: date | None = None
+    pending_period_days: int = 0
+    vacation_days_pending: Decimal = Decimal("0")
+    has_legal_protection: bool = False
+    notes: str | None = None
+    pdf_template: LiquidationTemplate | None = None
+    items_override: list[LiquidationItemSchema] | None = None
+
+
+class LiquidationItemEdit(BaseModel):
+    """Editar/agregar/eliminar ítems en una liquidación draft."""
+    items: list[LiquidationItemSchema]
+    notes: str | None = None
+    pdf_template: LiquidationTemplate | None = None
+
+
+class LiquidationResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    organization_id: uuid.UUID
+    employee_id: uuid.UUID
+    contract_id: uuid.UUID | None
+    liquidation_number: str
+    termination_date: date
+    termination_reason: TerminationReason
+    last_worked_date: date
+    contract_start_date: date
+    base_salary: Decimal
+    average_salary: Decimal
+    days_worked_total: int
+    total_earnings: Decimal
+    total_deductions: Decimal
+    net_amount: Decimal
+    currency: str
+    status: LiquidationStatus
+    paid_at: datetime | None
+    finalized_at: datetime | None
+    notes: str | None
+    pdf_template: LiquidationTemplate | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class LiquidationDetail(LiquidationResponse):
+    employee_code: str
+    employee_name: str
+    department_name: str | None
+    position_name: str | None
+    items: list[LiquidationItemSchema]
+
+
+class LiquidationListItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    liquidation_number: str
+    employee_id: uuid.UUID
+    employee_code: str
+    employee_name: str
+    termination_date: date
+    termination_reason: TerminationReason
+    net_amount: Decimal
+    currency: str
+    status: LiquidationStatus
+    created_at: datetime

@@ -776,3 +776,106 @@ class HrTrainingEnrollment(BaseMixin, OrgMixin, Base):
     enrolled_by: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
     )
+
+
+# ============================================================ Fase 5 — Liquidación + Settings
+
+
+class HrSettings(BaseMixin, OrgMixin, Base):
+    """Configuración HR por organización (1:1)."""
+
+    __tablename__ = "hr_settings"
+    __table_args__ = (
+        UniqueConstraint("organization_id", name="uq_hr_settings_org"),
+        CheckConstraint(
+            "default_liquidation_template IN ('formal','moderna','compacta')",
+            name="chk_hr_settings_template",
+        ),
+    )
+
+    default_liquidation_template: Mapped[str] = mapped_column(
+        String(20), default="formal", nullable=False,
+    )
+    liquidation_notes_default: Mapped[str | None] = mapped_column(Text, nullable=True)
+    admin_name: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    admin_title: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    signature_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    logo_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    brand_color: Mapped[str | None] = mapped_column(String(20), nullable=True)
+
+
+class HrLiquidation(BaseMixin, OrgMixin, Base):
+    """Liquidación (settlement) al terminar el contrato laboral."""
+
+    __tablename__ = "hr_liquidations"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "liquidation_number", name="uq_hr_liq_org_number"),
+        CheckConstraint(
+            "termination_reason IN ('voluntary','mutual','with_cause','without_cause',"
+            "'end_of_contract','retirement','death','other')",
+            name="chk_hr_liq_reason",
+        ),
+        CheckConstraint(
+            "status IN ('draft','finalized','paid','cancelled')",
+            name="chk_hr_liq_status",
+        ),
+    )
+
+    employee_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("hr_employees.id", ondelete="CASCADE"), nullable=False,
+    )
+    contract_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("hr_contracts.id", ondelete="SET NULL"), nullable=True,
+    )
+    liquidation_number: Mapped[str] = mapped_column(String(40), nullable=False)
+    termination_date: Mapped[date] = mapped_column(Date, nullable=False)
+    termination_reason: Mapped[str] = mapped_column(String(30), nullable=False)
+    last_worked_date: Mapped[date] = mapped_column(Date, nullable=False)
+    contract_start_date: Mapped[date] = mapped_column(Date, nullable=False)
+
+    base_salary: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0"), nullable=False)
+    average_salary: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0"), nullable=False)
+    days_worked_total: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    total_earnings: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0"), nullable=False)
+    total_deductions: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0"), nullable=False)
+    net_amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0"), nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), default="COP", nullable=False)
+
+    status: Mapped[str] = mapped_column(String(20), default="draft", nullable=False)
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    finalized_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    pdf_template: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+    )
+    finalized_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+    )
+
+
+class HrLiquidationItem(BaseMixin, OrgMixin, Base):
+    """Línea individual de la liquidación (concepto + monto)."""
+
+    __tablename__ = "hr_liquidation_items"
+    __table_args__ = (
+        CheckConstraint(
+            "kind IN ('earning','deduction')",
+            name="chk_hr_liq_item_kind",
+        ),
+    )
+
+    liquidation_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("hr_liquidations.id", ondelete="CASCADE"), nullable=False,
+    )
+    concept_code: Mapped[str] = mapped_column(String(60), nullable=False)
+    concept_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    kind: Mapped[str] = mapped_column(String(20), nullable=False)
+    quantity: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("1"), nullable=False)
+    base_amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0"), nullable=False)
+    rate: Mapped[Decimal | None] = mapped_column(Numeric(10, 4), nullable=True)
+    amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0"), nullable=False)
+    is_manual: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)

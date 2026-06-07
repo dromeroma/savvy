@@ -47,6 +47,16 @@ import {
   HrVacationBalanceAdjust,
   HrVacationRequest,
   HrVacationRequestCreate,
+  HrSettings,
+  HrSettingsUpdate,
+  Liquidation,
+  LiquidationCalculationInput,
+  LiquidationCreate,
+  LiquidationDetail,
+  LiquidationItemEdit,
+  LiquidationListItem,
+  LiquidationPreview,
+  LiquidationTemplate,
 } from '../models/hr.model';
 
 @Injectable({ providedIn: 'root' })
@@ -406,5 +416,40 @@ export class HrApiService {
   }
   reportTrainingSummary(): Observable<HrReportTrainingSummary[]> {
     return this.api.get<HrReportTrainingSummary[]>('/hr/reports/training-summary');
+  }
+
+  // ============================================== Fase 5 — Settings + Liquidación
+
+  getSettings(): Observable<HrSettings> {
+    return this.api.get<HrSettings>('/hr/settings');
+  }
+  updateSettings(data: HrSettingsUpdate): Observable<HrSettings> {
+    return this.api.patch<HrSettings>('/hr/settings', data);
+  }
+
+  calculateLiquidation(data: LiquidationCalculationInput): Observable<LiquidationPreview> {
+    return this.api.post<LiquidationPreview>('/hr/liquidations/calculate', data);
+  }
+  listLiquidations(filters: { status?: string; employee_id?: string } = {}): Observable<LiquidationListItem[]> {
+    return this.api.get<LiquidationListItem[]>('/hr/liquidations', filters);
+  }
+  createLiquidation(data: LiquidationCreate): Observable<Liquidation> {
+    return this.api.post<Liquidation>('/hr/liquidations', data);
+  }
+  getLiquidation(id: string): Observable<LiquidationDetail> {
+    return this.api.get<LiquidationDetail>(`/hr/liquidations/${id}`);
+  }
+  editLiquidationItems(id: string, data: LiquidationItemEdit): Observable<Liquidation> {
+    return this.api.patch<Liquidation>(`/hr/liquidations/${id}`, data);
+  }
+  finalizeLiquidation(id: string): Observable<Liquidation> {
+    return this.api.post<Liquidation>(`/hr/liquidations/${id}/finalize`, {});
+  }
+  markLiquidationPaid(id: string): Observable<Liquidation> {
+    return this.api.post<Liquidation>(`/hr/liquidations/${id}/mark-paid`, {});
+  }
+  downloadLiquidationPdf(id: string, template?: LiquidationTemplate): Observable<{ blob: Blob; filename: string | null }> {
+    const qs = template ? `?template=${template}` : '';
+    return this.api.getBlob(`/hr/liquidations/${id}/pdf${qs}`);
   }
 }

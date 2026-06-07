@@ -87,6 +87,26 @@ export const HR_ROUTES: Routes = [
         loadComponent: () =>
           import('./reports/reports.component').then((m) => m.HrReportsComponent),
       },
+      {
+        path: 'liquidations',
+        loadComponent: () =>
+          import('./liquidations/liquidations-list.component').then((m) => m.HrLiquidationsListComponent),
+      },
+      {
+        path: 'liquidations/new/:employeeId',
+        loadComponent: () =>
+          import('./liquidations/liquidation-wizard.component').then((m) => m.HrLiquidationWizardComponent),
+      },
+      {
+        path: 'liquidations/:id',
+        loadComponent: () =>
+          import('./liquidations/liquidation-detail.component').then((m) => m.HrLiquidationDetailComponent),
+      },
+      {
+        path: 'settings',
+        loadComponent: () =>
+          import('./settings/hr-settings.component').then((m) => m.HrSettingsComponent),
+      },
     ],
   },
 ];

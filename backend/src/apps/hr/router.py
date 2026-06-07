@@ -1254,3 +1254,199 @@ async def report_training_summary(
     org_id: uuid.UUID = Depends(get_org_id),
 ) -> Any:
     return await ReportsService.training_summary(db, org_id)
+
+
+# ============================================================ Fase 5: Settings + Liquidación
+
+from fastapi import Response  # noqa: E402
+from src.apps.hr.liquidation_pdf import render_liquidation_pdf  # noqa: E402
+from src.apps.hr.service_phase5 import HrSettingsService, LiquidationsService  # noqa: E402
+from src.apps.hr.schemas import (  # noqa: E402
+    HrSettingsResponse,
+    HrSettingsUpdate,
+    LiquidationCalculationInput,
+    LiquidationCalculationPreview,
+    LiquidationCreate,
+    LiquidationDetail,
+    LiquidationItemEdit,
+    LiquidationItemSchema,
+    LiquidationListItem,
+    LiquidationResponse,
+)
+
+
+def _perm_payroll_or_emp():
+    return Depends(require_permission(
+        "hr", "hr.payroll.run", "hr.employees.manage",
+    ))
+
+
+# ---------- HR Settings ----------
+
+@router.get("/settings", response_model=HrSettingsResponse, dependencies=[_perm_read()])
+async def get_hr_settings(
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await HrSettingsService.get_or_create(db, org_id)
+
+
+@router.patch("/settings", response_model=HrSettingsResponse, dependencies=[_perm_emp_manage()])
+async def update_hr_settings(
+    data: HrSettingsUpdate,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await HrSettingsService.update(db, org_id, data)
+
+
+# ---------- Liquidations ----------
+
+def _liq_detail(liq, items, emp, dept_name, pos_name) -> dict[str, Any]:
+    full = " ".join(x for x in [emp.first_name, emp.last_name] if x).strip()
+    return {
+        **{c.name: getattr(liq, c.name) for c in liq.__table__.columns},
+        "employee_code": emp.employee_code,
+        "employee_name": full,
+        "department_name": dept_name,
+        "position_name": pos_name,
+        "items": [
+            {
+                "id": it.id, "concept_code": it.concept_code, "concept_name": it.concept_name,
+                "kind": it.kind, "quantity": it.quantity, "base_amount": it.base_amount,
+                "rate": it.rate, "amount": it.amount, "is_manual": it.is_manual,
+                "sort_order": it.sort_order, "notes": it.notes,
+            } for it in items
+        ],
+    }
+
+
+@router.post("/liquidations/calculate", response_model=LiquidationCalculationPreview, dependencies=[_perm_payroll_or_emp()])
+async def calculate_liquidation_preview(
+    data: LiquidationCalculationInput,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    result = await LiquidationsService.calculate(db, org_id, data)
+    return {
+        "base_salary": result.base_salary,
+        "average_salary": result.average_salary,
+        "days_worked_total": result.days_worked_total,
+        "contract_start_date": result.contract_start_date,
+        "last_worked_date": result.last_worked_date,
+        "termination_date": result.termination_date,
+        "termination_reason": result.termination_reason,
+        "total_earnings": result.total_earnings,
+        "total_deductions": result.total_deductions,
+        "net_amount": result.net_amount,
+        "items": [
+            {
+                "concept_code": it.code, "concept_name": it.name, "kind": it.kind,
+                "quantity": it.quantity, "base_amount": it.base_amount,
+                "rate": it.rate, "amount": it.amount, "is_manual": False,
+                "sort_order": it.sort_order, "notes": it.notes,
+            } for it in result.items
+        ],
+    }
+
+
+@router.get("/liquidations", response_model=list[LiquidationListItem], dependencies=[_perm_read()])
+async def list_liquidations(
+    status: str | None = Query(None),
+    employee_id: uuid.UUID | None = Query(None),
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    rows = await LiquidationsService.list_(db, org_id, status=status, employee_id=employee_id)
+    return [
+        {
+            "id": liq.id, "liquidation_number": liq.liquidation_number,
+            "employee_id": emp.id, "employee_code": emp.employee_code,
+            "employee_name": " ".join(x for x in [emp.first_name, emp.last_name] if x).strip(),
+            "termination_date": liq.termination_date,
+            "termination_reason": liq.termination_reason,
+            "net_amount": liq.net_amount, "currency": liq.currency,
+            "status": liq.status, "created_at": liq.created_at,
+        }
+        for liq, emp in rows
+    ]
+
+
+@router.post("/liquidations", response_model=LiquidationResponse, status_code=status.HTTP_201_CREATED, dependencies=[_perm_payroll_or_emp()])
+async def create_liquidation(
+    data: LiquidationCreate,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+    user: dict[str, Any] = Depends(get_current_user),
+) -> Any:
+    return await LiquidationsService.create(db, org_id, data, created_by=_user_uuid(user))
+
+
+@router.get("/liquidations/{liq_id}", response_model=LiquidationDetail, dependencies=[_perm_read()])
+async def get_liquidation(
+    liq_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    from src.apps.hr.models import HrEmployee, HrDepartment, HrPosition
+    from sqlalchemy import select as _select
+    liq = await LiquidationsService.get(db, org_id, liq_id)
+    items = await LiquidationsService.get_items(db, liq_id)
+    emp = (await db.execute(_select(HrEmployee).where(HrEmployee.id == liq.employee_id))).scalar_one()
+    dept_name = None
+    pos_name = None
+    if emp.department_id:
+        d = (await db.execute(_select(HrDepartment).where(HrDepartment.id == emp.department_id))).scalar_one_or_none()
+        dept_name = d.name if d else None
+    if emp.position_id:
+        p = (await db.execute(_select(HrPosition).where(HrPosition.id == emp.position_id))).scalar_one_or_none()
+        pos_name = p.name if p else None
+    return _liq_detail(liq, items, emp, dept_name, pos_name)
+
+
+@router.patch("/liquidations/{liq_id}", response_model=LiquidationResponse, dependencies=[_perm_payroll_or_emp()])
+async def edit_liquidation_items(
+    liq_id: uuid.UUID,
+    data: LiquidationItemEdit,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await LiquidationsService.edit_items(db, org_id, liq_id, data)
+
+
+@router.post("/liquidations/{liq_id}/finalize", response_model=LiquidationResponse, dependencies=[_perm_payroll_or_emp()])
+async def finalize_liquidation(
+    liq_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+    user: dict[str, Any] = Depends(get_current_user),
+) -> Any:
+    return await LiquidationsService.finalize(db, org_id, liq_id, finalized_by=_user_uuid(user))
+
+
+@router.post("/liquidations/{liq_id}/mark-paid", response_model=LiquidationResponse, dependencies=[_perm_payroll_or_emp()])
+async def mark_liquidation_paid(
+    liq_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    return await LiquidationsService.mark_paid(db, org_id, liq_id)
+
+
+@router.get("/liquidations/{liq_id}/pdf", dependencies=[_perm_read()])
+async def liquidation_pdf(
+    liq_id: uuid.UUID,
+    template: str | None = Query(None, description="formal | moderna | compacta"),
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Response:
+    liq = await LiquidationsService.get(db, org_id, liq_id)
+    items = await LiquidationsService.get_items(db, liq_id)
+    pdf_bytes, filename = await render_liquidation_pdf(
+        db, org_id, liq, items, template_key=template,
+    )
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+    )

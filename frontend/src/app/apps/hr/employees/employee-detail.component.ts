@@ -34,9 +34,15 @@ type Tab = 'profile' | 'contracts' | 'documents';
               @if (e.document_number) { · {{ e.document_type }} {{ e.document_number }} }
             </p>
           </div>
-          <span class="text-xs px-3 py-1 rounded-md self-start" [class]="statusClass(e.status)">
-            {{ statusLabel(e.status) }}
-          </span>
+          <div class="flex flex-col items-end gap-2">
+            <span class="text-xs px-3 py-1 rounded-md self-start" [class]="statusClass(e.status)">
+              {{ statusLabel(e.status) }}
+            </span>
+            <a [routerLink]="['/hr/liquidations/new', e.id]"
+              class="text-xs px-3 py-1.5 rounded-md bg-amber-600 hover:bg-amber-700 text-white font-medium">
+              Liquidar empleado →
+            </a>
+          </div>
         </header>
 
         <nav class="flex gap-1 border-b border-slate-200 dark:border-slate-700">

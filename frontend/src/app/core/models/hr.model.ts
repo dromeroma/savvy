@@ -821,3 +821,135 @@ export interface HrReportTrainingSummary {
   avg_score: number | null;
   total_cost: string;
 }
+
+
+// ============================================================ Fase 5 — Liquidación + Settings
+
+export type LiquidationTemplate = 'formal' | 'moderna' | 'compacta';
+export type LiquidationStatus = 'draft' | 'finalized' | 'paid' | 'cancelled';
+export type TerminationReason =
+  | 'voluntary' | 'mutual' | 'with_cause' | 'without_cause'
+  | 'end_of_contract' | 'retirement' | 'death' | 'other';
+export type LiquidationItemKind = 'earning' | 'deduction';
+
+export interface HrSettings {
+  id: string;
+  organization_id: string;
+  default_liquidation_template: LiquidationTemplate;
+  liquidation_notes_default: string | null;
+  admin_name: string | null;
+  admin_title: string | null;
+  signature_url: string | null;
+  logo_url: string | null;
+  brand_color: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface HrSettingsUpdate {
+  default_liquidation_template?: LiquidationTemplate;
+  liquidation_notes_default?: string | null;
+  admin_name?: string | null;
+  admin_title?: string | null;
+  signature_url?: string | null;
+  logo_url?: string | null;
+  brand_color?: string | null;
+}
+
+export interface LiquidationItem {
+  id?: string;
+  concept_code: string;
+  concept_name: string;
+  kind: LiquidationItemKind;
+  quantity: string;
+  base_amount: string;
+  rate: string | null;
+  amount: string;
+  is_manual: boolean;
+  sort_order: number;
+  notes: string | null;
+}
+
+export interface LiquidationCalculationInput {
+  employee_id: string;
+  termination_date: string;
+  termination_reason: TerminationReason;
+  last_worked_date?: string | null;
+  pending_period_days?: number;
+  vacation_days_pending?: string;
+  has_legal_protection?: boolean;
+}
+
+export interface LiquidationPreview {
+  base_salary: string;
+  average_salary: string;
+  days_worked_total: number;
+  contract_start_date: string;
+  last_worked_date: string;
+  termination_date: string;
+  termination_reason: TerminationReason;
+  total_earnings: string;
+  total_deductions: string;
+  net_amount: string;
+  items: LiquidationItem[];
+}
+
+export interface LiquidationCreate extends LiquidationCalculationInput {
+  notes?: string | null;
+  pdf_template?: LiquidationTemplate | null;
+  items_override?: LiquidationItem[] | null;
+}
+
+export interface LiquidationItemEdit {
+  items: LiquidationItem[];
+  notes?: string | null;
+  pdf_template?: LiquidationTemplate | null;
+}
+
+export interface Liquidation {
+  id: string;
+  organization_id: string;
+  employee_id: string;
+  contract_id: string | null;
+  liquidation_number: string;
+  termination_date: string;
+  termination_reason: TerminationReason;
+  last_worked_date: string;
+  contract_start_date: string;
+  base_salary: string;
+  average_salary: string;
+  days_worked_total: number;
+  total_earnings: string;
+  total_deductions: string;
+  net_amount: string;
+  currency: string;
+  status: LiquidationStatus;
+  paid_at: string | null;
+  finalized_at: string | null;
+  notes: string | null;
+  pdf_template: LiquidationTemplate | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LiquidationDetail extends Liquidation {
+  employee_code: string;
+  employee_name: string;
+  department_name: string | null;
+  position_name: string | null;
+  items: LiquidationItem[];
+}
+
+export interface LiquidationListItem {
+  id: string;
+  liquidation_number: string;
+  employee_id: string;
+  employee_code: string;
+  employee_name: string;
+  termination_date: string;
+  termination_reason: TerminationReason;
+  net_amount: string;
+  currency: string;
+  status: LiquidationStatus;
+  created_at: string;
+}
