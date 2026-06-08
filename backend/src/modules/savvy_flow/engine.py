@@ -171,10 +171,16 @@ async def _run_action(
             return {"action": "webhook", "ok": resp.status_code < 400, "status": resp.status_code}
         except Exception as exc:  # noqa: BLE001
             return {"action": "webhook", "ok": False, "error": str(exc)[:200]}
-    if t in ("whatsapp", "email"):
-        # Stub: se activa en la Fase 4 (integración WhatsApp/correo).
-        return {"action": t, "ok": True, "pending_integration": True,
-                "would_send_to": cfg.get("to"), "note": "Se enviará al activar la Fase 4."}
+    if t == "whatsapp":
+        from src.modules.savvy_ai.whatsapp import send_whatsapp
+        to = _render(cfg.get("to") or "", ctx)
+        msg = _render(cfg.get("message") or "", ctx)
+        res = await send_whatsapp(db, to, msg)
+        return {"action": "whatsapp", **res, "to": to}
+    if t == "email":
+        # Stub: integración de correo pendiente (se activa con un proveedor SMTP/API).
+        return {"action": "email", "ok": True, "pending_integration": True,
+                "would_send_to": cfg.get("to"), "note": "Correo se activa al configurar un proveedor."}
     return {"action": t, "ok": False, "error": "acción desconocida"}
 
 

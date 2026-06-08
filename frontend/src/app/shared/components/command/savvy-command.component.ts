@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AiService, GraphHit } from '../../../core/services/ai.service';
+import { VoiceService } from '../../services/voice.service';
 
 interface CommandItem {
   label: string;
@@ -40,8 +41,16 @@ const MODULE_ICON: Record<string, string> = {
           <div class="flex items-center gap-3 px-4 py-3 border-b border-slate-100 dark:border-slate-800">
             <span class="text-violet-500 text-lg">{{ mode() === 'chat' ? '💬' : '✨' }}</span>
             <input #cmdInput [(ngModel)]="query" (ngModelChange)="onQuery()" (keydown)="onKey($event)"
-              [placeholder]="mode() === 'chat' ? 'Pregúntale a SavvyCopilot…' : 'Busca personas, módulos, acciones… o arrastra una factura'"
+              [placeholder]="mode() === 'chat' ? 'Pregúntale a SavvyCopilot…' : 'Busca, pregunta o dicta… o arrastra una factura'"
               class="flex-1 bg-transparent outline-none text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400" />
+            @if (voice.supported()) {
+              <button type="button" (click)="toggleVoice()" [title]="voice.listening() ? 'Detener' : 'Dictar por voz'"
+                class="shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-sm transition"
+                [class.bg-rose-500]="voice.listening()" [class.text-white]="voice.listening()" [class.animate-pulse]="voice.listening()"
+                [class.text-slate-400]="!voice.listening()" [class.hover:text-violet-500]="!voice.listening()">
+                🎙️
+              </button>
+            }
             @if (mode() === 'chat') {
               <button (click)="exitChat()" class="text-[11px] text-slate-400 hover:text-slate-600">← volver</button>
             } @else {
@@ -147,6 +156,8 @@ const MODULE_ICON: Record<string, string> = {
 export class SavvyCommandComponent {
   private readonly router = inject(Router);
   private readonly ai = inject(AiService);
+  readonly voice = inject(VoiceService);
+  private stopVoice?: () => void;
 
   isOpen = signal(false);
   mode = signal<'command' | 'chat'>('command');
@@ -256,6 +267,15 @@ export class SavvyCommandComponent {
     });
   }
   exitChat(): void { this.mode.set('command'); this.query = ''; this.chatAnswer.set(''); this.chatError.set(''); }
+
+  toggleVoice(): void {
+    if (this.voice.listening()) { this.stopVoice?.(); return; }
+    this.stopVoice = this.voice.start((text, isFinal) => {
+      this.query = text;
+      this.onQuery();
+      if (isFinal && this.mode() === 'chat') this.askCopilot();
+    });
+  }
 
   go(item: CommandItem): void { this.close(); this.router.navigate([item.route]); }
   goHit(h: GraphHit): void { if (h.route) { this.close(); this.router.navigate([h.route]); } }

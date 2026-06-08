@@ -22,7 +22,7 @@
 | 2 | Copilot + Briefing + Búsqueda + Graph | 🧪 Construida (búsqueda + briefing YA funcionan) | ~85% |
 | 3 | Predictivo + Recomendaciones | ✅ Construida (funciona sin API key) | ~90% |
 | 3b | SavvyFlow (workflows no-code) | ✅ Construida y probada e2e | ~90% |
-| 4 | Voz + WhatsApp + Vision + Agentes | ⬜ Pendiente | 0% |
+| 4 | Voz + WhatsApp + Vision + Agentes | ✅ Voz funciona · resto listo-para-conectar | ~80% |
 
 ---
 
@@ -194,10 +194,38 @@
 
 ## FASE 4 — Voz + WhatsApp + Vision + Agentes
 
-- ⬜ SavvyVoice (Whisper) alimentando Command/Scan
-- ⬜ Integración WhatsApp (consultas, notificaciones, Briefing)
-- ⬜ SavvyVision: ANPR de placas en Parking (entra/sale/incidentes)
-- ⬜ Agentes en background (recordatorios de cobro, restock, alertas)
+### SavvyVoice (✅ funciona HOY, sin key)
+- ✅ `voice.service.ts`: dictado con Web Speech API del navegador (transcripción
+  en el dispositivo, sin backend ni API key) — Chrome/Edge/móvil
+- ✅ Botón 🎙️ en la barra ⌘K: dicta y llena el input; en modo chat dispara la consulta al soltar
+- ⬜ Transcripción de audio en servidor (Whisper) para archivos → futuro (Web Speech cubre el caso en vivo)
+
+### SavvyVision — Parking ANPR (🧪 listo, requiere API key)
+- ✅ Prompt `extraction.vehicle_plate` (placa + tipo + color + marca + ¿sucio?)
+- ✅ `apps/parking/ai_scan.py`: lee la placa (Claude Vision) → busca vehículo/sesión →
+  sugiere ENTRADA o SALIDA; si el carro se ve sucio, sugiere servicio de lavado
+- ✅ Endpoint `POST /parking/scan-plate` + página `/parking/scan-plate` (cámara/drag,
+  placa grande estilo matrícula, sugerencia de acción y de lavado)
+- ✅ Medido en `ai_usage` (app_code=parking). Lights up con la API key (igual que SavvyScan)
+
+### WhatsApp (🧪 listo, requiere credenciales Meta)
+- ✅ Config en `ai_provider_config` (token cifrado + phone_id + enabled), DDL aplicado
+- ✅ `whatsapp.py`: envío vía Meta Graph API; sin credenciales devuelve "pendiente" sin romper
+- ✅ Acción `whatsapp` de SavvyFlow conectada al envío real (intenta enviar; si no hay
+  credenciales, lo registra como pendiente)
+- ✅ Panel `/platform/ai` → sección WhatsApp (token, phone_id, activar, **probar envío**)
+- ⬜ Webhook entrante (responder consultas por WhatsApp) → futuro
+
+### Agentes en background
+- ✅ El runtime ya existe: `POST /automations/evaluate` corre los flujos de datos/agenda
+- ⬜ Cron real que lo invoque cada día (Render cron / scheduler) → "listo para conectar"
+- ⬜ Correo (SMTP/API) → stub en SavvyFlow, pendiente de proveedor
+
+### Resumen Fase 4
+- **Funciona hoy:** voz (⌘K).
+- **Se enciende con la API key:** ANPR de placas en Parking.
+- **Se enciende con credenciales Meta:** WhatsApp (config + test ya en el panel).
+- **Listo para cron:** agentes en background (endpoint evaluate existe).
 
 ---
 
@@ -229,3 +257,11 @@
   3 plantillas de 1 clic, y página `/automations` con editor pipeline visual + bandeja.
   Probado e2e (42→15 mora alta→notificación). Funciona sin API key; WhatsApp/correo se
   encienden en Fase 4. Siguiente: **Fase 4 — Voz + WhatsApp + Vision (Parking) + Agentes**.
+- 2026-06-08 — **Fase 4 construida** (v0.1.5). SavvyVoice (Web Speech API, funciona hoy)
+  con micrófono en ⌘K; Parking ANPR (`apps/parking/ai_scan.py` + `/parking/scan-plate` +
+  página) que lee placas con Claude Vision y sugiere entrada/salida/lavado; WhatsApp
+  (config cifrada en ai_provider_config + envío Meta Graph + acción SavvyFlow conectada +
+  panel con prueba de envío). Agentes: el endpoint `/automations/evaluate` ya es el runtime,
+  falta el cron. **Voz funciona ya; ANPR y WhatsApp se encienden con sus credenciales.**
+  Con esto el AI OS está estructuralmente completo — falta conectar las credenciales externas
+  (API key Claude + WhatsApp Business) al final, como se acordó.

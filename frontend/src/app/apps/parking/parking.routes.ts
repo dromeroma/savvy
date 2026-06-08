@@ -9,6 +9,7 @@ export const PARKING_ROUTES: Routes = [
       { path: 'dashboard', loadComponent: () => import('./dashboard/parking-dashboard.component').then(m => m.ParkingDashboardComponent) },
       { path: 'infrastructure', loadComponent: () => import('./infrastructure/infrastructure.component').then(m => m.InfrastructureComponent) },
       { path: 'vehicles', loadComponent: () => import('./vehicles/vehicles.component').then(m => m.ParkingVehiclesComponent) },
+      { path: 'scan-plate', loadComponent: () => import('./scan/plate-scan.component').then(m => m.PlateScanComponent) },
       { path: 'sessions', loadComponent: () => import('./sessions/sessions.component').then(m => m.SessionsComponent) },
       { path: 'pricing', loadComponent: () => import('./pricing/pricing.component').then(m => m.ParkingPricingComponent) },
       { path: 'services', loadComponent: () => import('./services/parking-services.component').then(m => m.ParkingServicesComponent) },

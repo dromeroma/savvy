@@ -49,6 +49,11 @@ class AiProviderConfig(Base):
     model_opus: Mapped[str] = mapped_column(String(60), default="claude-opus-4-8", nullable=False)
     default_tier: Mapped[str] = mapped_column(String(20), default="sonnet", nullable=False)
     pricing: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
+    # WhatsApp Cloud API (Fase 4)
+    whatsapp_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    whatsapp_token_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
+    whatsapp_token_hint: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    whatsapp_phone_id: Mapped[str | None] = mapped_column(String(60), nullable=True)
     updated_by: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
     )

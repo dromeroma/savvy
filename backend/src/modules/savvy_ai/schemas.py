@@ -25,6 +25,11 @@ class ProviderConfigResponse(BaseModel):
     model_opus: str
     default_tier: str
     pricing: dict[str, Any]
+    # WhatsApp
+    whatsapp_enabled: bool = False
+    has_whatsapp_token: bool = False
+    whatsapp_token_hint: str | None = None
+    whatsapp_phone_id: str | None = None
     updated_at: datetime
 
 
@@ -36,6 +41,15 @@ class ProviderConfigUpdate(BaseModel):
     model_opus: str | None = None
     default_tier: Literal["haiku", "sonnet", "opus"] | None = None
     pricing: dict[str, Any] | None = None
+    # WhatsApp
+    whatsapp_enabled: bool | None = None
+    whatsapp_token: str | None = Field(None, description="Token de WhatsApp Cloud API (se cifra)")
+    whatsapp_phone_id: str | None = None
+
+
+class WhatsappTestRequest(BaseModel):
+    to: str
+    message: str = "Prueba de SavvyFlow ✅"
 
 
 class ProviderTestResult(BaseModel):

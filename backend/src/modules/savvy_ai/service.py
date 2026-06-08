@@ -82,6 +82,10 @@ class ProviderService:
         if api_key:
             cfg.api_key_encrypted = encrypt_secret(api_key)
             cfg.api_key_hint = key_hint(api_key)
+        wa_token = data.pop("whatsapp_token", None)
+        if wa_token:
+            cfg.whatsapp_token_encrypted = encrypt_secret(wa_token)
+            cfg.whatsapp_token_hint = key_hint(wa_token)
         for k, v in data.items():
             if v is not None and hasattr(cfg, k):
                 setattr(cfg, k, v)
@@ -104,6 +108,10 @@ class ProviderService:
             "model_opus": cfg.model_opus,
             "default_tier": cfg.default_tier,
             "pricing": cfg.pricing or {},
+            "whatsapp_enabled": cfg.whatsapp_enabled,
+            "has_whatsapp_token": bool(cfg.whatsapp_token_encrypted),
+            "whatsapp_token_hint": cfg.whatsapp_token_hint,
+            "whatsapp_phone_id": cfg.whatsapp_phone_id,
             "updated_at": cfg.updated_at,
         }
 

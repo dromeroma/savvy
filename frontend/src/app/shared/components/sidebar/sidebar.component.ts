@@ -91,6 +91,7 @@ const APP_MENUS: Record<string, { icon: string; items: { label: string; route: s
       { label: 'Dashboard', route: '/parking/dashboard' },
       { label: 'Infraestructura', route: '/parking/infrastructure' },
       { label: 'Vehículos', route: '/parking/vehicles' },
+      { label: 'Escanear placa ✨', route: '/parking/scan-plate' },
       { label: 'Sesiones', route: '/parking/sessions' },
       { label: 'Tarifas', route: '/parking/pricing' },
       { label: 'Servicios', route: '/parking/services' },

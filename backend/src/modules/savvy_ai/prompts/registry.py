@@ -72,8 +72,40 @@ INVOICE_PROMPT = PromptSpec(
 )
 
 
+# ---------------- Reconocimiento de placa de vehículo (Parking) ----------------
+
+PLATE_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "plate": {"type": ["string", "null"], "description": "Placa del vehículo, sin espacios, mayúsculas"},
+        "vehicle_type": {"type": ["string", "null"], "enum": ["car", "motorcycle", "truck", "van", "other", None],
+                         "description": "Tipo de vehículo"},
+        "color": {"type": ["string", "null"]},
+        "brand": {"type": ["string", "null"]},
+        "looks_dirty": {"type": "boolean", "description": "¿El vehículo se ve sucio (candidato a lavado)?"},
+        "plate_confidence": {"type": "number", "description": "Confianza 0-100 en la lectura de la placa"},
+    },
+    "required": ["plate", "looks_dirty", "plate_confidence"],
+}
+
+PLATE_PROMPT = PromptSpec(
+    key="extraction.vehicle_plate",
+    version="v1",
+    tier="sonnet",
+    system=(
+        "Eres un sistema de visión para un parqueadero. Lee la placa del vehículo "
+        "de la imagen con la mayor precisión posible (mayúsculas, sin espacios). "
+        "Identifica tipo, color y marca si son visibles. Evalúa si el vehículo se ve "
+        "sucio (candidato a lavado). Si no puedes leer la placa, déjala en null. "
+        "Responde SOLO llamando la herramienta de extracción."
+    ),
+    output_schema=PLATE_SCHEMA,
+)
+
+
 PROMPTS: dict[str, PromptSpec] = {
     INVOICE_PROMPT.key: INVOICE_PROMPT,
+    PLATE_PROMPT.key: PLATE_PROMPT,
 }
 
 

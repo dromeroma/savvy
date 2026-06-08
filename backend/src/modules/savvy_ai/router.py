@@ -31,6 +31,7 @@ from src.modules.savvy_ai.schemas import (
     ProviderConfigUpdate,
     ProviderTestResult,
     UniversalSearchResponse,
+    WhatsappTestRequest,
 )
 from src.modules.savvy_ai.service import (
     ProviderService,
@@ -278,6 +279,16 @@ async def test_provider(
         return {"ok": False, "message": str(exc)}
     except Exception as exc:  # noqa: BLE001
         return {"ok": False, "message": f"Error: {str(exc)[:300]}"}
+
+
+@platform_router.post("/whatsapp/test")
+async def whatsapp_test(
+    data: WhatsappTestRequest,
+    db: AsyncSession = Depends(get_db),
+    _: dict[str, Any] = Depends(require_super_admin),
+) -> Any:
+    from src.modules.savvy_ai.whatsapp import send_whatsapp
+    return await send_whatsapp(db, data.to, data.message)
 
 
 @platform_router.get("/usage", response_model=PlatformUsageReport)
