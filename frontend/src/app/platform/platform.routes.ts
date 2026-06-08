@@ -73,6 +73,11 @@ export const PLATFORM_ROUTES: Routes = [
             (m) => m.ZoneLeadersComponent,
           ),
       },
+      {
+        path: 'ai',
+        loadComponent: () =>
+          import('./ai/platform-ai.component').then((m) => m.PlatformAiComponent),
+      },
     ],
   },
 ];

@@ -103,6 +103,7 @@ export class PlatformLayoutComponent implements OnInit {
     { icon: '⚙️', label: 'Features', route: '/platform/features' },
     { icon: '👥', label: 'Usuarios', route: '/platform/users' },
     { icon: '⛪', label: 'Liderazgos de Zona', route: '/platform/zone-leaders' },
+    { icon: '🤖', label: 'Inteligencia IA', route: '/platform/ai' },
     { icon: '📜', label: 'Auditoría', route: '/platform/audit' },
   ];
 
