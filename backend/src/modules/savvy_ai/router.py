@@ -208,6 +208,39 @@ async def daily_briefing(
     return await generate(db, org_id, user_id=_uid(user))
 
 
+# ---------- Fase 3: Insights predictivos + recomendaciones ----------
+
+@router.get("/insights/summary")
+async def insights_summary_endpoint(
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    from src.modules.savvy_ai.insights import insights_summary
+    return await insights_summary(db, org_id)
+
+
+@router.get("/insights/pos")
+async def insights_pos(
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    from src.modules.savvy_ai.insights import (
+        pos_inventory_insights, pos_promo_recommendations,
+    )
+    inv = await pos_inventory_insights(db, org_id)
+    promos = await pos_promo_recommendations(db, org_id)
+    return {**inv, **promos}
+
+
+@router.get("/insights/memorial")
+async def insights_memorial(
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    from src.modules.savvy_ai.insights import memorial_collection_risk
+    return await memorial_collection_risk(db, org_id)
+
+
 # ============================================================ Platform router
 
 platform_router = APIRouter(prefix="/platform/ai", tags=["SavvyAI · Plataforma"])

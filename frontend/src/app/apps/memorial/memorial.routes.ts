@@ -71,6 +71,13 @@ export const MEMORIAL_ROUTES: Routes = [
           ),
       },
       {
+        path: 'risk',
+        loadComponent: () =>
+          import('./risk/memorial-risk.component').then(
+            (m) => m.MemorialRiskComponent,
+          ),
+      },
+      {
         path: 'logistics',
         loadComponent: () =>
           import('./logistics/logistics.component').then(

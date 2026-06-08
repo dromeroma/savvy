@@ -72,6 +72,35 @@ export class AiService {
   briefing(): Observable<BriefingResponse> {
     return this.api.get<BriefingResponse>('/ai/briefing');
   }
+
+  // ===== Fase 3: insights =====
+  insightsSummary(): Observable<{ cards: InsightCard[] }> {
+    return this.api.get<{ cards: InsightCard[] }>('/ai/insights/summary');
+  }
+  insightsPos(): Observable<PosInsights> {
+    return this.api.get<PosInsights>('/ai/insights/pos');
+  }
+  insightsMemorial(): Observable<MemorialRisk> {
+    return this.api.get<MemorialRisk>('/ai/insights/memorial');
+  }
+}
+
+export interface InsightCard { icon: string; tone: string; title: string; detail: string; link: string; }
+export interface ReorderItem { product: string; sku: string; current_stock: number; per_day: number; days_left: number; suggested_qty: number; est_cost: number; urgency: string; }
+export interface StaleItem { product: string; sku: string; current_stock: number; tied_capital: number; }
+export interface PromoItem { anchor: string; anchor_sold: number; promote: string; promote_stock: number; idea: string; }
+export interface PosInsights {
+  reorder: ReorderItem[]; stale: StaleItem[]; promos: PromoItem[];
+  reorder_count: number; stale_count: number; count: number;
+}
+export interface RiskItem {
+  contract_id: string; code: string; name: string; phone: string | null;
+  contract_status: string; overdue_count: number; overdue_amount: number;
+  pending_amount: number; days_late: number; risk_tier: 'alto' | 'medio' | 'bajo'; action: string;
+}
+export interface MemorialRisk {
+  at_risk: RiskItem[]; total_at_risk: number; total_overdue_amount: number;
+  by_tier: { alto: number; medio: number; bajo: number };
 }
 
 export interface GraphHit {

@@ -20,7 +20,7 @@
 | 0 | Cimiento (`savvy_ai`) | 🧪 Construida y desplegada (sin API key real) | ~90% |
 | 1 | WOW — Savvy Command + SavvyScan | 🧪 Construida (sin API key real) | ~85% |
 | 2 | Copilot + Briefing + Búsqueda + Graph | 🧪 Construida (búsqueda + briefing YA funcionan) | ~85% |
-| 3 | Predictivo + Workflows visuales | ⬜ Pendiente | 0% |
+| 3 | Predictivo + Recomendaciones (+ Workflows dif.) | ✅ Predictivo OK · 🔜 SavvyFlow diferido a 3b | ~70% |
 | 4 | Voz + WhatsApp + Vision + Agentes | ⬜ Pendiente | 0% |
 
 ---
@@ -136,13 +136,32 @@
 
 ---
 
-## FASE 3 — Predictivo + Workflows visuales
+## FASE 3 — Predictivo + Recomendaciones
 
-- ⬜ SavvyInsights sobre dashboards bento (anomalías + narrativa)
-- ⬜ Inventario predictivo (reorden, demanda)
-- ⬜ Riesgo financiero / mora temprana
-- ⬜ Motor de recomendaciones (promos, productos, precios)
-- ⬜ SavvyFlow: workflows no-code (estilo Zapier/n8n)
+> `insights.py` — análisis determinista (funciona SIN API key). Probado en vivo.
+
+### Predictivo + recomendaciones (✅ funciona hoy)
+- ✅ Inventario predictivo POS: velocidad de venta (ventana 30d) → días de stock →
+  **sugerencia de reorden** con cantidad y costo estimado, priorizada por urgencia
+- ✅ Productos **estancados** (con stock, sin ventas) + capital inmovilizado
+- ✅ **Motor de recomendaciones de promo**: empareja estancado + best-seller de la misma categoría
+- ✅ **Riesgo de cartera Memorial**: contratos con facturas vencidas, tiers alto/medio/bajo,
+  acción sugerida ("Llamar hoy", "Recordatorio", "Monitorear"). Probado: 42 en riesgo, $6.37M vencido, 15 alto
+- ✅ `insights_summary`: tarjetas de titulares para el dashboard
+- ✅ Endpoints: `/ai/insights/summary`, `/ai/insights/pos`, `/ai/insights/memorial`
+
+### Frontend (✅)
+- ✅ `/pos/insights` "Sugerencias IA": reorden + estancados + promos (bento)
+- ✅ `/memorial/risk` "Riesgo de cartera": HERO vencido + tiers + tabla priorizada con acción
+- ✅ Entradas en sidebar POS y Memorial
+
+### Pendiente / diferido
+- 🔜 **SavvyFlow (workflows visuales no-code)** → movido a una **sub-fase 3b** propia.
+  Es un constructor de automatizaciones (trigger→acción) grande y autónomo; se hará
+  como módulo dedicado para no diluir el resto. Los "eventos inteligentes" que pedía
+  la visión ya están parcialmente cubiertos por Insights (alertas de stock/mora).
+- ⬜ Narrativa IA sobre los insights (explicación en lenguaje natural) → con API key
+- ⬜ Predicción de vencimiento de productos perecederos → cuando POS registre fechas de caducidad
 
 ---
 
@@ -172,3 +191,9 @@
   Savvy Briefing (`briefing.py`, métricas cross-app + narrativa) como tarjeta en el dashboard.
   **Búsqueda universal y briefing ya funcionan sin API key**; el copilot conversacional
   se enciende cuando se agregue la key. Siguiente: **Fase 3 — Predictivo + Workflows visuales**.
+- 2026-06-08 — **Fase 3 construida** (v0.1.3, parte predictiva). `insights.py` con
+  inventario predictivo POS (reorden/estancados/promos) y riesgo de cartera Memorial,
+  todo determinista (funciona sin API key). Probado: 42 clientes en riesgo, $6.37M vencido.
+  Páginas `/pos/insights` y `/memorial/risk`. **SavvyFlow (workflows visuales) diferido a
+  sub-fase 3b** por ser un constructor autónomo grande. Siguiente: **Fase 4 — Voz + WhatsApp
+  + Vision (Parking) + Agentes**, o **3b SavvyFlow** si se prioriza automatización.

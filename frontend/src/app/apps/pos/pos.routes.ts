@@ -9,6 +9,7 @@ export const POS_ROUTES: Routes = [
     { path: 'products', loadComponent: () => import('./products/products.component').then(m => m.PosProductsComponent) },
     { path: 'inventory', loadComponent: () => import('./inventory/inventory.component').then(m => m.PosInventoryComponent) },
     { path: 'scan', loadComponent: () => import('./scan/pos-scan.component').then(m => m.PosScanComponent) },
+    { path: 'insights', loadComponent: () => import('./insights/pos-insights.component').then(m => m.PosInsightsComponent) },
     { path: 'sales', loadComponent: () => import('./sales/sales.component').then(m => m.PosSalesComponent) },
     { path: 'registers', loadComponent: () => import('./registers/registers.component').then(m => m.PosRegistersComponent) },
     { path: 'locations', loadComponent: () => import('./locations/locations.component').then(m => m.PosLocationsComponent) },
