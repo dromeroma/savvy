@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.exceptions import NotFoundError
@@ -333,6 +333,41 @@ class UsageAnalyticsService:
             "by_action": await UsageAnalyticsService._breakdown(db, org_id, AiUsage.action),
             "by_user": await UsageAnalyticsService._breakdown(db, org_id, AiUsage.user_id, user_labels),
             "by_prompt": await UsageAnalyticsService._breakdown(db, org_id, AiUsage.prompt_key),
+        }
+
+    @staticmethod
+    async def daily_cost(db: AsyncSession, days: int = 30) -> list[dict[str, Any]]:
+        """Serie de costo/llamadas de IA por día (últimos N días)."""
+        rows = (await db.execute(text("""
+            SELECT created_at::date AS day,
+                   count(*) AS calls,
+                   coalesce(sum(input_tokens + output_tokens),0) AS tokens,
+                   coalesce(sum(cost_usd),0) AS cost
+            FROM ai_usage
+            WHERE created_at >= now() - (:days || ' days')::interval
+            GROUP BY created_at::date ORDER BY day
+        """), {"days": days})).mappings().all()
+        return [
+            {"day": str(r["day"]), "calls": int(r["calls"]),
+             "tokens": int(r["tokens"]), "cost_usd": float(r["cost"])}
+            for r in rows
+        ]
+
+    @staticmethod
+    async def budget_status(db: AsyncSession) -> dict[str, Any]:
+        """Estado del kill-switch: gasto de hoy vs límite global."""
+        from src.core.config import get_settings
+        limit = get_settings().AI_DAILY_USD_LIMIT_GLOBAL
+        spent = (await db.execute(text(
+            "SELECT coalesce(sum(cost_usd),0) FROM ai_usage WHERE created_at::date = now()::date"
+        ))).scalar() or 0
+        spent = float(spent)
+        pct = round((spent / limit) * 100, 1) if limit > 0 else 0.0
+        return {
+            "spent_today_usd": spent,
+            "daily_limit_usd": limit,
+            "pct_used": pct,
+            "blocked": limit > 0 and spent >= limit,
         }
 
     @staticmethod

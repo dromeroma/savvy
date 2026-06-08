@@ -11,6 +11,7 @@ from src.core.config import get_settings
 from src.core.exceptions import register_exception_handlers
 from src.core.middleware.logging import LoggingMiddleware
 from src.core.middleware.tenant import TenantMiddleware
+from src.core.observability import init_sentry, setup_logging
 from src.gateway.router import api_router
 
 settings = get_settings()
@@ -19,6 +20,10 @@ logging.basicConfig(
     level=getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO),
     format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
 )
+
+# Observabilidad (gated por config: no-op si no hay DSN / LOG_JSON=false).
+init_sentry()
+setup_logging()
 
 
 @asynccontextmanager
@@ -62,10 +67,23 @@ def create_app() -> FastAPI:
     # --- Routers ---
     app.include_router(api_router)
 
-    # --- Health check ---
+    # --- Health checks ---
     @app.get("/health", tags=["System"])
     async def health_check() -> dict[str, str]:
         return {"status": "healthy", "version": settings.APP_VERSION}
+
+    @app.get("/health/ready", tags=["System"])
+    async def readiness() -> dict[str, str]:
+        """Readiness: verifica conectividad con la base de datos."""
+        from sqlalchemy import text
+        from src.core.database import async_session_factory
+        try:
+            async with async_session_factory() as s:
+                await s.execute(text("SELECT 1"))
+            return {"status": "ready", "db": "ok"}
+        except Exception as exc:  # noqa: BLE001
+            from fastapi import HTTPException
+            raise HTTPException(status_code=503, detail=f"db_unavailable: {str(exc)[:120]}")
 
     return app
 

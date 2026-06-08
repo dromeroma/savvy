@@ -8,6 +8,7 @@ import {
   ChartCardComponent,
   BarChartComponent,
   BarRow,
+  SparklineComponent,
 } from '../../shared/components/bento';
 
 interface ProviderConfig {
@@ -40,6 +41,7 @@ interface PlatformUsage {
   imports: [
     CommonModule, FormsModule, DecimalPipe,
     HeroMetricCardComponent, KpiCardComponent, ChartCardComponent, BarChartComponent,
+    SparklineComponent,
   ],
   template: `
     <div class="space-y-7">
@@ -177,6 +179,42 @@ interface PlatformUsage {
         </section>
       }
 
+      <!-- ====== Gasto diario + kill-switch ====== -->
+      @if (daily(); as d) {
+        <section class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+          <div class="flex items-start justify-between gap-3 mb-4">
+            <div>
+              <h2 class="text-base font-semibold text-slate-900 dark:text-white">Gasto de IA — hoy</h2>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Kill-switch: bloquea cuando se alcanza el límite diario.</p>
+            </div>
+            <span class="text-xs px-2.5 py-1 rounded-full font-medium"
+              [class]="d.budget.blocked
+                ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300'
+                : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'">
+              {{ d.budget.blocked ? '● Bloqueado' : '● Activo' }}
+            </span>
+          </div>
+
+          <div class="flex items-end gap-3 mb-2">
+            <span class="text-3xl font-bold tabular-nums text-slate-900 dark:text-white">$ {{ d.budget.spent_today_usd | number:'1.2-4' }}</span>
+            <span class="text-sm text-slate-400 mb-1">/ $ {{ d.budget.daily_limit_usd | number:'1.2-2' }} límite global</span>
+          </div>
+          <div class="h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+            <div class="h-full rounded-full transition-all"
+              [style.width.%]="min(d.budget.pct_used, 100)"
+              [class]="d.budget.pct_used >= 90 ? 'bg-rose-500' : d.budget.pct_used >= 70 ? 'bg-amber-500' : 'bg-emerald-500'"></div>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-1">{{ d.budget.pct_used }}% usado hoy</p>
+
+          @if (d.series.length >= 2) {
+            <div class="mt-4">
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 mb-1">Costo por día (últimos {{ d.series.length }})</div>
+              <div class="h-12"><app-sparkline [data]="costSeries(d.series)" color="violet" /></div>
+            </div>
+          }
+        </section>
+      }
+
       <!-- ====== Consumo global ====== -->
       <section>
         <div class="flex items-baseline justify-between mb-3">
@@ -243,6 +281,7 @@ export class PlatformAiComponent implements OnInit {
 
   cfg = signal<ProviderConfig | null>(null);
   usage = signal<PlatformUsage | null>(null);
+  daily = signal<{ series: { day: string; cost_usd: number }[]; budget: { spent_today_usd: number; daily_limit_usd: number; pct_used: number; blocked: boolean } } | null>(null);
   apiKeyInput = '';
   saving = signal(false);
   testing = signal(false);
@@ -259,6 +298,7 @@ export class PlatformAiComponent implements OnInit {
   ngOnInit(): void {
     this.api.get<ProviderConfig>('/platform/ai/provider').subscribe({ next: (c) => this.cfg.set(c) });
     this.api.get<PlatformUsage>('/platform/ai/usage').subscribe({ next: (u) => this.usage.set(u) });
+    this.api.get<{ series: { day: string; cost_usd: number }[]; budget: { spent_today_usd: number; daily_limit_usd: number; pct_used: number; blocked: boolean } }>('/platform/ai/usage/daily').subscribe({ next: (d) => this.daily.set(d) });
   }
 
   save(): void {
@@ -341,6 +381,9 @@ export class PlatformAiComponent implements OnInit {
       this.api.patch<ProviderConfig>('/platform/ai/provider', body).subscribe({ next: (c2) => { this.cfg.set(c2); this.waToken = ''; send(); }, error: () => send() });
     } else { send(); }
   }
+
+  min(a: number, b: number): number { return Math.min(a, b); }
+  costSeries(series: { cost_usd: number }[]): number[] { return series.map((s) => s.cost_usd); }
 
   fmtUsd(v: string | number): string {
     return Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 });

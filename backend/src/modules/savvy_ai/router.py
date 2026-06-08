@@ -301,6 +301,18 @@ async def platform_usage(
     return await UsageAnalyticsService.platform_report(db)
 
 
+@platform_router.get("/usage/daily")
+async def platform_usage_daily(
+    days: int = Query(30, ge=1, le=120),
+    db: AsyncSession = Depends(get_db),
+    _: dict[str, Any] = Depends(require_super_admin),
+) -> Any:
+    return {
+        "series": await UsageAnalyticsService.daily_cost(db, days),
+        "budget": await UsageAnalyticsService.budget_status(db),
+    }
+
+
 @platform_router.get("/usage/{org_id}", response_model=OrgUsageReport)
 async def platform_org_usage(
     org_id: uuid.UUID,

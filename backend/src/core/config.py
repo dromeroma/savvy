@@ -51,11 +51,18 @@ class Settings(BaseSettings):
 
     # Kill-switch de gasto de IA (USD/día). 0 = sin límite. Protege contra
     # loops/abuso antes de que la cuota mensual por org reaccione.
-    AI_DAILY_USD_LIMIT_GLOBAL: float = 50.0
+    # Global en 1 USD por ahora (tope conservador de arranque).
+    AI_DAILY_USD_LIMIT_GLOBAL: float = 1.0
     AI_DAILY_USD_LIMIT_ORG: float = 10.0
 
     # Secreto para que un cron externo dispare /automations/evaluate-all.
     CRON_SECRET: str = ""
+
+    # Observabilidad
+    SENTRY_DSN: str = ""              # vacío = Sentry desactivado
+    SENTRY_TRACES_SAMPLE_RATE: float = 0.1
+    LOG_JSON: bool = False           # logs estructurados JSON (recomendado en prod)
+    SLOW_REQUEST_MS: int = 2000      # umbral para loguear request lento como WARNING
 
     # CORS
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173"]

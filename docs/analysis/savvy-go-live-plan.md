@@ -76,11 +76,25 @@
 
 ---
 
-## FASE 3 — Observabilidad (11-12 jun)
-- ⬜ Sentry (backend + frontend) — error tracking. (~1-2 h, 60% del valor)
-- ⬜ Dashboard de `ai_usage` (costo por org/día/modelo) en el panel de plataforma.
-- ⬜ Logs estructurados JSON + métricas básicas por tenant (p95, error rate).
-- ⬜ Alertas: gasto IA, error rate por tenant, runs de SavvyFlow fallidos.
+## FASE 3 — Observabilidad (11-12 jun) — ✅ COMPLETA (código)
+- ✅ **Sentry backend** (gated por `SAVVY_SENTRY_DSN`, sentry_sdk ya instalado):
+  init en `main.py`, etiqueta cada error con `org_id` + `request_id`. [`observability.py`]
+- ✅ **Logging estructurado JSON** (gated por `SAVVY_LOG_JSON`) + middleware
+  **tenant-aware**: cada request loguea `org_id`, status, `duration_ms`, `request_id`;
+  WARNING en 5xx o requests lentos (`SAVVY_SLOW_REQUEST_MS`). [`logging.py`, `observability.py`]
+- ✅ **Readiness** `/health/ready` (ping a la BD) para uptime/load-balancer.
+- ✅ **Dashboard de gasto de IA** en `/platform/ai`: gasto de hoy vs límite
+  (barra + estado del kill-switch) + sparkline de costo por día. Endpoint
+  `/platform/ai/usage/daily` (serie + budget). El panel ya tenía costo por
+  org/modelo/app.
+- ⬜ **Frontend Sentry** (`@sentry/angular`) — requiere `npm i`; queda como paso
+  de instalación (ver abajo) para no romper el build sin la dependencia.
+- ⬜ Alertas (Sentry + budget) — se configuran en el dashboard de Sentry / reglas.
+
+### Activación de Fase 3 (infra, no código)
+- ⚠️ Setear `SAVVY_SENTRY_DSN` (crear proyecto en Sentry) + `SAVVY_LOG_JSON=true`
+  en prod. Sin DSN, todo sigue funcionando (no-op).
+- ⚠️ Frontend Sentry: `npm i @sentry/angular` + init en `main.ts` con el DSN.
 
 ---
 
@@ -123,3 +137,9 @@
   por X-Cron-Secret). Resta solo infra: crear el cron en Render + setear
   SAVVY_CRON_SECRET, y **probar un restore real** de backups. Siguiente:
   **Fase 3 — Observabilidad (Sentry + dashboard ai_usage + logs).**
+- 2026-06-08 — Límite global de gasto IA bajado a **$1/día**.
+- 2026-06-08 — **Fase 3 COMPLETA (código):** Sentry backend gated + tags por tenant;
+  logging JSON + middleware tenant-aware (org_id, slow/error); readiness `/health/ready`
+  con ping a BD; dashboard de gasto de IA en `/platform/ai` (hoy vs límite + kill-switch
+  + sparkline diario). Resta infra: DSN de Sentry + `LOG_JSON=true`, y `npm i @sentry/angular`
+  para el front. Siguiente: **Fase 4 — Tests del núcleo + CI.**
