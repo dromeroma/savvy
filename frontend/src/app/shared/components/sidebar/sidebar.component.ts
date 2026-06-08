@@ -146,6 +146,7 @@ const APP_MENUS: Record<string, { icon: string; items: { label: string; route: s
       { label: 'Terminal', route: '/pos/terminal' },
       { label: 'Productos', route: '/pos/products' },
       { label: 'Inventario', route: '/pos/inventory' },
+      { label: 'Escanear factura ✨', route: '/pos/scan' },
       { label: 'Ventas', route: '/pos/sales' },
       { label: 'Cajas', route: '/pos/registers' },
       { label: 'Sucursales', route: '/pos/locations' },

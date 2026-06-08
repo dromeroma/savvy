@@ -9,10 +9,11 @@ import { AlertComponent } from '../../shared/components/ui/alert/alert.component
 import { ThemeToggleComponent } from '../../shared/components/common/theme-toggle/theme-toggle.component';
 import { ConfirmDialogComponent } from '../../shared/components/ui/confirm-dialog/confirm-dialog.component';
 import { NotificationBellComponent } from '../../shared/components/notification-bell/notification-bell.component';
+import { SavvyCommandComponent } from '../../shared/components/command/savvy-command.component';
 
 @Component({
   selector: 'app-layout',
-  imports: [CommonModule, RouterOutlet, SidebarComponent, AlertComponent, ThemeToggleComponent, ConfirmDialogComponent, NotificationBellComponent],
+  imports: [CommonModule, RouterOutlet, SidebarComponent, AlertComponent, ThemeToggleComponent, ConfirmDialogComponent, NotificationBellComponent, SavvyCommandComponent],
   templateUrl: './layout.component.html',
 })
 export class LayoutComponent implements OnInit {

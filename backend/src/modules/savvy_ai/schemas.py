@@ -106,6 +106,9 @@ class ConfirmableAction(BaseModel):
     line_items: list[dict[str, Any]] = []
     status: str
     actions: list[str] = ["confirm", "edit", "discard"]
+    # Resumen de lo aplicado a la app destino al confirmar (Fase 1+)
+    result_summary: str | None = None
+    result: dict[str, Any] | None = None
 
 
 class ExtractionConfirm(BaseModel):

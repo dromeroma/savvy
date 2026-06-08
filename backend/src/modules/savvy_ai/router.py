@@ -44,7 +44,7 @@ def _uid(user: dict[str, Any]) -> uuid.UUID:
     return uuid.UUID(user["sub"])
 
 
-def _to_confirmable(ext) -> ConfirmableAction:
+def _to_confirmable(ext, apply_result: dict[str, Any] | None = None) -> ConfirmableAction:
     data = ext.extracted_data or {}
     fc = ext.field_confidence or {}
     skip = {"line_items", "field_confidence"}
@@ -69,6 +69,8 @@ def _to_confirmable(ext) -> ConfirmableAction:
         fields=fields,
         line_items=items,
         status=ext.status,
+        result_summary=apply_result.get("summary") if apply_result else None,
+        result=apply_result,
     )
 
 
@@ -116,8 +118,10 @@ async def confirm_extraction(
     org_id: uuid.UUID = Depends(get_org_id),
     user: dict[str, Any] = Depends(get_current_user),
 ) -> Any:
-    ext = await ScanService.confirm(db, org_id, eid, edited_data=data.edited_data, user_id=_uid(user))
-    return _to_confirmable(ext)
+    ext, apply_result = await ScanService.confirm(
+        db, org_id, eid, edited_data=data.edited_data, user_id=_uid(user),
+    )
+    return _to_confirmable(ext, apply_result)
 
 
 @router.post("/extractions/{eid}/discard")

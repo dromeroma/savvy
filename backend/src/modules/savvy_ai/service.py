@@ -31,6 +31,33 @@ def _now() -> datetime:
     return datetime.now(UTC)
 
 
+async def _apply_to_target_app(
+    db: AsyncSession, org_id: uuid.UUID, ext: AiExtraction, user_id: uuid.UUID | None,
+) -> dict[str, Any] | None:
+    """Aplica una extracción confirmada a la app destino.
+
+    Import perezoso para evitar dependencias circulares con las apps. Cada
+    (target_app, document_type) tiene su aplicador. Si no hay aplicador,
+    la confirmación solo marca el estado (sin efecto en otra app).
+    """
+    target = (ext.target_app or "").lower()
+    doc = (ext.document_type or "").lower()
+
+    if target == "pos" and doc == "purchase_invoice":
+        from src.apps.pos.ai_apply import apply_purchase_invoice
+        result = await apply_purchase_invoice(db, org_id, ext.extracted_data or {}, user_id=user_id)
+        c, u = result["products_created"], result["products_updated"]
+        return {
+            "entity_type": "pos_purchase",
+            "summary": (
+                f"Inventario actualizado: {c} producto(s) creado(s), {u} actualizado(s), "
+                f"{result['total_units']:.0f} unidades en '{result['location']}'."
+            ),
+            **result,
+        }
+    return None
+
+
 # ============================================================ Provider (super admin)
 
 
@@ -194,25 +221,32 @@ class ScanService:
     async def confirm(
         db: AsyncSession, org_id: uuid.UUID, eid: uuid.UUID,
         *, edited_data: dict | None, user_id: uuid.UUID | None,
-    ) -> AiExtraction:
+    ) -> tuple[AiExtraction, dict[str, Any] | None]:
         ext = await ScanService.get_extraction(db, org_id, eid)
+        if ext.status == "confirmed":
+            return ext, None  # idempotente: no re-aplicar al inventario
         if edited_data is not None:
             ext.extracted_data = edited_data
         ext.status = "confirmed"
         ext.confirmed_by = user_id
         ext.updated_at = _now()
+
+        # Dispatch a la app destino: aplica la extracción a entidades reales.
+        apply_result = await _apply_to_target_app(db, org_id, ext, user_id)
+        if apply_result:
+            ext.confirmed_entity_type = apply_result.get("entity_type")
+
         db.add(AiAuditLog(
             organization_id=org_id, extraction_id=ext.id,
             action="edited" if edited_data is not None else "confirmed",
             actor_user_id=user_id, app_code=ext.target_app,
-            summary=f"Usuario confirmó datos de {ext.document_type}",
-            payload=ext.extracted_data,
+            summary=apply_result.get("summary") if apply_result
+            else f"Usuario confirmó datos de {ext.document_type}",
+            payload={"extracted": ext.extracted_data, "applied": apply_result},
         ))
         await db.commit()
         await db.refresh(ext)
-        # NOTA: la aplicación real en la app destino (crear producto/stock) se
-        # implementa en Fase 1 por cada target_app. Aquí solo confirmamos.
-        return ext
+        return ext, apply_result
 
     @staticmethod
     async def discard(

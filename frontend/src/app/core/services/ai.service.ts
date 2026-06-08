@@ -21,6 +21,8 @@ export interface ConfirmableAction {
   line_items: Record<string, unknown>[];
   status: 'pending_review' | 'confirmed' | 'discarded';
   actions: string[];
+  result_summary?: string | null;
+  result?: Record<string, unknown> | null;
 }
 
 export interface AiUsageRow { key: string; label: string; calls: number; tokens: number; cost_usd: string; }

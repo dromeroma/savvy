@@ -96,9 +96,14 @@ import { AiService, ConfirmableAction } from '../../../core/services/ai.service'
             </div>
           </div>
         } @else {
-          <div class="px-5 py-3 border-t border-slate-100 dark:border-slate-800 text-xs"
-            [class]="a.status === 'confirmed' ? 'text-emerald-600' : 'text-slate-400'">
-            {{ a.status === 'confirmed' ? '✓ Confirmado y guardado' : 'Descartado' }}
+          <div class="px-5 py-3 border-t border-slate-100 dark:border-slate-800"
+            [class]="a.status === 'confirmed' ? 'bg-emerald-50/60 dark:bg-emerald-500/5' : ''">
+            <p class="text-xs font-medium" [class]="a.status === 'confirmed' ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-400'">
+              {{ a.status === 'confirmed' ? '✓ Confirmado y guardado' : 'Descartado' }}
+            </p>
+            @if (a.result_summary) {
+              <p class="text-xs text-emerald-700/80 dark:text-emerald-400/80 mt-1">{{ a.result_summary }}</p>
+            }
           </div>
         }
       </div>

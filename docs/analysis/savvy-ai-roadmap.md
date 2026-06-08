@@ -18,7 +18,7 @@
 | Fase | Nombre | Estado | Avance |
 |------|--------|--------|--------|
 | 0 | Cimiento (`savvy_ai`) | 🧪 Construida y desplegada (sin API key real) | ~90% |
-| 1 | WOW — Savvy Command + SavvyScan | ⬜ Pendiente | 0% |
+| 1 | WOW — Savvy Command + SavvyScan | 🧪 Construida (sin API key real) | ~85% |
 | 2 | Copilot + Briefing + Búsqueda + Graph | ⬜ Pendiente | 0% |
 | 3 | Predictivo + Workflows visuales | ⬜ Pendiente | 0% |
 | 4 | Voz + WhatsApp + Vision + Agentes | ⬜ Pendiente | 0% |
@@ -79,22 +79,30 @@
 > **factura de compra → inventario en POS.**
 
 ### SavvyScan (extracción)
-- ⬜ Endpoint `/ai/scan` (subir archivo → `ai_extractions`)
-- ⬜ Prompt + schema de **factura de compra** (proveedor, ítems, cantidades, costos, fechas, impuestos)
-- ⬜ Mapeo extracción → entidades POS (producto, proveedor, movimiento de inventario)
-- ⬜ Flujo "Confirmable Action": revisar ítems antes de escribir stock
-- ⬜ Al confirmar: crea/actualiza productos, ajusta stock, registra compra y movimiento financiero
+- ✅ Endpoint `/ai/scan` (subir archivo → `ai_extractions`) — listo desde Fase 0
+- ✅ Prompt + schema de **factura de compra** (proveedor, ítems, cantidades, costos, fechas, impuestos) — `extraction.purchase_invoice` v1
+- ✅ Mapeo extracción → entidades POS: `apps/pos/ai_apply.py` (busca/crea producto por SKU o nombre, ajusta costo, sugiere precio con margen 30%)
+- ✅ Flujo "Confirmable Action": revisar/editar ítems antes de escribir stock
+- ✅ Al confirmar: crea/actualiza productos + registra movimiento de compra (stock +) en la sede principal; idempotente (no re-aplica)
+- ✅ Dispatch genérico `_apply_to_target_app` (extensible a otras apps/documentos)
+- ⬜ Movimiento financiero/contable de la compra (queda para integrar con `finance`/`accounting`)
 
 ### Savvy Command (barra ⌘K)
-- ⬜ Componente global de command bar (atajo ⌘K / Ctrl+K)
-- ⬜ Drag & drop de archivo dentro de la barra
-- ⬜ Router de intención: texto/archivo → módulo + acción
-- ⬜ Render del resultado como Confirmable Action
+- ✅ Componente global `savvy-command` montado en el shell (atajo ⌘K / Ctrl+K)
+- ✅ Navegación instantánea con teclado (↑↓ + ↵) sobre destinos curados
+- ✅ Drag & drop de archivo → enruta a SavvyScan
+- ✅ Trigger visible en el header ("✨ Buscar o ejecutar… ⌘K")
+- ⬜ Router de intención por lenguaje natural (texto → acción) → **Fase 2** (Copilot/Tool Use)
+
+### Frontend
+- ✅ Página `/pos/scan` (dropzone + estado + Confirmable Action + resumen de resultado)
+- ✅ Entrada en sidebar POS "Escanear factura ✨"
+- ✅ Resumen post-confirmación: "Inventario actualizado: N creados, M actualizados…"
 
 ### Criterios de aceptación Fase 1
-- ⬜ Subir foto/PDF de una factura real → inventario actualizado tras confirmar
-- ⬜ Tiempo de captura de una compra baja de minutos a segundos
-- ⬜ El usuario nunca escribió un formulario manual completo
+- 🧪 Subir foto/PDF de una factura real → inventario actualizado tras confirmar (**requiere API key**)
+- ✅ El flujo no requiere llenar un formulario manual completo
+- ✅ Barra ⌘K disponible en toda la plataforma
 
 ---
 
@@ -133,3 +141,8 @@
   6 tablas aplicadas a Supabase, panel super admin `/platform/ai` con API key cifrada
   + uso global, componente Confirmable Action. Falta únicamente la API key real
   (se agrega desde el panel) para probar end-to-end. Siguiente: **Fase 1 — factura→inventario en POS**.
+- 2026-06-08 — **Fase 1 construida** (v0.1.1). SavvyScan factura→inventario en POS
+  (`apps/pos/ai_apply.py` + dispatch en confirm), página `/pos/scan` con dropzone +
+  Confirmable Action, y **Savvy Command (⌘K)** global en el shell. Todo el flujo listo;
+  solo falta la API key real para la prueba end-to-end (se agrega al final de todas las fases).
+  Siguiente: **Fase 2 — Copilot + Briefing + Búsqueda Universal + Graph**.
