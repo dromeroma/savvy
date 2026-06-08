@@ -61,4 +61,44 @@ export class AiService {
   usage(): Observable<OrgUsageReport> {
     return this.api.get<OrgUsageReport>('/ai/usage');
   }
+
+  // ===== Fase 2: búsqueda universal + copilot + briefing =====
+  search(q: string): Observable<UniversalSearchResponse> {
+    return this.api.get<UniversalSearchResponse>('/ai/search', { q });
+  }
+  copilot(message: string): Observable<CopilotResponse> {
+    return this.api.post<CopilotResponse>('/ai/copilot', { message });
+  }
+  briefing(): Observable<BriefingResponse> {
+    return this.api.get<BriefingResponse>('/ai/briefing');
+  }
+}
+
+export interface GraphHit {
+  module: string;
+  entity_type: string;
+  entity_id: string;
+  display_name: string;
+  document_number: string | null;
+  subtitle: string | null;
+  route: string | null;
+}
+export interface PersonNode {
+  display_name: string;
+  document_number: string | null;
+  hits: GraphHit[];
+}
+export interface UniversalSearchResponse {
+  query: string;
+  hits: GraphHit[];
+  people: PersonNode[];
+}
+export interface CopilotResponse {
+  answer: string;
+  tools_used: string[];
+}
+export interface BriefingResponse {
+  narrative: string[];
+  metrics: Record<string, number>;
+  generated_by: 'ai' | 'template';
 }

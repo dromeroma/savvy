@@ -19,7 +19,7 @@
 |------|--------|--------|--------|
 | 0 | Cimiento (`savvy_ai`) | 🧪 Construida y desplegada (sin API key real) | ~90% |
 | 1 | WOW — Savvy Command + SavvyScan | 🧪 Construida (sin API key real) | ~85% |
-| 2 | Copilot + Briefing + Búsqueda + Graph | ⬜ Pendiente | 0% |
+| 2 | Copilot + Briefing + Búsqueda + Graph | 🧪 Construida (búsqueda + briefing YA funcionan) | ~85% |
 | 3 | Predictivo + Workflows visuales | ⬜ Pendiente | 0% |
 | 4 | Voz + WhatsApp + Vision + Agentes | ⬜ Pendiente | 0% |
 
@@ -108,11 +108,31 @@
 
 ## FASE 2 — Copilot + Briefing + Búsqueda Universal + Graph
 
-- ⬜ SavvyCopilot: Tool Use sobre endpoints existentes (solo lectura primero)
-- ⬜ Acciones con confirmación (escritura vía Confirmable Action)
-- ⬜ Búsqueda universal cross-módulo ("todo de Carlos")
-- ⬜ Savvy Graph básico: entidad persona unificada cross-app (pgvector + joins)
-- ⬜ Savvy Briefing: resumen diario por rol (in-app)
+### Savvy Graph / Búsqueda universal (✅ funciona HOY, sin API key)
+- ✅ `graph.py`: búsqueda cross-módulo (HR + Memorial afiliados + Memorial leads + Water)
+- ✅ Insensible a acentos (extensión `unaccent` habilitada en Supabase + normalización en Python)
+- ✅ Busca por nombre, documento, email, código
+- ✅ `resolve_person`: agrupa apariciones por documento → persona unificada (el moat)
+- ✅ Endpoint `GET /ai/search?q=` · probado en vivo (Cárdenas/Romero/Salazar cross-módulo)
+- ✅ Integrado en la barra ⌘K (sección "Personas y registros")
+
+### SavvyCopilot (🧪 listo, requiere API key)
+- ✅ `copilot.py`: loop agentic con Tool Use (hasta 5 iteraciones)
+- ✅ Registro de herramientas (solo lectura): universal_search, pos_sales_summary,
+  pos_low_stock, memorial_receivables, hr_headcount
+- ✅ Cada llamada se mide en `ai_usage` (app_code=copilot)
+- ✅ Endpoint `POST /ai/copilot` + modo chat en la barra ⌘K
+- ⬜ Acciones de escritura con Confirmable Action (Fase 3+)
+
+### Savvy Briefing (✅ funciona HOY con plantilla; narrativa IA con API key)
+- ✅ `briefing.py`: agrega métricas cross-app (POS ventas/stock, Memorial cartera, HR headcount)
+- ✅ Narrativa IA (Haiku) si hay API key; fallback con plantilla si no → **funciona sin IA**
+- ✅ Endpoint `GET /ai/briefing` · probado (San Rafael: cartera vencida $6.37M, 8 activos)
+- ✅ Tarjeta "Resumen del día" en el dashboard principal (badge ✨ por IA / automático)
+
+### Pendiente Fase 2
+- ⬜ pgvector / embeddings para búsqueda semántica (hoy es LIKE; suficiente por ahora)
+- ⬜ Lenguaje natural en ⌘K depende del Copilot → requiere API key para responder
 
 ---
 
@@ -146,3 +166,9 @@
   Confirmable Action, y **Savvy Command (⌘K)** global en el shell. Todo el flujo listo;
   solo falta la API key real para la prueba end-to-end (se agrega al final de todas las fases).
   Siguiente: **Fase 2 — Copilot + Briefing + Búsqueda Universal + Graph**.
+- 2026-06-08 — **Fase 2 construida** (v0.1.2). Savvy Graph/búsqueda universal cross-módulo
+  (`graph.py`, insensible a acentos, probada en vivo) integrada en ⌘K; SavvyCopilot
+  (`copilot.py`, loop agentic + 5 herramientas de solo lectura) con modo chat en ⌘K;
+  Savvy Briefing (`briefing.py`, métricas cross-app + narrativa) como tarjeta en el dashboard.
+  **Búsqueda universal y briefing ya funcionan sin API key**; el copilot conversacional
+  se enciende cuando se agregue la key. Siguiente: **Fase 3 — Predictivo + Workflows visuales**.

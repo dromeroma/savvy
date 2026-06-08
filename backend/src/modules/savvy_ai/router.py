@@ -19,7 +19,10 @@ from src.modules.platform.dependencies import require_super_admin
 from src.modules.savvy_ai.client import AiNotConfiguredError
 from src.modules.savvy_ai.schemas import (
     AiOrgSettingsResponse,
+    BriefingResponse,
     ConfirmableAction,
+    CopilotRequest,
+    CopilotResponse,
     ExtractionConfirm,
     ExtractionField,
     OrgUsageReport,
@@ -27,6 +30,7 @@ from src.modules.savvy_ai.schemas import (
     ProviderConfigResponse,
     ProviderConfigUpdate,
     ProviderTestResult,
+    UniversalSearchResponse,
 )
 from src.modules.savvy_ai.service import (
     ProviderService,
@@ -149,6 +153,59 @@ async def org_ai_settings(
     org_id: uuid.UUID = Depends(get_org_id),
 ) -> Any:
     return await get_or_create_settings(db, org_id)
+
+
+# ---------- Fase 2: Búsqueda universal (Savvy Graph) ----------
+
+@router.get("/search", response_model=UniversalSearchResponse)
+async def universal_search_endpoint(
+    q: str = Query(..., min_length=2),
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+) -> Any:
+    from src.modules.savvy_ai.graph import resolve_person, universal_search
+    hits = await universal_search(db, org_id, q)
+    people = await resolve_person(db, org_id, q)
+    return {
+        "query": q,
+        "hits": [h.__dict__ for h in hits],
+        "people": [
+            {"display_name": p.display_name, "document_number": p.document_number,
+             "hits": [h.__dict__ for h in p.hits]}
+            for p in people
+        ],
+    }
+
+
+# ---------- Fase 2: Copilot ----------
+
+@router.post("/copilot", response_model=CopilotResponse)
+async def copilot_ask(
+    data: CopilotRequest,
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+    user: dict[str, Any] = Depends(get_current_user),
+) -> Any:
+    from src.modules.savvy_ai.copilot import ask
+    try:
+        result = await ask(db, org_id, data.message, user_id=_uid(user))
+    except AiNotConfiguredError as exc:
+        raise ValidationError(str(exc))
+    except QuotaExceededError as exc:
+        raise ValidationError(str(exc))
+    return {"answer": result.answer, "tools_used": result.tools_used}
+
+
+# ---------- Fase 2: Briefing ----------
+
+@router.get("/briefing", response_model=BriefingResponse)
+async def daily_briefing(
+    db: AsyncSession = Depends(get_db),
+    org_id: uuid.UUID = Depends(get_org_id),
+    user: dict[str, Any] = Depends(get_current_user),
+) -> Any:
+    from src.modules.savvy_ai.briefing import generate
+    return await generate(db, org_id, user_id=_uid(user))
 
 
 # ============================================================ Platform router

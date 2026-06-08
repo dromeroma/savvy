@@ -161,3 +161,43 @@ class PlatformUsageReport(BaseModel):
     by_organization: list[PlatformUsageRow]
     by_model: list[UsageBreakdownRow]
     by_app: list[UsageBreakdownRow]
+
+
+# ============================================================ Fase 2: Graph / Copilot / Briefing
+
+
+class GraphHitOut(BaseModel):
+    module: str
+    entity_type: str
+    entity_id: str
+    display_name: str
+    document_number: str | None
+    subtitle: str | None
+    route: str | None
+
+
+class PersonNodeOut(BaseModel):
+    display_name: str
+    document_number: str | None
+    hits: list[GraphHitOut]
+
+
+class UniversalSearchResponse(BaseModel):
+    query: str
+    hits: list[GraphHitOut]
+    people: list[PersonNodeOut]
+
+
+class CopilotRequest(BaseModel):
+    message: str = Field(..., min_length=1, max_length=2000)
+
+
+class CopilotResponse(BaseModel):
+    answer: str
+    tools_used: list[str] = []
+
+
+class BriefingResponse(BaseModel):
+    narrative: list[str]
+    metrics: dict[str, Any]
+    generated_by: str  # 'ai' | 'template'

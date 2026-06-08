@@ -11,6 +11,7 @@ import {
   HeroMetricCardComponent,
   KpiCardComponent,
 } from '../../shared/components/bento';
+import { AiService, BriefingResponse } from '../../core/services/ai.service';
 
 interface AppWithMetrics {
   code: string;
@@ -39,10 +40,12 @@ interface DashboardError {
 export class DashboardComponent implements OnInit {
   private readonly dashboard = inject(DashboardService);
   private readonly router = inject(Router);
+  private readonly ai = inject(AiService);
 
   loading = signal(true);
   error = signal<DashboardError | null>(null);
   data = signal<DashboardSummaryResponse | null>(null);
+  briefing = signal<BriefingResponse | null>(null);
 
   /** Serie histórica para el sparkline del HERO. Null hasta que el backend
    *  exponga datos de tendencia — preferimos no inventar números. */
@@ -71,6 +74,10 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+    this.ai.briefing().subscribe({
+      next: (b) => this.briefing.set(b),
+      error: () => this.briefing.set(null),
+    });
   }
 
   load(): void {
