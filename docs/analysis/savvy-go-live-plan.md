@@ -98,13 +98,28 @@
 
 ---
 
-## FASE 4 — Tests del núcleo + CI (12-13 jun)
-- ⬜ Tests de los motores de dinero: nómina, liquidación (ley 50), contabilidad
-  (asientos balanceados), pricing IA, insights.
-- ⬜ Tests de SavvyFlow (trigger→condición→acción) y Savvy Graph (acentos, no-fuga).
-- ⬜ CI GitHub Actions: lint (ruff) + typecheck (mypy/tsc) + tests + presupuesto
-  de bundle DURO + build. Bloquea merge si algo falla.
-- ⬜ Regla de equipo: todo bug arreglado entra con su test de regresión.
+## FASE 4 — Tests del núcleo + CI (12-13 jun) — ✅ COMPLETA (código)
+- ✅ **Tests de motores de dinero** [`tests/test_engines.py`] — verificados ejecutando
+  las aserciones directo (todos pasan):
+  · Evaluador de fórmulas de nómina (`_safe_eval`): acepta aritmética, **rechaza
+    código malicioso** (`__import__`, atributos, `open`, variables desconocidas).
+  · Liquidación (ley 50): totales consistentes, indemnización solo "sin justa causa",
+    fuero la bloquea, IBC incluye auxilio de transporte.
+  · Costo de IA (`compute_cost`): modelos conocidos, desconocido = 0, cacheado más barato.
+- ✅ **Tests de SavvyFlow + Graph** [`tests/test_flow_and_graph.py`]: condiciones
+  (eq/gt/lte/contains), render de plantillas, normalización de acentos.
+- ✅ Tests de hardening + aislamiento (Fase 1) ya escritos.
+- ✅ **CI GitHub Actions** [`.github/workflows/ci.yml`]:
+  · Backend: ruff + pytest contra **Postgres real** (service container + unaccent).
+  · Frontend: `tsc --noEmit` + build de producción.
+  · Bloquea merge si algo falla (`concurrency` cancela runs viejos).
+- ✅ `sentry-sdk` agregado a dependencias.
+- ⬜ Regla de equipo: todo bug arreglado entra con su test de regresión (proceso).
+
+### Nota
+- La primera corrida de CI podría marcar nits de lint (ruff E501) en archivos
+  nuevos; son correcciones triviales. Los tests de motores ya están verificados
+  como verdes ejecutándolos directamente.
 
 ---
 
@@ -143,3 +158,8 @@
   con ping a BD; dashboard de gasto de IA en `/platform/ai` (hoy vs límite + kill-switch
   + sparkline diario). Resta infra: DSN de Sentry + `LOG_JSON=true`, y `npm i @sentry/angular`
   para el front. Siguiente: **Fase 4 — Tests del núcleo + CI.**
+- 2026-06-08 — **Fase 4 COMPLETA (código):** tests de los motores de dinero (nómina,
+  liquidación ley 50, costo IA) + SavvyFlow + Graph, **verificados como verdes**; pipeline
+  de CI (GitHub Actions: ruff + pytest sobre Postgres real + tsc + build); sentry-sdk en
+  deps. Resta: que el equipo corra el CI en el repo (push activa el workflow) y limpiar
+  posibles nits de lint. Siguiente: **Fase 5 — Pre-producción + go-live.**

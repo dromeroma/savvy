@@ -71,7 +71,8 @@ def set_sentry_tenant(org_id: str | None, request_id: str | None) -> None:
         import sentry_sdk
     except ImportError:
         return
-    if not sentry_sdk.Hub.current.client:
+    client = sentry_sdk.get_client()
+    if client is None or not client.is_active():
         return
     scope = sentry_sdk.get_current_scope()
     if org_id:
