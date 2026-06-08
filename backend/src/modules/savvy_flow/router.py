@@ -5,10 +5,13 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Header, Query, status
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.core.config import get_settings
 from src.core.dependencies import get_current_user, get_db, get_org_id
+from src.core.exceptions import ForbiddenError
 from src.modules.savvy_flow.engine import ACTIONS, CONDITIONS, TRIGGERS
 from src.modules.savvy_flow.schemas import (
     CatalogResponse,
@@ -79,6 +82,33 @@ async def evaluate_now(
     db: AsyncSession = Depends(get_db), org_id: uuid.UUID = Depends(get_org_id),
 ) -> Any:
     return await FlowService.evaluate(db, org_id)
+
+
+@router.post("/evaluate-all")
+async def evaluate_all(
+    x_cron_secret: str = Header(default=""),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """Sistema: corre las automatizaciones de datos/agenda de TODAS las orgs.
+
+    Lo invoca un cron externo (Render) con el header X-Cron-Secret. Pensado para
+    correr una vez al día. Protegido por secreto compartido (no por JWT).
+    """
+    secret = get_settings().CRON_SECRET
+    if not secret or x_cron_secret != secret:
+        raise ForbiddenError("Secreto de cron inválido.")
+    orgs = (await db.execute(text("""
+        SELECT DISTINCT organization_id FROM automation_workflows
+        WHERE is_active = true
+          AND trigger_type IN ('schedule_daily','pos_low_stock','memorial_overdue')
+    """))).fetchall()
+    total = {"orgs": 0, "executed": 0, "skipped": 0}
+    for (org_id,) in orgs:
+        res = await FlowService.evaluate(db, org_id)
+        total["orgs"] += 1
+        total["executed"] += res["executed"]
+        total["skipped"] += res["skipped"]
+    return total
 
 
 @router.get("/notifications", response_model=list[NotificationOut])

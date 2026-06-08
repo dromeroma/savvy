@@ -49,6 +49,14 @@ class Settings(BaseSettings):
     RLS_ENFORCE: bool = False
     RLS_APP_ROLE: str = "savvy_app"
 
+    # Kill-switch de gasto de IA (USD/día). 0 = sin límite. Protege contra
+    # loops/abuso antes de que la cuota mensual por org reaccione.
+    AI_DAILY_USD_LIMIT_GLOBAL: float = 50.0
+    AI_DAILY_USD_LIMIT_ORG: float = 10.0
+
+    # Secreto para que un cron externo dispare /automations/evaluate-all.
+    CRON_SECRET: str = ""
+
     # CORS
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173"]
 

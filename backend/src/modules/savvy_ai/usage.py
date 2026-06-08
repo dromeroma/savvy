@@ -11,16 +11,43 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.core.config import get_settings
 from src.modules.savvy_ai.client import LLMResult
 from src.modules.savvy_ai.models import AiOrgSettings, AiUsage
 from src.modules.savvy_ai.pricing import compute_cost
 
 
 class QuotaExceededError(Exception):
-    """La organización superó su cuota mensual de tokens."""
+    """La organización superó su cuota mensual de tokens o el límite de gasto diario."""
+
+
+async def check_daily_budget(db: AsyncSession, org_id: uuid.UUID) -> None:
+    """Kill-switch: bloquea si el gasto de IA de hoy supera el límite global o por org.
+
+    Defiende contra loops/abuso antes de que la cuota mensual reaccione.
+    """
+    s = get_settings()
+    gl = s.AI_DAILY_USD_LIMIT_GLOBAL
+    ol = s.AI_DAILY_USD_LIMIT_ORG
+    if gl <= 0 and ol <= 0:
+        return
+    row = (await db.execute(text("""
+        SELECT
+          coalesce(sum(cost_usd),0) AS total,
+          coalesce(sum(cost_usd) FILTER (WHERE organization_id = :org),0) AS org_total
+        FROM ai_usage WHERE created_at::date = now()::date
+    """), {"org": org_id})).mappings().first()
+    if gl > 0 and float(row["total"]) >= gl:
+        raise QuotaExceededError(
+            "Se alcanzó el límite global de gasto de IA por hoy. Intenta mañana."
+        )
+    if ol > 0 and float(row["org_total"]) >= ol:
+        raise QuotaExceededError(
+            "Esta organización alcanzó su límite de gasto de IA por hoy."
+        )
 
 
 @dataclass
@@ -57,6 +84,8 @@ async def check_quota(db: AsyncSession, org_id: uuid.UUID) -> AiOrgSettings:
         raise QuotaExceededError(
             "Se alcanzó la cuota mensual de IA. Amplía el plan para continuar.",
         )
+    # Kill-switch de gasto diario (global + per-org).
+    await check_daily_budget(db, org_id)
     return s
 
 

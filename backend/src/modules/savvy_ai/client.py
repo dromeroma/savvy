@@ -9,6 +9,7 @@ Toda llamada devuelve `LLMResult` con uso de tokens para que `usage.py` mida el 
 
 from __future__ import annotations
 
+import asyncio
 import time
 from dataclasses import dataclass, field
 from typing import Any
@@ -22,6 +23,19 @@ from src.modules.savvy_ai.models import AiProviderConfig
 from src.modules.savvy_ai.pricing import TIER_TO_DEFAULT_MODEL
 
 ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
+
+
+async def _sleep_backoff(attempt: int, resp: httpx.Response | None) -> None:
+    """Espera con backoff exponencial; respeta el header Retry-After si viene."""
+    delay = min(2.0 ** attempt, 8.0)  # 1, 2, 4, 8s máx
+    if resp is not None:
+        ra = resp.headers.get("retry-after")
+        if ra:
+            try:
+                delay = max(delay, float(ra))
+            except ValueError:
+                pass
+    await asyncio.sleep(delay)
 ANTHROPIC_VERSION = "2023-06-01"
 
 
@@ -112,7 +126,11 @@ class ClaudeProvider(LLMProvider):
             "messages": messages,
         }
         if system:
-            payload["system"] = system
+            # Prompt caching: el system prompt (estable y largo) se cachea →
+            # baja costo y latencia en llamadas repetidas (~90% en input cacheado).
+            payload["system"] = [
+                {"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}
+            ]
         if tools:
             payload["tools"] = tools
         if tool_choice:
@@ -124,14 +142,32 @@ class ClaudeProvider(LLMProvider):
             "content-type": "application/json",
         }
 
+        # Retries con backoff exponencial para errores transitorios.
+        RETRYABLE = {408, 409, 429, 500, 502, 503, 504}
+        max_attempts = 4
         started = time.perf_counter()
-        async with httpx.AsyncClient(timeout=timeout) as http:
-            resp = await http.post(ANTHROPIC_URL, headers=headers, json=payload)
+        last_err: str | None = None
+        resp = None
+        for attempt in range(max_attempts):
+            try:
+                async with httpx.AsyncClient(timeout=timeout) as http:
+                    resp = await http.post(ANTHROPIC_URL, headers=headers, json=payload)
+                if resp.status_code < 400:
+                    break
+                if resp.status_code in RETRYABLE and attempt < max_attempts - 1:
+                    last_err = f"{resp.status_code}: {resp.text[:200]}"
+                    await _sleep_backoff(attempt, resp)
+                    continue
+                raise RuntimeError(f"Anthropic API {resp.status_code}: {resp.text[:500]}")
+            except (httpx.TimeoutException, httpx.TransportError) as exc:
+                last_err = str(exc)[:200]
+                if attempt < max_attempts - 1:
+                    await _sleep_backoff(attempt, None)
+                    continue
+                raise RuntimeError(f"Anthropic API inalcanzable tras {max_attempts} intentos: {last_err}")
         latency_ms = int((time.perf_counter() - started) * 1000)
-
-        if resp.status_code >= 400:
-            detail = resp.text[:500]
-            raise RuntimeError(f"Anthropic API {resp.status_code}: {detail}")
+        if resp is None:
+            raise RuntimeError(f"Anthropic API sin respuesta: {last_err}")
 
         data = resp.json()
         usage = data.get("usage", {}) or {}

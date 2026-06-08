@@ -50,12 +50,29 @@
 
 ---
 
-## FASE 2 — Estabilidad + IA production-grade (10-11 jun)
-- ⬜ Retries con backoff en el cliente Claude (429/500/timeout).
-- ⬜ Circuit breaker / kill-switch de gasto IA diario global.
-- ⬜ Prompt caching (Anthropic) en system prompts largos.
-- ⬜ Cron de `/automations/evaluate` (Render cron) → agentes en background.
-- ⬜ Backups de Supabase verificados con **restore real** (no solo configurados).
+## FASE 2 — Estabilidad + IA production-grade (10-11 jun) — ✅ COMPLETA (código)
+- ✅ **Retries con backoff** en el cliente Claude (408/409/429/5xx + timeouts;
+  hasta 4 intentos, respeta `Retry-After`). [`client.py`]
+- ✅ **Prompt caching** (Anthropic): el system prompt se marca `cache_control`
+  ephemeral → baja costo/latencia en llamadas repetidas. [`client.py`]
+- ✅ **Kill-switch de gasto IA** diario global + per-org (config
+  `AI_DAILY_USD_LIMIT_GLOBAL` 50, `AI_DAILY_USD_LIMIT_ORG` 10; 0 = off).
+  Integrado en `check_quota` → todos los flujos de IA lo respetan. [`usage.py`]
+- ✅ **Endpoint de cron** `POST /automations/evaluate-all` (header `X-Cron-Secret`,
+  itera todas las orgs con automatizaciones de datos/agenda). [`savvy_flow/router.py`]
+- ⬜ Backups de Supabase verificados con **restore real** (manual — ver abajo).
+
+### Activación de Fase 2 (infra, no código)
+- ⚠️ **Cron de agentes:** en Render, crear un *Cron Job* diario que ejecute:
+  ```
+  curl -X POST https://<backend>/api/v1/automations/evaluate-all \
+       -H "X-Cron-Secret: $SAVVY_CRON_SECRET"
+  ```
+  Variables nuevas a setear en prod: `SAVVY_CRON_SECRET` (aleatorio),
+  opcional `SAVVY_AI_DAILY_USD_LIMIT_GLOBAL` / `_ORG`.
+- ⚠️ **Backups + restore:** Supabase hace backups automáticos; **probar un restore
+  real** a un proyecto/branch de staging al menos una vez antes del go-live (un
+  backup nunca restaurado no es un backup). Documentar el RTO/RPO.
 
 ---
 
@@ -100,3 +117,9 @@
   grants. Rate limiting en auth/scan/copilot. Lo único que resta es la **activación**
   (flip de la variable en staging→prod) y correr la suite en CI — no más código de
   seguridad. Siguiente: **Fase 2 — Estabilidad + IA production-grade.**
+- 2026-06-08 — **Fase 2 COMPLETA (código):** retries con backoff + prompt caching en
+  el cliente Claude; kill-switch de gasto IA diario (global + per-org) integrado en
+  check_quota; endpoint `/automations/evaluate-all` para el cron de agentes (protegido
+  por X-Cron-Secret). Resta solo infra: crear el cron en Render + setear
+  SAVVY_CRON_SECRET, y **probar un restore real** de backups. Siguiente:
+  **Fase 3 — Observabilidad (Sentry + dashboard ai_usage + logs).**
