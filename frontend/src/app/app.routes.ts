@@ -64,6 +64,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'automations',
+        loadComponent: () =>
+          import('./automations/automations.component').then(
+            (m) => m.AutomationsComponent,
+          ),
+      },
+      {
         path: 'church',
         loadChildren: () =>
           import('./apps/church/church.routes').then((m) => m.CHURCH_ROUTES),

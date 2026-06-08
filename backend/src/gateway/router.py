@@ -40,6 +40,9 @@ from src.apps.hr.portal.router import router as hr_portal_router
 from src.modules.savvy_ai.router import router as ai_router
 from src.modules.savvy_ai.router import platform_router as ai_platform_router
 
+# SavvyFlow (automatizaciones no-code)
+from src.modules.savvy_flow.router import router as flow_router
+
 api_router = APIRouter(prefix="/api/v1")
 
 # Core modules
@@ -79,3 +82,6 @@ api_router.include_router(hr_portal_router)
 # SavvyAI
 api_router.include_router(ai_router)
 api_router.include_router(ai_platform_router)
+
+# SavvyFlow
+api_router.include_router(flow_router)

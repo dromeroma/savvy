@@ -165,6 +165,7 @@ export class SavvyCommandComponent {
   private readonly commands: CommandItem[] = [
     { label: 'Escanear factura de compra', hint: 'SavvyScan → actualiza inventario (POS)', icon: '✨', route: '/pos/scan', keywords: 'ia ocr factura compra inventario stock' },
     { label: 'Inicio', hint: 'Cuadro de mando general', icon: '🏠', route: '/dashboard', keywords: 'home dashboard inicio' },
+    { label: 'Automatizaciones', hint: 'SavvyFlow — flujos no-code', icon: '🤖', route: '/automations', keywords: 'savvyflow automatizacion workflow flujo zapier alerta' },
     { label: 'POS · Terminal', hint: 'Punto de venta', icon: '🛒', route: '/pos/terminal', keywords: 'pos venta caja' },
     { label: 'POS · Inventario', hint: 'Stock por producto', icon: '📦', route: '/pos/inventory', keywords: 'inventario stock' },
     { label: 'POS · Productos', hint: 'Catálogo', icon: '🏷️', route: '/pos/products', keywords: 'productos catalogo' },

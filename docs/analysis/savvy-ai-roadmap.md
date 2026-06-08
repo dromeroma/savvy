@@ -20,7 +20,8 @@
 | 0 | Cimiento (`savvy_ai`) | 🧪 Construida y desplegada (sin API key real) | ~90% |
 | 1 | WOW — Savvy Command + SavvyScan | 🧪 Construida (sin API key real) | ~85% |
 | 2 | Copilot + Briefing + Búsqueda + Graph | 🧪 Construida (búsqueda + briefing YA funcionan) | ~85% |
-| 3 | Predictivo + Recomendaciones (+ Workflows dif.) | ✅ Predictivo OK · 🔜 SavvyFlow diferido a 3b | ~70% |
+| 3 | Predictivo + Recomendaciones | ✅ Construida (funciona sin API key) | ~90% |
+| 3b | SavvyFlow (workflows no-code) | ✅ Construida y probada e2e | ~90% |
 | 4 | Voz + WhatsApp + Vision + Agentes | ⬜ Pendiente | 0% |
 
 ---
@@ -156,12 +157,38 @@
 - ✅ Entradas en sidebar POS y Memorial
 
 ### Pendiente / diferido
-- 🔜 **SavvyFlow (workflows visuales no-code)** → movido a una **sub-fase 3b** propia.
-  Es un constructor de automatizaciones (trigger→acción) grande y autónomo; se hará
-  como módulo dedicado para no diluir el resto. Los "eventos inteligentes" que pedía
-  la visión ya están parcialmente cubiertos por Insights (alertas de stock/mora).
 - ⬜ Narrativa IA sobre los insights (explicación en lenguaje natural) → con API key
 - ⬜ Predicción de vencimiento de productos perecederos → cuando POS registre fechas de caducidad
+
+---
+
+## FASE 3b — SavvyFlow (automatizaciones no-code) ✅
+
+> Constructor de flujos "cuando pase X → haz Y" sin escribir código. Módulo
+> `modules/savvy_flow/`. Probado end-to-end. Funciona sin API key.
+
+### Backend
+- ✅ 4 tablas (aplicadas a Supabase): `automation_workflows`, `automation_steps`,
+  `automation_runs`, `automation_notifications`
+- ✅ Motor `engine.py`: trigger → produce items · condiciones → filtran · acciones → ejecutan
+- ✅ Triggers: manual · cada día · stock bajo (POS) · cartera vencida (Memorial)
+- ✅ Condiciones: comparación de campo (=, ≠, >, ≥, <, ≤, contiene)
+- ✅ Acciones: notificar (bandeja) · webhook (POST) · WhatsApp/correo (stub → Fase 4)
+- ✅ Plantillas de 1 clic: stock bajo, clientes en mora alta, resumen diario
+- ✅ `evaluate`: corre los flujos de datos/agenda y omite los que no tienen items (no spamea)
+- ✅ 14 endpoints `/api/v1/automations/*` (CRUD, run, runs, toggle, evaluate, templates, bandeja)
+- ✅ Probado e2e: instala "clientes en mora alta" → trigger 42 → condición filtra a 15 alto → notificación creada
+
+### Frontend
+- ✅ `/automations` con 3 pestañas: Mis automatizaciones · Plantillas · Bandeja
+- ✅ Editor pipeline vertical (Trigger → pasos): elegir disparador + config, agregar
+  condiciones y acciones con campos dinámicos, activar/pausar, ejecutar, eliminar
+- ✅ Galería de plantillas (instalar con 1 clic) + bandeja de notificaciones con niveles
+- ✅ Acceso desde la barra ⌘K ("Automatizaciones")
+
+### Pendiente 3b
+- ⬜ Cron real que llame `evaluate` automáticamente (hoy: botón "Evaluar ahora" o cron externo)
+- ⬜ WhatsApp/correo reales → se activan en Fase 4
 
 ---
 
@@ -197,3 +224,8 @@
   Páginas `/pos/insights` y `/memorial/risk`. **SavvyFlow (workflows visuales) diferido a
   sub-fase 3b** por ser un constructor autónomo grande. Siguiente: **Fase 4 — Voz + WhatsApp
   + Vision (Parking) + Agentes**, o **3b SavvyFlow** si se prioriza automatización.
+- 2026-06-08 — **Sub-fase 3b construida** (v0.1.4). SavvyFlow: módulo `savvy_flow` con
+  motor de automatizaciones (trigger→condición→acción), 4 tablas en Supabase, 14 endpoints,
+  3 plantillas de 1 clic, y página `/automations` con editor pipeline visual + bandeja.
+  Probado e2e (42→15 mora alta→notificación). Funciona sin API key; WhatsApp/correo se
+  encienden en Fase 4. Siguiente: **Fase 4 — Voz + WhatsApp + Vision (Parking) + Agentes**.
