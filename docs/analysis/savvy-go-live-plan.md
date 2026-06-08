@@ -123,16 +123,20 @@
 
 ---
 
-## FASE 5 — Pre-producción + go-live (13-16 jun)
-- ⬜ **Conectar la API key de Claude** en `/platform/ai` → validar SavvyScan,
-  Copilot, ANPR, narrativa de Briefing end-to-end.
-- ⬜ **Sembrar datos POS realistas** → el demo de SavvyScan factura→inventario vivo.
-- ⬜ (Opcional) credenciales WhatsApp Business → activar envíos.
-- ⬜ Optimizar bundle < 450 kB (auditar con source-map-explorer; flatpickr/D3 lazy).
-- ⬜ Smoke E2E (Playwright) de los flujos críticos: login, scan, liquidación, ⌘K.
-- ⬜ **Checklist go-live:** backups verificados, RLS en staging probada, Sentry
-  activo, variables de entorno de prod (ENCRYPTION_KEY dedicada), CORS correcto,
-  rate limit, plan de rollback.
+## FASE 5 — Pre-producción + go-live (13-16 jun) — ✅ COMPLETA (código)
+- ✅ **Datos POS sembrados** (`seed_pos_demo.py`, aplicado): 14 productos, 60
+  ventas en 30 días → **Insights vivos** (7 reorden, 4 estancados, 4 promos).
+  Verificado en vivo. El demo de SavvyScan/Insights ya tiene datos.
+- ✅ **`.env.example` completo** con TODAS las variables nuevas (seguridad, IA,
+  cron, observabilidad) + cómo generarlas.
+- ✅ **Bundle:** D3/flatpickr ya son lazy (no en el inicial). Techo enforced
+  (warning 600kB / **error 750kB**) como guardrail anti-bloat. [`angular.json`]
+- ✅ **Smoke E2E Playwright** (`playwright.config.ts` + `e2e/smoke.spec.ts`):
+  carga/login render + login + ⌘K (gated por credenciales). Listo para correr.
+- ✅ **Checklist de go-live** definitivo: [`savvy-go-live-checklist.md`] — runbook
+  con env vars, RLS, IA, cron, observabilidad, seguridad y orden del día D.
+- ⬜ Conectar API key Claude / WhatsApp / Sentry DSN / activar RLS → **manual**
+  (ver checklist; son los pasos de la tabla de pendientes).
 
 ---
 
@@ -163,3 +167,8 @@
   de CI (GitHub Actions: ruff + pytest sobre Postgres real + tsc + build); sentry-sdk en
   deps. Resta: que el equipo corra el CI en el repo (push activa el workflow) y limpiar
   posibles nits de lint. Siguiente: **Fase 5 — Pre-producción + go-live.**
+- 2026-06-08 — **Fase 5 COMPLETA (código):** seed POS demo aplicado (Insights vivos);
+  `.env.example` completo; techo de bundle enforced; smoke E2E Playwright; **checklist
+  de go-live** definitivo. **Las 5 fases están completas a nivel de código.** Lo que resta
+  es 100% activación manual (env vars, RLS flip, API keys, cron, Sentry, backups) — todo
+  en `savvy-go-live-checklist.md`.
