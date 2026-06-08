@@ -31,4 +31,11 @@ class TenantMiddleware(BaseHTTPMiddleware):
                     pass
 
         request.state.org_id = org_id
-        return await call_next(request)
+
+        # Publica el org en el contexto (base para el cut-over de RLS por GUC).
+        from src.core.tenant_context import current_org
+        token = current_org.set(org_id)
+        try:
+            return await call_next(request)
+        finally:
+            current_org.reset(token)

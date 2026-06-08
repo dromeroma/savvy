@@ -159,11 +159,16 @@ async def _run_action(
         db.add(notif)
         return {"action": "notify", "ok": True, "title": title}
     if t == "webhook":
+        from src.core.net_safety import UnsafeUrlError, validate_outbound_url
         url = cfg.get("url")
         if not url:
             return {"action": "webhook", "ok": False, "error": "URL vacía"}
         try:
-            async with httpx.AsyncClient(timeout=15) as http:
+            validate_outbound_url(url)  # anti-SSRF: solo https a IP pública
+        except UnsafeUrlError as exc:
+            return {"action": "webhook", "ok": False, "error": f"URL no permitida: {exc}"}
+        try:
+            async with httpx.AsyncClient(timeout=10, follow_redirects=False) as http:
                 resp = await http.post(url, json={
                     "workflow": wf.name, "count": ctx.get("count"),
                     "items": ctx.get("items", [])[:50],

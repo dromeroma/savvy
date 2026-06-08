@@ -36,9 +36,8 @@ async def scan_plate_endpoint(
 ) -> Any:
     """SavvyVision: lee la placa de una foto y sugiere entrada/salida/lavado."""
     from src.apps.parking.ai_scan import scan_plate
-    data = await file.read()
-    if not data:
-        raise ValidationError("Imagen vacía.")
+    from src.core.uploads import read_limited
+    data = await read_limited(file, allowed_prefixes=("image/",))
     try:
         return await scan_plate(
             db, org_id, file_bytes=data, filename=file.filename or "placa.jpg",

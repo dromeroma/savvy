@@ -89,9 +89,8 @@ async def scan_document(
     org_id: uuid.UUID = Depends(get_org_id),
     user: dict[str, Any] = Depends(get_current_user),
 ) -> Any:
-    file_bytes = await file.read()
-    if not file_bytes:
-        raise ValidationError("Archivo vacío.")
+    from src.core.uploads import read_limited
+    file_bytes = await read_limited(file)
     try:
         ext = await ScanService.scan_document(
             db, org_id,

@@ -36,6 +36,12 @@ class Settings(BaseSettings):
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
+    # Cifrado de secretos en reposo (API keys de IA, tokens de WhatsApp).
+    # Clave dedicada e independiente del JWT_SECRET_KEY: rotar el JWT no debe
+    # destruir los secretos cifrados. Si está vacía, se cae a JWT_SECRET_KEY
+    # (compatibilidad con secretos ya cifrados). MIGRAR a una clave propia en prod.
+    ENCRYPTION_KEY: str = ""
+
     # CORS
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173"]
 
