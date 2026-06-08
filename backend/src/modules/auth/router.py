@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.dependencies import get_current_user, get_db
+from src.core.rate_limit import rate_limit
 from src.modules.auth.dependencies import get_auth_service
 from src.modules.auth.schemas import (
     AuthResponse,
@@ -35,6 +36,7 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
     response_model=AuthResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Register a new organization and owner account",
+    dependencies=[Depends(rate_limit("auth_register", 5, 300))],
 )
 async def register(
     data: RegisterRequest,
@@ -49,6 +51,7 @@ async def register(
     response_model=LoginResponse,
     status_code=status.HTTP_200_OK,
     summary="Authenticate — returns tokens or org selector",
+    dependencies=[Depends(rate_limit("auth_login", 10, 60))],
 )
 async def login(
     data: LoginRequest,

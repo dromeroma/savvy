@@ -39,6 +39,8 @@ def require_platform_role(*allowed: str) -> Callable[..., Any]:
             raise ForbiddenError(
                 f"This action requires one of the platform roles: {', '.join(allowed)}.",
             )
+        from src.core.tenant_context import current_is_platform
+        current_is_platform.set(True)
         return user
 
     return _check
@@ -51,4 +53,7 @@ async def require_super_admin(
     """Shortcut for the most common case: super_admin only."""
     if "super_admin" not in roles:
         raise ForbiddenError("This action requires platform role 'super_admin'.")
+    # Acceso cross-org legítimo: marca el contexto de plataforma (para RLS).
+    from src.core.tenant_context import current_is_platform
+    current_is_platform.set(True)
     return user

@@ -14,6 +14,7 @@ from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.dependencies import get_current_user, get_db, get_org_id
+from src.core.rate_limit import rate_limit
 from src.core.exceptions import ValidationError
 from src.modules.platform.dependencies import require_super_admin
 from src.modules.savvy_ai.client import AiNotConfiguredError
@@ -79,7 +80,8 @@ def _to_confirmable(ext, apply_result: dict[str, Any] | None = None) -> Confirma
     )
 
 
-@router.post("/scan", response_model=ConfirmableAction)
+@router.post("/scan", response_model=ConfirmableAction,
+             dependencies=[Depends(rate_limit("ai_scan", 20, 60))])
 async def scan_document(
     file: UploadFile = File(...),
     prompt_key: str = Form("extraction.purchase_invoice"),
@@ -179,7 +181,8 @@ async def universal_search_endpoint(
 
 # ---------- Fase 2: Copilot ----------
 
-@router.post("/copilot", response_model=CopilotResponse)
+@router.post("/copilot", response_model=CopilotResponse,
+             dependencies=[Depends(rate_limit("ai_copilot", 30, 60))])
 async def copilot_ask(
     data: CopilotRequest,
     db: AsyncSession = Depends(get_db),

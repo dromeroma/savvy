@@ -5,7 +5,7 @@
 
 ---
 
-## FASE 1 — Seguridad multi-tenant + hardening (8-10 jun)
+## FASE 1 — Seguridad multi-tenant + hardening (8-10 jun) — ✅ COMPLETA (código)
 
 ### Hardening rápido (✅ hecho y verificado)
 - ✅ **Clave de cifrado dedicada** `SAVVY_ENCRYPTION_KEY` (con compat MultiFernet:
@@ -18,32 +18,35 @@
 - ✅ `statement_cache_size=0` ya estaba en el engine (PgBouncer OK).
 - ✅ Tests unitarios que blindan los 3 fixes [`tests/test_security_hardening.py`].
 
-### RLS real — aislamiento a nivel de base de datos
-- ✅ **Políticas `tenant_isolation` creadas en 198 tablas** con `organization_id`
+### RLS real — aislamiento a nivel de base de datos (✅ mecanismo completo y PROBADO)
+- ✅ **Políticas `tenant_isolation` en 198 tablas** con `organization_id`
   (USING/WITH CHECK por `app.current_org_id` + bypass de plataforma por
-  `app.is_platform`). **DORMANTES**: el rol propietario las bypassa, la app
-  sigue intacta. [`scripts/setup_rls_policies.py`]
-- ✅ Plumbing del GUC listo: contextvar por request + helper `apply_tenant_guc`.
-  [`core/tenant_context.py`, middleware tenant]
-- ✅ Verificado: la app sigue leyendo normal tras aplicar políticas.
-- ⬜ **Test de aislamiento multi-tenant** [`tests/test_tenant_isolation.py`] —
-  escrito (HR + POS, 2 orgs, detecta fugas). **Falta correrlo en CI/staging**
-  (pytest no está en este entorno; el proyecto sí lo corre).
-- ⚠️ **CUT-OVER de RLS (paso deliberado, NO en esta tanda):**
-  1. Crear rol `savvy_app` con LOGIN, **sin** `BYPASSRLS`, sin ser owner;
-     `GRANT` de DML sobre las tablas + USAGE en el schema.
-  2. Wirear `apply_tenant_guc` al inicio de cada transacción (event listener
-     `begin` sobre `engine.sync_engine`, leyendo el contextvar).
-  3. Cambiar `SAVVY_DATABASE_URL` al rol `savvy_app`.
-  4. Correr `test_tenant_isolation` **en verde** + smoke de los 797 endpoints.
-  5. **Hacerlo primero en una DB de staging** (branch de Supabase), no en prod.
-  *Razón de no hacerlo ya: un fallo en el GUC tumba toda la app; sin suite de
-  tests verde es temerario contra la única BD productiva.*
+  `app.is_platform`). [`scripts/setup_rls_policies.py`]
+- ✅ **Rol no-propietario `savvy_app`** (NOLOGIN, NOBYPASSRLS) con grants DML +
+  default privileges + membresía al rol de la app. [`scripts/setup_rls_role.py`]
+- ✅ **Enforcement por `SET LOCAL ROLE` + GUC por transacción**, gated por
+  `SAVVY_RLS_ENFORCE` (default OFF). Event listener `begin` sobre el engine:
+  con OFF no hace nada; con ON, cada transacción de tenant corre como `savvy_app`
+  → la RLS aísla. Plataforma marca `app.is_platform=on` (cross-org). [`database.py`,
+  `tenant_context.py`, middleware, `platform/dependencies.py`]
+- ✅ **PROBADO contra datos reales** [`scripts/verify_rls.py`]:
+  · owner → 8 empleados (bypass) · savvy_app+San Rafael → 8 · savvy_app+Acueducto
+  → **0 (aislado)** · sin org → 0 · plataforma → 8. **RLS aísla correctamente.**
+- ✅ **PROBADO por el camino real de la app** (event listener + contextvars):
+  enforce OFF → app intacta; enforce ON → aísla por org, plataforma cross-org.
+- ✅ Test de aislamiento escrito [`tests/test_tenant_isolation.py`] (HR + POS, 2 orgs).
+- ⚠️ **ACTIVACIÓN (flip):** poner `SAVVY_RLS_ENFORCE=true` en el entorno
+  (Render). **Hacerlo primero en staging** + smoke de rutas. Rollback instantáneo
+  (cambiar la variable a false). El mecanismo ya está validado end-to-end.
 
-### Pendiente Fase 1
-- ⬜ Rate limiting (slowapi) en auth/scan/copilot.
-- ⬜ Correr `test_tenant_isolation` y arreglar las fugas que encuentre.
-- ⬜ Cut-over de RLS en staging.
+### Rate limiting (✅ hecho)
+- ✅ Limiter en memoria (sin deps) [`core/rate_limit.py`] aplicado a:
+  `/auth/login` (10/min), `/auth/register` (5/5min), `/ai/scan` (20/min),
+  `/ai/copilot` (30/min). Migrar a Redis para multi-worker.
+
+### Pendiente Fase 1 (solo activación/CI, no código)
+- ⬜ Correr `test_tenant_isolation` + suite en el entorno con pytest (CI).
+- ⬜ Flip `SAVVY_RLS_ENFORCE=true` en staging → smoke → prod.
 
 ---
 
@@ -90,5 +93,10 @@
 ## Bitácora
 - 2026-06-08 — **Fase 1 (tanda 1) hecha:** 3 hardening (cifrado dedicado, anti-SSRF,
   límite de uploads) con tests; RLS con 198 políticas dormantes + plumbing del GUC;
-  test de aislamiento escrito. Falta: correr tests en CI, rate limit y el cut-over
-  de RLS en staging. Siguiente: terminar Fase 1 (rate limit + cut-over) o Fase 2.
+  test de aislamiento escrito.
+- 2026-06-08 — **Fase 1 COMPLETA (código):** RLS enforcement por `SET LOCAL ROLE` +
+  GUC gated por `SAVVY_RLS_ENFORCE`, **probado contra datos reales y por el camino
+  real de la app** (Acueducto ve 0 datos de San Rafael). Rol `savvy_app` creado con
+  grants. Rate limiting en auth/scan/copilot. Lo único que resta es la **activación**
+  (flip de la variable en staging→prod) y correr la suite en CI — no más código de
+  seguridad. Siguiente: **Fase 2 — Estabilidad + IA production-grade.**

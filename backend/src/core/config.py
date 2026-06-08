@@ -42,6 +42,13 @@ class Settings(BaseSettings):
     # (compatibilidad con secretos ya cifrados). MIGRAR a una clave propia en prod.
     ENCRYPTION_KEY: str = ""
 
+    # RLS — enforcement por `SET LOCAL ROLE` + GUC por transacción.
+    # OFF por defecto: la app corre como owner (RLS bypassada, comportamiento
+    # actual). ON: cada transacción de un request con org corre como RLS_APP_ROLE
+    # (no propietario) → la RLS aísla a nivel de BD. Activar primero en staging.
+    RLS_ENFORCE: bool = False
+    RLS_APP_ROLE: str = "savvy_app"
+
     # CORS
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173"]
 
