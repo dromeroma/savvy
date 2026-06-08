@@ -194,26 +194,32 @@ async def memorial_collection_risk(db: AsyncSession, org_id: uuid.UUID) -> dict[
 
 
 async def insights_summary(db: AsyncSession, org_id: uuid.UUID) -> dict[str, Any]:
-    """Tarjetas de titulares para mostrar de un vistazo."""
-    pos = await pos_inventory_insights(db, org_id)
-    promos = await pos_promo_recommendations(db, org_id)
-    mem = await memorial_collection_risk(db, org_id)
+    """Tarjetas de titulares — SOLO de las apps que la org tiene activas."""
+    from src.modules.savvy_ai.active_apps import active_app_codes
+    apps = await active_app_codes(db, org_id)
     cards: list[dict[str, Any]] = []
-    if pos["reorder_count"]:
-        cards.append({"icon": "📦", "tone": "warn",
-                      "title": f"{pos['reorder_count']} producto(s) por reabastecer",
-                      "detail": "Stock bajo según tu ritmo de ventas.", "link": "/pos/insights"})
-    if pos["stale_count"]:
-        cards.append({"icon": "🐌", "tone": "info",
-                      "title": f"{pos['stale_count']} producto(s) estancado(s)",
-                      "detail": "Con stock pero sin ventas recientes.", "link": "/pos/insights"})
-    if promos["count"]:
-        cards.append({"icon": "🎯", "tone": "violet",
-                      "title": f"{promos['count']} idea(s) de promoción",
-                      "detail": "Combina estancados con best-sellers.", "link": "/pos/insights"})
-    if mem["total_at_risk"]:
-        cards.append({"icon": "⚠️", "tone": "danger",
-                      "title": f"{mem['total_at_risk']} cliente(s) en riesgo de cartera",
-                      "detail": f"$ {mem['total_overdue_amount']:,.0f} vencidos.".replace(",", "."),
-                      "link": "/memorial/risk"})
+
+    if "pos" in apps:
+        pos = await pos_inventory_insights(db, org_id)
+        promos = await pos_promo_recommendations(db, org_id)
+        if pos["reorder_count"]:
+            cards.append({"icon": "📦", "tone": "warn",
+                          "title": f"{pos['reorder_count']} producto(s) por reabastecer",
+                          "detail": "Stock bajo según tu ritmo de ventas.", "link": "/pos/insights"})
+        if pos["stale_count"]:
+            cards.append({"icon": "🐌", "tone": "info",
+                          "title": f"{pos['stale_count']} producto(s) estancado(s)",
+                          "detail": "Con stock pero sin ventas recientes.", "link": "/pos/insights"})
+        if promos["count"]:
+            cards.append({"icon": "🎯", "tone": "violet",
+                          "title": f"{promos['count']} idea(s) de promoción",
+                          "detail": "Combina estancados con best-sellers.", "link": "/pos/insights"})
+
+    if "memorial" in apps:
+        mem = await memorial_collection_risk(db, org_id)
+        if mem["total_at_risk"]:
+            cards.append({"icon": "⚠️", "tone": "danger",
+                          "title": f"{mem['total_at_risk']} cliente(s) en riesgo de cartera",
+                          "detail": f"$ {mem['total_overdue_amount']:,.0f} vencidos.".replace(",", "."),
+                          "link": "/memorial/risk"})
     return {"cards": cards}

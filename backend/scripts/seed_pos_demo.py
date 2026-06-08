@@ -62,6 +62,17 @@ async def main(dry: bool) -> None:
                 print(f"❌ Org '{ORG_SLUG}' no existe.")
                 return
 
+            # Guard: NUNCA sembrar POS en una org que no tiene la app 'pos' activa
+            # (evita contaminar p.ej. una funeraria con datos de POS).
+            has_pos = await s.scalar(text("""
+                SELECT 1 FROM organization_apps oa JOIN app_registry ar ON ar.id = oa.app_id
+                WHERE oa.organization_id = :o AND ar.code = 'pos' AND oa.status = 'active' LIMIT 1
+            """), {"o": org})
+            if not has_pos:
+                print(f"❌ La org '{ORG_SLUG}' NO tiene la app 'pos' activa. Abortando "
+                      "(no se siembra POS en orgs sin POS). Cambia ORG_SLUG a una org con POS.")
+                return
+
             existing = await s.scalar(
                 text("SELECT count(*) FROM pos_products WHERE organization_id = :o"), {"o": org}
             )
