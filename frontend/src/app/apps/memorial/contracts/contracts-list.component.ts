@@ -13,10 +13,11 @@ import {
 } from '../../../core/models/memorial.model';
 import { NotificationService } from '../../../shared/services/notification.service';
 import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
+import { ScanPrefillComponent } from '../../../shared/components/ai/scan-prefill.component';
 
 @Component({
   selector: 'app-memorial-contracts-list',
-  imports: [CommonModule, FormsModule, RouterLink, PaginationComponent],
+  imports: [CommonModule, FormsModule, RouterLink, PaginationComponent, ScanPrefillComponent],
   templateUrl: './contracts-list.component.html',
 })
 export class MemorialContractsListComponent implements OnInit {
@@ -161,6 +162,16 @@ export class MemorialContractsListComponent implements OnInit {
         this.formError.set(typeof detail === 'string' ? detail : 'Error al crear el contrato.');
       },
     });
+  }
+
+  /** Prellena el titular del contrato con los datos extraídos de la cédula (SavvyScan). */
+  applyCedula(data: Record<string, unknown>): void {
+    const v = (k: string) => (data[k] == null ? '' : String(data[k]));
+    if (v('first_name')) this.form.titular_first_name = v('first_name');
+    if (v('last_name')) this.form.titular_last_name = v('last_name');
+    if (v('document_number')) this.form.titular_document_number = v('document_number');
+    if (v('document_type')) this.form.titular_document_type = v('document_type');
+    this.notify.show({ type: 'success', title: 'Cédula leída', message: 'Revisa y completa los datos.' });
   }
 
   badge(s: string): string {

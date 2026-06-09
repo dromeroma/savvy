@@ -142,7 +142,14 @@
         </div>
 
         <!-- Titular -->
-        <h4 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mt-6 mb-2">Titular</h4>
+        <div class="flex items-center justify-between mt-6 mb-2">
+          <h4 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Titular</h4>
+          @if (form.affiliate_type !== 'empresarial') {
+            <app-scan-prefill prompt-key="extraction.id_card" target-app="memorial"
+              document-type="id_card" label="Escanear cédula"
+              (prefill)="applyCedula($event)" />
+          }
+        </div>
         @if (form.affiliate_type === 'empresarial') {
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div class="sm:col-span-2">

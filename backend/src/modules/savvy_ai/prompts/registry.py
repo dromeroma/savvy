@@ -103,9 +103,43 @@ PLATE_PROMPT = PromptSpec(
 )
 
 
+# ---------------- Documento de identidad (cédula) — transversal ----------------
+
+ID_CARD_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "first_name": {"type": ["string", "null"], "description": "Nombres"},
+        "last_name": {"type": ["string", "null"], "description": "Apellidos"},
+        "document_type": {"type": ["string", "null"], "description": "CC, TI, CE, PA, NIT…"},
+        "document_number": {"type": ["string", "null"], "description": "Número, sin puntos"},
+        "birth_date": {"type": ["string", "null"], "description": "YYYY-MM-DD si es visible"},
+        "gender": {"type": ["string", "null"], "description": "M / F si es visible"},
+        "field_confidence": {"type": "object", "additionalProperties": {"type": "number"}},
+        "overall_confidence": {"type": "number"},
+    },
+    "required": ["document_number", "overall_confidence"],
+}
+
+ID_CARD_PROMPT = PromptSpec(
+    key="extraction.id_card",
+    version="v1",
+    tier="sonnet",
+    system=(
+        "Eres un asistente que lee documentos de identidad de Colombia y "
+        "Latinoamérica (cédula, tarjeta de identidad, cédula de extranjería, "
+        "pasaporte). Extrae nombres, apellidos, tipo y número de documento, y "
+        "fecha de nacimiento si es visible. El número va sin puntos ni espacios. "
+        "Si un dato no aparece, déjalo en null — nunca inventes. Estima una "
+        "confianza 0-100 por campo. Responde SOLO llamando la herramienta."
+    ),
+    output_schema=ID_CARD_SCHEMA,
+)
+
+
 PROMPTS: dict[str, PromptSpec] = {
     INVOICE_PROMPT.key: INVOICE_PROMPT,
     PLATE_PROMPT.key: PLATE_PROMPT,
+    ID_CARD_PROMPT.key: ID_CARD_PROMPT,
 }
 
 
