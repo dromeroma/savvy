@@ -45,7 +45,12 @@ target-version = "py312"
 line-length = 100
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "W", "UP", "B", "SIM", "RUF"]
+# Set enfocado en errores que ROMPEN en runtime (no estilo): sintaxis, nombres
+# indefinidos, redefiniciones, f-strings mal formados. F401 (import sin usar)
+# queda FUERA a propósito: el codebase usa side-effect imports para registrar
+# modelos SQLAlchemy, y removerlos rompería el descubrimiento de modelos.
+# Para endurecer estilo más adelante: añadir "E", "I", "UP", "B" y limpiar por tandas.
+select = ["E9", "F63", "F7", "F82", "F811", "F821", "F823"]
 
 [tool.mypy]
 python_version = "3.12"

@@ -146,7 +146,7 @@
           <h4 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Titular</h4>
           @if (form.affiliate_type !== 'empresarial') {
             <app-scan-prefill prompt-key="extraction.id_card" target-app="memorial"
-              document-type="id_card" label="Escanear cédula"
+              document-type="id_card" label="Escanear documento"
               (prefill)="applyCedula($event)" />
           }
         </div>

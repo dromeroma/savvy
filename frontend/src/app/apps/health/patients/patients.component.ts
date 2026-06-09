@@ -34,7 +34,7 @@ import { ScanPrefillComponent } from '../../../shared/components/ai/scan-prefill
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-lg font-bold text-gray-800 dark:text-white/90">Nuevo Paciente</h3>
               <app-scan-prefill prompt-key="extraction.id_card" target-app="health"
-                document-type="id_card" label="Escanear cédula" (prefill)="applyCedula($event)" />
+                document-type="id_card" label="Escanear documento" (prefill)="applyCedula($event)" />
             </div>
             <div class="space-y-3">
               <div class="grid grid-cols-2 gap-3"><div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre</label><input [(ngModel)]="form.first_name" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" /></div><div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Apellido</label><input [(ngModel)]="form.last_name" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" /></div></div>

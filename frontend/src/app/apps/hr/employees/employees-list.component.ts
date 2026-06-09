@@ -120,7 +120,7 @@ import { ScanPrefillComponent } from '../../../shared/components/ai/scan-prefill
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Nuevo empleado</h3>
               <app-scan-prefill prompt-key="extraction.id_card" target-app="hr"
-                document-type="id_card" label="Escanear cédula"
+                document-type="id_card" label="Escanear documento"
                 (prefill)="applyCedula($event)" />
             </div>
             @if (formError()) {
