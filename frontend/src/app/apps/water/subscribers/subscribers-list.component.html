@@ -103,9 +103,15 @@
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="closeForm()">
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto"
         (click)="$event.stopPropagation()">
-        <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-1">
-          {{ editing() ? 'Editar suscriptor' : 'Nuevo suscriptor' }}
-        </h3>
+        <div class="flex items-start justify-between mb-1">
+          <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+            {{ editing() ? 'Editar suscriptor' : 'Nuevo suscriptor' }}
+          </h3>
+          @if (!editing()) {
+            <app-scan-prefill prompt-key="extraction.id_card" target-app="water"
+              document-type="id_card" label="Escanear cédula" (prefill)="applyCedula($event)" />
+          }
+        </div>
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-5">
           Datos básicos del cliente del acueducto.
         </p>

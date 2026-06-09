@@ -10,10 +10,11 @@ import {
   WaterSubscriberListItem,
 } from '../../../core/models/water.model';
 import { NotificationService } from '../../../shared/services/notification.service';
+import { ScanPrefillComponent } from '../../../shared/components/ai/scan-prefill.component';
 
 @Component({
   selector: 'app-subscribers-list',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ScanPrefillComponent],
   templateUrl: './subscribers-list.component.html',
 })
 export class SubscribersListComponent implements OnInit {
@@ -90,6 +91,16 @@ export class SubscribersListComponent implements OnInit {
     this.form = this.emptyForm();
     this.formError.set('');
     this.formOpen.set(true);
+  }
+
+  /** Prellena el suscriptor desde la cédula (SavvyScan). */
+  applyCedula(data: Record<string, unknown>): void {
+    const v = (k: string) => (data[k] == null ? '' : String(data[k]));
+    if (v('first_name')) this.form.first_name = v('first_name');
+    if (v('last_name')) this.form.last_name = v('last_name');
+    if (v('document_number')) this.form.document_number = v('document_number');
+    if (v('document_type')) this.form.document_type = v('document_type');
+    this.notify.show({ type: 'success', title: 'Cédula leída', message: 'Revisa y completa los datos.' });
   }
 
   openEdit(s: WaterSubscriberListItem): void {

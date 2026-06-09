@@ -3,10 +3,11 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
 import { NotificationService } from '../../../shared/services/notification.service';
+import { ScanPrefillComponent } from '../../../shared/components/ai/scan-prefill.component';
 
 @Component({
   selector: 'app-health-patients',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ScanPrefillComponent],
   template: `
     <div>
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
@@ -30,7 +31,11 @@ import { NotificationService } from '../../../shared/services/notification.servi
       @if (showModal) {
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="showModal = false">
           <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto custom-scrollbar p-6" (click)="$event.stopPropagation()">
-            <h3 class="text-lg font-bold text-gray-800 dark:text-white/90 mb-4">Nuevo Paciente</h3>
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-bold text-gray-800 dark:text-white/90">Nuevo Paciente</h3>
+              <app-scan-prefill prompt-key="extraction.id_card" target-app="health"
+                document-type="id_card" label="Escanear cédula" (prefill)="applyCedula($event)" />
+            </div>
             <div class="space-y-3">
               <div class="grid grid-cols-2 gap-3"><div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre</label><input [(ngModel)]="form.first_name" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" /></div><div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Apellido</label><input [(ngModel)]="form.last_name" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" /></div></div>
               <div class="grid grid-cols-2 gap-3"><div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Documento</label><input [(ngModel)]="form.document_number" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-white/90 px-3 py-2 text-sm" /></div><div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo Sangre</label><select [(ngModel)]="form.blood_type" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-white/90 px-3 py-2 text-sm"><option value="">--</option><option value="O+">O+</option><option value="O-">O-</option><option value="A+">A+</option><option value="A-">A-</option><option value="B+">B+</option><option value="B-">B-</option><option value="AB+">AB+</option><option value="AB-">AB-</option></select></div></div>
@@ -48,6 +53,13 @@ export class HealthPatientsComponent implements OnInit {
   private readonly notify = inject(NotificationService);
   patients = signal<any[]>([]); showModal = false; search = '';
   form: any = { first_name: '', last_name: '', document_number: '', blood_type: '', email: '', phone: '' };
+  applyCedula(data: Record<string, unknown>): void {
+    const v = (k: string) => (data[k] == null ? '' : String(data[k]));
+    if (v('first_name')) this.form.first_name = v('first_name');
+    if (v('last_name')) this.form.last_name = v('last_name');
+    if (v('document_number')) this.form.document_number = v('document_number');
+    this.notify.show({ type: 'success', title: 'Cédula leída', message: 'Revisa y completa los datos.' });
+  }
   ngOnInit(): void { this.load(); }
   load(): void { const p: any = { page_size: 100 }; if (this.search) p.search = this.search; this.api.get<any>('/health/patients', p).subscribe({ next: (r) => this.patients.set(r.items || []) }); }
   save(): void { const payload: any = { first_name: this.form.first_name, last_name: this.form.last_name }; if (this.form.document_number) payload.document_number = this.form.document_number; if (this.form.blood_type) payload.blood_type = this.form.blood_type; if (this.form.email) payload.email = this.form.email; if (this.form.phone) payload.phone = this.form.phone; this.api.post('/health/patients', payload).subscribe({ next: () => { this.showModal = false; this.notify.show({ type: 'success', title: 'Listo', message: 'Paciente creado' }); this.load(); }, error: () => this.notify.show({ type: 'error', title: 'Error', message: 'No se pudo crear' }) }); }

@@ -14,10 +14,11 @@ import {
 } from '../../../core/models/hr.model';
 import { NotificationService } from '../../../shared/services/notification.service';
 import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
+import { ScanPrefillComponent } from '../../../shared/components/ai/scan-prefill.component';
 
 @Component({
   selector: 'app-hr-employees-list',
-  imports: [CommonModule, FormsModule, RouterLink, PaginationComponent],
+  imports: [CommonModule, FormsModule, RouterLink, PaginationComponent, ScanPrefillComponent],
   template: `
     <div class="px-4 sm:px-6 py-6 space-y-5">
       <header class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -116,7 +117,12 @@ import { PaginationComponent } from '../../../shared/components/pagination/pagin
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
              (click)="$event.target === $event.currentTarget && closeForm()">
           <div class="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 rounded-xl shadow-xl max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
-            <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">Nuevo empleado</h3>
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Nuevo empleado</h3>
+              <app-scan-prefill prompt-key="extraction.id_card" target-app="hr"
+                document-type="id_card" label="Escanear cédula"
+                (prefill)="applyCedula($event)" />
+            </div>
             @if (formError()) {
               <p class="text-sm text-rose-600 mb-3">{{ formError() }}</p>
             }
@@ -314,6 +320,18 @@ export class HrEmployeesListComponent implements OnInit {
   }
 
   closeForm(): void { this.formOpen.set(false); }
+
+  /** Prellena los datos personales del empleado desde la cédula (SavvyScan). */
+  applyCedula(data: Record<string, unknown>): void {
+    const v = (k: string) => (data[k] == null ? '' : String(data[k]));
+    if (v('first_name')) this.form.first_name = v('first_name');
+    if (v('last_name')) this.form.last_name = v('last_name');
+    if (v('document_number')) this.form.document_number = v('document_number');
+    if (v('document_type')) this.form.document_type = v('document_type');
+    if (v('birth_date')) this.form.birth_date = v('birth_date');
+    if (v('gender')) this.form.gender = v('gender');
+    this.notify.show({ type: 'success', title: 'Cédula leída', message: 'Revisa y completa los datos.' });
+  }
 
   save(): void {
     this.saving.set(true);
