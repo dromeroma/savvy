@@ -20,7 +20,8 @@ logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
 from sqlalchemy import text  # noqa: E402
 
 from src.core.database import Base, async_session_factory, engine  # noqa: E402
-from src.apps.hotel import models as hotel_models  # noqa: E402,F401  (registra tablas)
+import src.gateway.router  # noqa: E402,F401  (registra TODOS los modelos, incl. organizations)
+from src.apps.hotel import models as hotel_models  # noqa: E402,F401  (registra tablas de hotel)
 
 HOTEL_TABLES = [
     "hotel_room_types", "hotel_rooms", "hotel_reservations",
