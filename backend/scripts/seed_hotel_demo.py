@@ -33,6 +33,7 @@ from src.apps.hotel.schemas import (  # noqa: E402
 from src.apps.hotel.service import (  # noqa: E402
     FolioService, ReservationService, RoomService, RoomTypeService,
 )
+from src.apps.hr.models import HrDepartment, HrEmployee, HrPosition  # noqa: E402
 from src.apps.parking.infrastructure.models import (  # noqa: E402
     ParkingLocation, ParkingSpot, ParkingZone,
 )
@@ -73,6 +74,34 @@ FUTURE = [
 PARKED = [
     ("ABC123", "car", 5), ("XYZ789", "car", 3), ("MOT45D", "motorcycle", 1),
     ("DEF456", "car", 8), ("GHI012", "car", 2), ("JKL345", "car", 6),
+]
+
+# POS restaurante: categorías y productos (sku, nombre, cat, costo, precio, stock, min)
+RES_CATS = [("PLA", "Platos fuertes"), ("BEB", "Bebidas"), ("POS", "Postres")]
+RES_PRODUCTS = [
+    ("PLA-01", "Bandeja Paisa", "PLA", 15000, 32000, 40, 10),
+    ("PLA-02", "Mojarra Frita", "PLA", 18000, 38000, 25, 8),
+    ("PLA-03", "Pechuga a la Plancha", "PLA", 12000, 26000, 30, 10),
+    ("BEB-01", "Gaseosa", "BEB", 2000, 5000, 80, 20),
+    ("BEB-02", "Jugo Natural", "BEB", 3000, 8000, 50, 15),
+    ("BEB-03", "Cerveza", "BEB", 3000, 7000, 60, 20),
+    ("POS-01", "Flan de Caramelo", "POS", 3000, 9000, 20, 6),
+    ("POS-02", "Helado", "POS", 2500, 7000, 24, 6),
+]
+
+# HR personal del hotel: (nombre, apellido, doc, cargo_code, depto_code)
+STAFF_DEPTS = [("REC", "Recepción"), ("RES", "Restaurante"), ("HSK", "Housekeeping"), ("ADM", "Administración")]
+STAFF_POS = [("GERE", "Gerente"), ("RECP", "Recepcionista"), ("CHEF", "Chef"),
+             ("MESE", "Mesero"), ("CAMA", "Camarera"), ("AUXA", "Auxiliar Administrativo")]
+STAFF = [
+    ("Juan", "Ríos", "10111222", "GERE", "ADM"),
+    ("Marta", "López", "22333444", "RECP", "REC"),
+    ("Luis", "Peña", "33444555", "RECP", "REC"),
+    ("Carlos", "Mesa", "44555666", "CHEF", "RES"),
+    ("Ana", "Díaz", "55666777", "MESE", "RES"),
+    ("Rosa", "Vega", "66777888", "CAMA", "HSK"),
+    ("Elena", "Mora", "77888999", "CAMA", "HSK"),
+    ("Pedro", "Sanz", "88999000", "AUXA", "ADM"),
 ]
 
 
@@ -126,18 +155,23 @@ async def main() -> None:
             await s.execute(text("INSERT INTO memberships (id,organization_id,user_id,role,joined_at,created_at,updated_at) "
                                  "VALUES (:i,:o,:u,'owner',now(),now(),now())"), {"i": uuid.uuid4(), "o": org, "u": uid})
 
-        # Activar apps: hotel, parking, accounting
-        for code in ("hotel", "parking", "accounting"):
+        # Activar apps: hotel, parking, accounting, pos, hr
+        for code in ("hotel", "parking", "accounting", "pos", "hr"):
             app_id = await s.scalar(text("SELECT id FROM app_registry WHERE code=:c"), {"c": code})
             if app_id and not await s.scalar(text("SELECT 1 FROM organization_apps WHERE organization_id=:o AND app_id=:a"), {"o": org, "a": app_id}):
                 await s.execute(text("INSERT INTO organization_apps (id,organization_id,app_id,status,activated_at,settings,created_at,updated_at) "
                                      "VALUES (:i,:o,:a,'active',now(),'{}'::jsonb,now(),now())"), {"i": uuid.uuid4(), "o": org, "a": app_id})
-        print("  ✓ org + usuario owner + apps (hotel, parqueo, contabilidad)")
+        print("  ✓ org + usuario owner + apps (hotel, parqueo, contabilidad, POS, HR)")
 
         # Reset datos demo de la org
+        # pos_sale_lines no tiene org_id → subconsulta
+        await s.execute(text("DELETE FROM pos_sale_lines WHERE sale_id IN "
+                             "(SELECT id FROM pos_sales WHERE organization_id=:o)"), {"o": org})
         for t in ["hotel_folio_payments", "hotel_folio_charges", "hotel_folios",
                   "hotel_reservations", "hotel_rooms", "hotel_room_types",
-                  "parking_sessions", "parking_spots", "parking_zones", "parking_locations"]:
+                  "parking_sessions", "parking_spots", "parking_zones", "parking_locations",
+                  "pos_sales", "pos_inventory", "pos_products", "pos_categories", "pos_locations",
+                  "hr_employees", "hr_positions", "hr_departments"]:
             await s.execute(text(f"DELETE FROM {t} WHERE organization_id=:o"), {"o": org})
         # Contabilidad (journal_entry_lines no tiene org_id → vía subconsulta)
         await s.execute(text("DELETE FROM journal_entry_lines WHERE journal_entry_id IN "
@@ -166,13 +200,14 @@ async def main() -> None:
         await s.commit()
 
         # -------- Hotel: huéspedes en casa (check-in al final → quedan ocupadas) --------
+        carlos_rid = None
         for i, (name, doc, ti, since, nights, ad, ch) in enumerate(IN_HOUSE):
             ci = today - timedelta(days=since)
             co = ci + timedelta(days=nights)
             rid = await _make(s, org, name, doc, type_ids[ti], ci, co, ad, ch)
             await _checkin(s, org, rid)
-            if i == 0:  # uno con consumo + abono parcial
-                await FolioService.add_charge(s, org, rid, FolioChargeCreate(description="Restaurante", quantity=1, unit_price=45000))
+            if i == 0:  # Carlos: abono parcial (su consumo POS se carga luego)
+                carlos_rid = rid
                 await FolioService.add_payment(s, org, rid, FolioPaymentCreate(amount=200000, method="card"))
         await s.commit()
 
@@ -222,6 +257,77 @@ async def main() -> None:
             source_app="hotel")
         await s.commit()
         print("  ✓ contabilidad: catálogo de cuentas + 2 asientos")
+
+        # -------- POS restaurante: sede + carta + inventario + ventas --------
+        loc_id = uuid.uuid4()
+        await s.execute(text("INSERT INTO pos_locations (id,organization_id,code,name,status,created_at,updated_at) "
+                             "VALUES (:i,:o,'REST','Restaurante Monterrey','active',now(),now())"), {"i": loc_id, "o": org})
+        cat_ids = {}
+        for code, name in RES_CATS:
+            cid = uuid.uuid4(); cat_ids[code] = cid
+            await s.execute(text("INSERT INTO pos_categories (id,organization_id,code,name,sort_order,status,created_at,updated_at) "
+                                 "VALUES (:i,:o,:c,:n,0,'active',now(),now())"), {"i": cid, "o": org, "c": code, "n": name})
+        prod_ids = {}
+        for sku, name, cat, cost, price, stock, minst in RES_PRODUCTS:
+            pid = uuid.uuid4(); prod_ids[sku] = (pid, name, price)
+            await s.execute(text("INSERT INTO pos_products (id,organization_id,category_id,sku,name,product_type,price,cost,tracks_inventory,attributes,status,created_at,updated_at) "
+                                 "VALUES (:i,:o,:cat,:sku,:n,'simple',:p,:c,true,'{}'::jsonb,'active',now(),now())"),
+                            {"i": pid, "o": org, "cat": cat_ids[cat], "sku": sku, "n": name, "p": price, "c": cost})
+            await s.execute(text("INSERT INTO pos_inventory (id,organization_id,product_id,location_id,quantity,min_stock,created_at,updated_at) "
+                                 "VALUES (:i,:o,:pid,:loc,:q,:m,now(),now())"),
+                            {"i": uuid.uuid4(), "o": org, "pid": pid, "loc": loc_id, "q": stock, "m": minst})
+        # unas ventas de días recientes
+        import random as _rnd
+        _rnd.seed(11)
+        skus = list(prod_ids)
+        n_sales = 0
+        for day in range(7, 0, -1):
+            when = datetime.now(UTC) - timedelta(days=day, hours=3)
+            chosen = _rnd.sample(skus, 3)
+            sid = uuid.uuid4()
+            sub = sum(prod_ids[k][2] for k in chosen)
+            await s.execute(text("INSERT INTO pos_sales (id,organization_id,sale_number,location_id,subtotal,discount_amount,tax_amount,total,payment_method,payment_details,status,created_at,updated_at) "
+                                 "VALUES (:i,:o,:num,:loc,:sub,0,0,:sub,'cash','{}'::jsonb,'completed',:ts,:ts)"),
+                            {"i": sid, "o": org, "num": f"R-{when:%Y%m%d}-{day}", "loc": loc_id, "sub": sub, "ts": when})
+            for k in chosen:
+                pid, name, price = prod_ids[k]
+                await s.execute(text("INSERT INTO pos_sale_lines (id,sale_id,product_id,product_name,sku,quantity,unit_price,discount,tax_rate,tax_amount,line_total,created_at,updated_at) "
+                                     "VALUES (:i,:sid,:pid,:n,:sku,1,:p,0,0,0,:p,:ts,:ts)"),
+                                {"i": uuid.uuid4(), "sid": sid, "pid": pid, "n": name, "sku": k, "p": price, "ts": when})
+            n_sales += 1
+        # venta de HOY que se carga al folio de Carlos (integración POS→habitación)
+        sale_today = uuid.uuid4()
+        combo = [prod_ids["PLA-01"], prod_ids["BEB-03"], prod_ids["POS-01"]]
+        subt = sum(c[2] for c in combo)
+        await s.execute(text("INSERT INTO pos_sales (id,organization_id,sale_number,location_id,subtotal,discount_amount,tax_amount,total,payment_method,payment_details,status,created_at,updated_at) "
+                             "VALUES (:i,:o,:num,:loc,:sub,0,0,:sub,'credit','{}'::jsonb,'completed',now(),now())"),
+                        {"i": sale_today, "o": org, "num": "R-HOY-CARLOS", "loc": loc_id, "sub": subt})
+        for pid, name, price in combo:
+            await s.execute(text("INSERT INTO pos_sale_lines (id,sale_id,product_id,product_name,sku,quantity,unit_price,discount,tax_rate,tax_amount,line_total,created_at,updated_at) "
+                                 "VALUES (:i,:sid,:pid,:n,'',1,:p,0,0,0,:p,now(),now())"),
+                            {"i": uuid.uuid4(), "sid": sale_today, "pid": pid, "n": name, "p": price})
+        await s.commit()
+        if carlos_rid:
+            await FolioService.charge_from_pos(s, org, carlos_rid, sale_today)
+            await s.commit()
+        print(f"  ✓ POS restaurante: {len(RES_PRODUCTS)} platos · {n_sales+1} ventas (1 cargada a la habitación de Carlos)")
+
+        # -------- HR: departamentos + cargos + personal --------
+        dept_ids = {}
+        for code, name in STAFF_DEPTS:
+            d = HrDepartment(organization_id=org, code=code, name=name)
+            s.add(d); await s.flush(); dept_ids[code] = d.id
+        pos_ids = {}
+        for code, name in STAFF_POS:
+            p = HrPosition(organization_id=org, code=code, name=name)
+            s.add(p); await s.flush(); pos_ids[code] = p.id
+        for i, (fn, ln, doc, pcode, dcode) in enumerate(STAFF, 1):
+            s.add(HrEmployee(
+                organization_id=org, employee_code=f"EMP-{i:03d}", first_name=fn, last_name=ln,
+                document_type="CC", document_number=doc, hire_date=today - timedelta(days=200 + i * 15),
+                department_id=dept_ids[dcode], position_id=pos_ids[pcode], status="active"))
+        await s.commit()
+        print(f"  ✓ HR: {len(STAFF_DEPTS)} departamentos · {len(STAFF_POS)} cargos · {len(STAFF)} empleados")
 
     print(f"\n✓ Listo. Login: {EMAIL} / {PASSWORD}")
     await engine.dispose()
