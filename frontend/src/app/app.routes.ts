@@ -155,6 +155,13 @@ export const routes: Routes = [
         canActivate: [appAccessGuard],
       },
       {
+        path: 'hotel',
+        loadChildren: () =>
+          import('./apps/hotel/hotel.routes').then((m) => m.HOTEL_ROUTES),
+        data: { app: 'hotel' },
+        canActivate: [appAccessGuard],
+      },
+      {
         path: 'memorial',
         loadChildren: () =>
           import('./apps/memorial/memorial.routes').then((m) => m.MEMORIAL_ROUTES),
