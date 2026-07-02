@@ -35,6 +35,7 @@ from src.apps.memorial.router import router as memorial_router
 from src.apps.memorial.portal.router import router as memorial_portal_router
 from src.apps.hr.router import router as hr_router
 from src.apps.hr.portal.router import router as hr_portal_router
+from src.apps.hotel.router import router as hotel_router
 
 # SavvyAI (capa de IA compartida)
 from src.modules.savvy_ai.router import router as ai_router
@@ -78,6 +79,7 @@ api_router.include_router(memorial_router)
 api_router.include_router(memorial_portal_router)
 api_router.include_router(hr_router)
 api_router.include_router(hr_portal_router)
+api_router.include_router(hotel_router)
 
 # SavvyAI
 api_router.include_router(ai_router)
