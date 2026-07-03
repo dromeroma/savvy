@@ -33,7 +33,7 @@ from src.apps.hotel.schemas import (  # noqa: E402
 from src.apps.hotel.service import (  # noqa: E402
     FolioService, ReservationService, RoomService, RoomTypeService,
 )
-from src.apps.hr.models import HrDepartment, HrEmployee, HrPosition  # noqa: E402
+from src.apps.hr.models import HrContract, HrDepartment, HrEmployee, HrPosition  # noqa: E402
 from src.apps.parking.infrastructure.models import (  # noqa: E402
     ParkingLocation, ParkingSpot, ParkingZone,
 )
@@ -41,7 +41,6 @@ from src.apps.parking.sessions.models import ParkingSession  # noqa: E402
 from src.core.database import async_session_factory, engine  # noqa: E402
 from src.core.security import hash_password  # noqa: E402
 from src.modules.accounting.schemas import JournalEntryLineCreate  # noqa: E402
-from src.modules.accounting.seed import seed_chart_of_accounts  # noqa: E402
 from src.modules.accounting.service import AccountingEngine  # noqa: E402
 
 ORG_SLUG = "hotel-demo"
@@ -102,6 +101,45 @@ STAFF = [
     ("Rosa", "Vega", "66777888", "CAMA", "HSK"),
     ("Elena", "Mora", "77888999", "CAMA", "HSK"),
     ("Pedro", "Sanz", "88999000", "AUXA", "ADM"),
+]
+# Salario mensual por cargo (COP). Auxilio de transporte para <= 2 SMMLV.
+SALARY = {"GERE": 4500000, "CHEF": 2500000, "RECP": 1600000,
+          "MESE": 1423500, "CAMA": 1423500, "AUXA": 1800000}
+TRANSPORT = 200000
+
+# Parqueo ya cobrado (vehículos que entraron y salieron): (placa, tipo, horas, total)
+PARKED_DONE = [
+    ("PQR111", "car", 2, 6000), ("STU222", "car", 3, 9000),
+    ("VWX333", "motorcycle", 1, 1500), ("YZA444", "car", 5, 15000),
+]
+
+# Catálogo de cuentas HOTELERO (code, nombre, tipo, code_padre)
+HOTEL_CHART = [
+    ("1", "ACTIVOS", "asset", None),
+    ("1.1", "Disponible", "asset", "1"),
+    ("1.1.05", "Caja General", "asset", "1.1"),
+    ("1.1.10", "Bancos", "asset", "1.1"),
+    ("1.3", "Deudores", "asset", "1"),
+    ("1.3.05", "Clientes", "asset", "1.3"),
+    ("1.4", "Inventarios", "asset", "1"),
+    ("1.4.05", "Inventario Restaurante", "asset", "1.4"),
+    ("2", "PASIVOS", "liability", None),
+    ("2.4", "Impuestos", "liability", "2"),
+    ("2.4.05", "IVA por Pagar", "liability", "2.4"),
+    ("2.5", "Obligaciones Laborales", "liability", "2"),
+    ("2.5.05", "Salarios por Pagar", "liability", "2.5"),
+    ("3", "PATRIMONIO", "equity", None),
+    ("3.1.05", "Capital Social", "equity", "3"),
+    ("4", "INGRESOS", "revenue", None),
+    ("4.1", "Ingresos Operacionales", "revenue", "4"),
+    ("4.1.05", "Ingresos Hospedaje", "revenue", "4.1"),
+    ("4.1.10", "Ingresos Restaurante", "revenue", "4.1"),
+    ("4.1.15", "Ingresos Parqueadero", "revenue", "4.1"),
+    ("5", "GASTOS", "expense", None),
+    ("5.1", "Gastos Operacionales", "expense", "5"),
+    ("5.1.05", "Gastos de Personal", "expense", "5.1"),
+    ("5.1.10", "Servicios Públicos", "expense", "5.1"),
+    ("5.1.15", "Costo Insumos Restaurante", "expense", "5.1"),
 ]
 
 
@@ -171,7 +209,7 @@ async def main() -> None:
                   "hotel_reservations", "hotel_rooms", "hotel_room_types",
                   "parking_sessions", "parking_spots", "parking_zones", "parking_locations",
                   "pos_sales", "pos_inventory", "pos_products", "pos_categories", "pos_locations",
-                  "hr_employees", "hr_positions", "hr_departments"]:
+                  "hr_contracts", "hr_employees", "hr_positions", "hr_departments"]:
             await s.execute(text(f"DELETE FROM {t} WHERE organization_id=:o"), {"o": org})
         # Contabilidad (journal_entry_lines no tiene org_id → vía subconsulta)
         await s.execute(text("DELETE FROM journal_entry_lines WHERE journal_entry_id IN "
@@ -231,7 +269,7 @@ async def main() -> None:
         for n in range(1, 9):
             spots.append(ParkingSpot(organization_id=org, zone_id=z2.id, code=f"M-{n:03d}", spot_type="motorcycle"))
         s.add_all(spots); await s.flush()
-        # Ocupar spots con sesiones activas
+        # Ocupar spots con sesiones activas (vehículos parqueados ahora)
         for i, (plate, vtype, hrs) in enumerate(PARKED):
             spot = spots[i] if vtype == "car" else spots[12 + i]
             spot.status = "occupied"
@@ -239,24 +277,16 @@ async def main() -> None:
                 organization_id=org, location_id=loc.id, spot_id=spot.id, plate=plate,
                 vehicle_type=vtype, entry_time=datetime.now(UTC) - timedelta(hours=hrs),
                 status="active", payment_status="pending", entry_method="manual"))
+        # Sesiones ya cobradas (entraron y salieron) → ingreso realizado de parqueo
+        for plate, vtype, dur, total in PARKED_DONE:
+            entry = datetime.now(UTC) - timedelta(hours=dur + 1)
+            s.add(ParkingSession(
+                organization_id=org, location_id=loc.id, plate=plate, vehicle_type=vtype,
+                entry_time=entry, exit_time=entry + timedelta(hours=dur), duration_minutes=dur * 60,
+                amount=total, total=total, status="completed", payment_status="paid",
+                payment_method="cash", entry_method="manual"))
         await s.commit()
-        print(f"  ✓ parqueo: 1 sede · 2 zonas · {len(spots)} celdas · {len(PARKED)} ocupadas ahora")
-
-        # -------- Contabilidad: catálogo + asientos --------
-        await seed_chart_of_accounts(s, org, "church")
-        await s.commit()
-        await AccountingEngine.create_entry(
-            s, org, today - timedelta(days=1), "Consignación en bancos", uid,
-            [JournalEntryLineCreate(account_code="1.1.02", debit=Decimal("800000")),
-             JournalEntryLineCreate(account_code="1.1.01", credit=Decimal("800000"))],
-            source_app="hotel")
-        await AccountingEngine.create_entry(
-            s, org, today, "Recaudo de cartera", uid,
-            [JournalEntryLineCreate(account_code="1.1.01", debit=Decimal("500000")),
-             JournalEntryLineCreate(account_code="1.1.03", credit=Decimal("500000"))],
-            source_app="hotel")
-        await s.commit()
-        print("  ✓ contabilidad: catálogo de cuentas + 2 asientos")
+        print(f"  ✓ parqueo: 1 sede · 2 zonas · {len(spots)} celdas · {len(PARKED)} ocupadas · {len(PARKED_DONE)} cobradas")
 
         # -------- POS restaurante: sede + carta + inventario + ventas --------
         loc_id = uuid.uuid4()
@@ -312,7 +342,7 @@ async def main() -> None:
             await s.commit()
         print(f"  ✓ POS restaurante: {len(RES_PRODUCTS)} platos · {n_sales+1} ventas (1 cargada a la habitación de Carlos)")
 
-        # -------- HR: departamentos + cargos + personal --------
+        # -------- HR: departamentos + cargos + personal + contratos --------
         dept_ids = {}
         for code, name in STAFF_DEPTS:
             d = HrDepartment(organization_id=org, code=code, name=name)
@@ -321,13 +351,60 @@ async def main() -> None:
         for code, name in STAFF_POS:
             p = HrPosition(organization_id=org, code=code, name=name)
             s.add(p); await s.flush(); pos_ids[code] = p.id
+        payroll_total = 0
         for i, (fn, ln, doc, pcode, dcode) in enumerate(STAFF, 1):
-            s.add(HrEmployee(
+            emp = HrEmployee(
                 organization_id=org, employee_code=f"EMP-{i:03d}", first_name=fn, last_name=ln,
                 document_type="CC", document_number=doc, hire_date=today - timedelta(days=200 + i * 15),
-                department_id=dept_ids[dcode], position_id=pos_ids[pcode], status="active"))
+                department_id=dept_ids[dcode], position_id=pos_ids[pcode], status="active")
+            s.add(emp); await s.flush()
+            sal = SALARY[pcode]
+            payroll_total += sal
+            transp = TRANSPORT if sal <= 2 * 1423500 else 0
+            s.add(HrContract(
+                organization_id=org, employee_id=emp.id, contract_number=f"CTR-{i:03d}",
+                contract_type="indefinido", start_date=emp.hire_date,
+                base_salary=Decimal(str(sal)), transport_allowance=Decimal(str(transp)),
+                payment_frequency="monthly", status="active"))
         await s.commit()
-        print(f"  ✓ HR: {len(STAFF_DEPTS)} departamentos · {len(STAFF_POS)} cargos · {len(STAFF)} empleados")
+        print(f"  ✓ HR: {len(STAFF_DEPTS)} departamentos · {len(STAFF_POS)} cargos · "
+              f"{len(STAFF)} empleados con contrato · nómina ${payroll_total:,}")
+
+        # -------- Contabilidad: catálogo hotelero + asientos que RESUMEN lo real --------
+        code_id = {}
+        for code, name, atype, parent in HOTEL_CHART:
+            aid = uuid.uuid4(); code_id[code] = aid
+            await s.execute(text(
+                "INSERT INTO chart_of_accounts (id,organization_id,code,name,type,parent_id,is_active,is_system,created_at,updated_at) "
+                "VALUES (:i,:o,:c,:n,:t,:p,true,false,now(),now())"),
+                {"i": aid, "o": org, "c": code, "n": name, "t": atype,
+                 "p": code_id.get(parent) if parent else None})
+        await s.commit()
+
+        # Totales reales de las otras apps
+        hospedaje = float(await s.scalar(text("SELECT coalesce(sum(amount),0) FROM hotel_folio_payments WHERE organization_id=:o"), {"o": org}))
+        restaurante = float(await s.scalar(text("SELECT coalesce(sum(total),0) FROM pos_sales WHERE organization_id=:o AND status='completed' AND payment_method='cash'"), {"o": org}))
+        parqueo = float(await s.scalar(text("SELECT coalesce(sum(total),0) FROM parking_sessions WHERE organization_id=:o AND status='completed'"), {"o": org}))
+        nomina = float(payroll_total)
+        insumos = round(restaurante * 0.4)
+
+        async def _entry(desc, debit_code, credit_code, amount):
+            if amount <= 0:
+                return
+            await AccountingEngine.create_entry(
+                s, org, today, desc, uid,
+                [JournalEntryLineCreate(account_code=debit_code, debit=Decimal(str(amount))),
+                 JournalEntryLineCreate(account_code=credit_code, credit=Decimal(str(amount)))],
+                source_app="hotel")
+
+        await _entry("Ingresos de hospedaje", "1.1.05", "4.1.05", hospedaje)
+        await _entry("Ingresos del restaurante", "1.1.05", "4.1.10", restaurante)
+        await _entry("Ingresos de parqueadero", "1.1.05", "4.1.15", parqueo)
+        await _entry("Nómina del personal", "5.1.05", "1.1.10", nomina)
+        await _entry("Compra de insumos del restaurante", "1.4.05", "1.1.05", insumos)
+        await s.commit()
+        print(f"  ✓ contabilidad: catálogo hotelero ({len(HOTEL_CHART)} cuentas) + asientos "
+              f"(hospedaje ${hospedaje:,.0f} · restaurante ${restaurante:,.0f} · parqueo ${parqueo:,.0f} · nómina ${nomina:,.0f})")
 
     print(f"\n✓ Listo. Login: {EMAIL} / {PASSWORD}")
     await engine.dispose()
