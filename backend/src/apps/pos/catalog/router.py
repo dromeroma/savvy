@@ -69,7 +69,10 @@ async def create_category(
 
 @router.get(
     "/products",
-    response_model=dict,
+    # response_model=None: desactiva la serialización por modelo y usa
+    # jsonable_encoder (que sí serializa los ORM). Con dict/Any, Pydantic v2
+    # intenta validar PosProduct y falla con 500.
+    response_model=None,
     dependencies=[Depends(require_permission("pos", "sales.create", "inventory.read", "products.manage"))],
 )
 async def list_products(

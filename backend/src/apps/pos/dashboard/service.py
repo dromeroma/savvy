@@ -2,26 +2,27 @@
 
 from __future__ import annotations
 import uuid
-from datetime import date
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.apps.pos.sales.models import PosSale
 from src.apps.pos.catalog.models import PosProduct
 from src.apps.pos.inventory.models import PosInventory
+from src.core.timezone import APP_TZ_NAME, local_today
 
 
 class PosDashboardService:
 
     @staticmethod
     async def get_kpis(db: AsyncSession, org_id: uuid.UUID) -> dict:
-        today = date.today()
+        today = local_today()  # fecha local (Colombia), no UTC del servidor
         today_sales = await db.execute(select(
             func.count().label("count"),
             func.coalesce(func.sum(PosSale.total), 0).label("revenue"),
         ).where(
             PosSale.organization_id == org_id,
             PosSale.status == "completed",
-            func.date(PosSale.created_at) == today,
+            # convierte el timestamptz a Colombia antes de tomar la fecha
+            func.date(func.timezone(APP_TZ_NAME, PosSale.created_at)) == today,
         ))
         t = today_sales.one()
 
