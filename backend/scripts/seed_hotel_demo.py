@@ -201,15 +201,31 @@ async def main() -> None:
                                      "VALUES (:i,:o,:a,'active',now(),'{}'::jsonb,now(),now())"), {"i": uuid.uuid4(), "o": org, "a": app_id})
         print("  ✓ org + usuario owner + apps (hotel, parqueo, contabilidad, POS, HR)")
 
-        # Reset datos demo de la org
-        # pos_sale_lines no tiene org_id → subconsulta
+        # Reset datos demo de la org (tablas hijas sin org_id → subconsulta)
         await s.execute(text("DELETE FROM pos_sale_lines WHERE sale_id IN "
                              "(SELECT id FROM pos_sales WHERE organization_id=:o)"), {"o": org})
-        for t in ["hotel_folio_payments", "hotel_folio_charges", "hotel_folios",
-                  "hotel_reservations", "hotel_rooms", "hotel_room_types",
-                  "parking_sessions", "parking_spots", "parking_zones", "parking_locations",
-                  "pos_sales", "pos_inventory", "pos_products", "pos_categories", "pos_locations",
-                  "hr_contracts", "hr_employees", "hr_positions", "hr_departments"]:
+        await s.execute(text("DELETE FROM hr_payroll_items WHERE payroll_id IN "
+                             "(SELECT id FROM hr_payrolls WHERE organization_id=:o)"), {"o": org})
+        for t in [
+            # Hotel (hijas → padres)
+            "hotel_folio_payments", "hotel_folio_charges", "hotel_folios",
+            "hotel_reservations", "hotel_rooms", "hotel_room_types",
+            # Parqueo (hijas → padres)
+            "parking_service_orders", "parking_services", "parking_subscriptions",
+            "parking_reservations", "parking_vehicles", "parking_pricing_rules",
+            "parking_sessions", "parking_spots", "parking_zones", "parking_locations",
+            # POS
+            "pos_stock_movements", "pos_cash_registers", "pos_discounts", "pos_taxes",
+            "pos_sales", "pos_inventory", "pos_products", "pos_categories", "pos_locations",
+            # HR (hijas → padres)
+            "hr_payrolls", "hr_payroll_periods", "hr_payroll_concepts",
+            "hr_evaluations", "hr_evaluation_responses", "hr_evaluation_cycles",
+            "hr_training_enrollments", "hr_training_courses",
+            "hr_liquidation_items", "hr_liquidations",
+            "hr_attendance", "hr_vacation_requests", "hr_vacation_balances", "hr_leaves",
+            "hr_shifts", "hr_settings", "hr_employee_documents",
+            "hr_contracts", "hr_employees", "hr_positions", "hr_departments",
+        ]:
             await s.execute(text(f"DELETE FROM {t} WHERE organization_id=:o"), {"o": org})
         # Contabilidad (journal_entry_lines no tiene org_id → vía subconsulta)
         await s.execute(text("DELETE FROM journal_entry_lines WHERE journal_entry_id IN "
@@ -369,6 +385,169 @@ async def main() -> None:
         await s.commit()
         print(f"  ✓ HR: {len(STAFF_DEPTS)} departamentos · {len(STAFF_POS)} cargos · "
               f"{len(STAFF)} empleados con contrato · nómina ${payroll_total:,}")
+
+        # ===== HR submódulos (que ninguna vista quede vacía) =====
+        async def ins(table, **cols):
+            keys = ",".join(cols)
+            ph = ",".join(f":{k}" for k in cols)
+            await s.execute(text(f"INSERT INTO {table} ({keys}) VALUES ({ph})"), cols)
+
+        emps = (await s.execute(text(
+            "SELECT id, employee_code, first_name, coalesce(last_name,'') ln, position_id, hire_date "
+            "FROM hr_employees WHERE organization_id=:o ORDER BY employee_code"), {"o": org})).all()
+        id2code = {v: k for k, v in pos_ids.items()}
+
+        # Turnos
+        for code, name in [("TM", "Turno Mañana"), ("TT", "Turno Tarde"), ("TN", "Turno Noche")]:
+            await ins("hr_shifts", id=uuid.uuid4(), organization_id=org, code=code, name=name)
+
+        # Asistencia (últimos 3 días hábiles, todos presentes)
+        for emp in emps:
+            for dd in range(1, 4):
+                await ins("hr_attendance", id=uuid.uuid4(), organization_id=org,
+                          employee_id=emp.id, work_date=today - timedelta(days=dd), status="present")
+
+        # Vacaciones: saldo por empleado + un par de solicitudes
+        for emp in emps:
+            await ins("hr_vacation_balances", id=uuid.uuid4(), organization_id=org,
+                      employee_id=emp.id, period_year=today.year)
+        await ins("hr_vacation_requests", id=uuid.uuid4(), organization_id=org, employee_id=emps[1].id,
+                  request_number="VAC-001", start_date=today + timedelta(days=10),
+                  end_date=today + timedelta(days=17), days_count=Decimal("7"), status="approved")
+        await ins("hr_vacation_requests", id=uuid.uuid4(), organization_id=org, employee_id=emps[4].id,
+                  request_number="VAC-002", start_date=today + timedelta(days=20),
+                  end_date=today + timedelta(days=25), days_count=Decimal("5"), status="pending")
+
+        # Incapacidades
+        await ins("hr_leaves", id=uuid.uuid4(), organization_id=org, employee_id=emps[5].id,
+                  leave_number="INC-001", leave_type="medical", start_date=today - timedelta(days=8),
+                  end_date=today - timedelta(days=6), days_count=Decimal("3"), status="completed")
+
+        # Nómina: conceptos
+        for code, name, ctype, cat in [
+            ("SAL", "Salario básico", "earning", "salary"),
+            ("AUXT", "Auxilio de transporte", "earning", "allowance"),
+            ("HEX", "Horas extra", "earning", "overtime"),
+            ("SALUD", "Salud (4%)", "deduction", "health"),
+            ("PENS", "Pensión (4%)", "deduction", "pension"),
+            ("RTF", "Retención en la fuente", "deduction", "tax"),
+        ]:
+            await ins("hr_payroll_concepts", id=uuid.uuid4(), organization_id=org,
+                      code=code, name=name, concept_type=ctype, category=cat)
+
+        # Nómina: período pasado (pagado) + corrida por empleado
+        period_id = uuid.uuid4()
+        await ins("hr_payroll_periods", id=period_id, organization_id=org, code="2026-06-Q2",
+                  name="Segunda quincena junio 2026", start_date=today.replace(day=16) - timedelta(days=30),
+                  end_date=today.replace(day=1) - timedelta(days=1), status="approved")
+        for emp in emps:
+            sal = SALARY[id2code[emp.position_id]]
+            quincena = round(sal / 2)
+            salud = round(quincena * 0.04)
+            pens = round(quincena * 0.04)
+            pid = uuid.uuid4()
+            await ins("hr_payrolls", id=pid, organization_id=org, period_id=period_id,
+                      employee_id=emp.id, employee_code=emp.employee_code,
+                      employee_name=f"{emp.first_name} {emp.ln}".strip())
+            await ins("hr_payroll_items", id=uuid.uuid4(), payroll_id=pid, concept_code="SAL",
+                      concept_name="Salario básico", concept_type="earning", amount=Decimal(str(quincena)))
+            await ins("hr_payroll_items", id=uuid.uuid4(), payroll_id=pid, concept_code="SALUD",
+                      concept_name="Salud (4%)", concept_type="deduction", amount=Decimal(str(salud)))
+            await ins("hr_payroll_items", id=uuid.uuid4(), payroll_id=pid, concept_code="PENS",
+                      concept_name="Pensión (4%)", concept_type="deduction", amount=Decimal(str(pens)))
+
+        # Evaluaciones: ciclo + una por empleado
+        cycle_id = uuid.uuid4()
+        await ins("hr_evaluation_cycles", id=cycle_id, organization_id=org, code="EVAL-2026",
+                  name="Evaluación de desempeño 2026", start_date=today.replace(month=1, day=1),
+                  end_date=today.replace(month=12, day=31))
+        for emp in emps:
+            await ins("hr_evaluations", id=uuid.uuid4(), organization_id=org,
+                      cycle_id=cycle_id, employee_id=emp.id)
+
+        # Capacitaciones: cursos + inscripciones
+        courses = {}
+        for code, name in [("IND", "Inducción hotelera"), ("SST", "Seguridad y salud en el trabajo"),
+                           ("SERV", "Servicio al cliente")]:
+            cid = uuid.uuid4(); courses[code] = cid
+            await ins("hr_training_courses", id=cid, organization_id=org, code=code, name=name)
+        for i, emp in enumerate(emps):
+            await ins("hr_training_enrollments", id=uuid.uuid4(), organization_id=org,
+                      course_id=courses["IND"], employee_id=emp.id)
+            if i % 2 == 0:
+                await ins("hr_training_enrollments", id=uuid.uuid4(), organization_id=org,
+                          course_id=courses["SERV"], employee_id=emp.id)
+
+        # Documentos por empleado
+        for emp in emps:
+            await ins("hr_employee_documents", id=uuid.uuid4(), organization_id=org,
+                      employee_id=emp.id, document_type="contract", title="Contrato de trabajo")
+
+        # Liquidación: un ex-empleado terminado
+        ex_id = uuid.uuid4()
+        ex_start = today - timedelta(days=730)
+        ex_end = today - timedelta(days=30)
+        await ins("hr_employees", id=ex_id, organization_id=org, employee_code="EMP-009",
+                  first_name="Diego", last_name="Ortiz", document_type="CC", document_number="99001122",
+                  hire_date=ex_start, department_id=dept_ids["RES"], position_id=pos_ids["MESE"],
+                  status="terminated")
+        liq_id = uuid.uuid4()
+        await ins("hr_liquidations", id=liq_id, organization_id=org, employee_id=ex_id,
+                  liquidation_number="LIQ-001", termination_date=ex_end, termination_reason="voluntary",
+                  last_worked_date=ex_end, contract_start_date=ex_start)
+        for cc, cn, kind, amt in [
+            ("cesantias", "Cesantías", "earning", 1423500),
+            ("intereses_cesantias", "Intereses sobre cesantías", "earning", 170820),
+            ("prima_servicios", "Prima de servicios", "earning", 711750),
+            ("vacaciones", "Vacaciones", "earning", 593125),
+        ]:
+            await ins("hr_liquidation_items", id=uuid.uuid4(), organization_id=org, liquidation_id=liq_id,
+                      concept_code=cc, concept_name=cn, kind=kind, amount=Decimal(str(amt)))
+
+        # Settings
+        await ins("hr_settings", id=uuid.uuid4(), organization_id=org)
+        await s.commit()
+        print("  ✓ HR submódulos: turnos, asistencia, vacaciones, incapacidades, nómina "
+              "(período+corridas), evaluaciones, capacitaciones, liquidación, documentos, settings")
+
+        # ===== Parqueo submódulos =====
+        for plate, _v, _h in PARKED:
+            await ins("parking_vehicles", id=uuid.uuid4(), organization_id=org, plate=plate)
+        for plate, _v, _d, _t in PARKED_DONE:
+            await ins("parking_vehicles", id=uuid.uuid4(), organization_id=org, plate=plate)
+        for name, price in [("Carro por hora", 3000), ("Moto por hora", 1500), ("Día completo carro", 20000)]:
+            await ins("parking_pricing_rules", id=uuid.uuid4(), organization_id=org, name=name)
+        svc_ids = {}
+        for name, price in [("Lavado sencillo", 15000), ("Lavado completo", 25000), ("Encerado", 40000)]:
+            sid = uuid.uuid4(); svc_ids[name] = (sid, price)
+            await ins("parking_services", id=sid, organization_id=org, name=name)
+        for name in ("Lavado sencillo", "Lavado completo"):
+            sid, price = svc_ids[name]
+            await ins("parking_service_orders", id=uuid.uuid4(), organization_id=org,
+                      service_id=sid, price=Decimal(str(price)))
+        for name, price in [("Mensualidad carro", 150000), ("Mensualidad moto", 80000)]:
+            await ins("parking_subscriptions", id=uuid.uuid4(), organization_id=org,
+                      name=name, price=Decimal(str(price)))
+        for d in (1, 2):
+            frm = datetime.now(UTC) + timedelta(days=d, hours=8)
+            await ins("parking_reservations", id=uuid.uuid4(), organization_id=org, location_id=loc.id,
+                      reserved_from=frm, reserved_until=frm + timedelta(hours=6))
+        await s.commit()
+        print("  ✓ Parqueo submódulos: vehículos, tarifas, servicios+órdenes, suscripciones, reservas")
+
+        # ===== POS submódulos =====
+        for name in ("Caja 1", "Caja 2"):
+            await ins("pos_cash_registers", id=uuid.uuid4(), organization_id=org,
+                      location_id=loc_id, register_name=name)
+        for code, name, rate in [("IVA19", "IVA 19%", Decimal("0.19")), ("EXENTO", "Exento", Decimal("0"))]:
+            await ins("pos_taxes", id=uuid.uuid4(), organization_id=org, code=code, name=name, rate=rate)
+        for code, name, value in [("PROMO10", "Promoción 10%", Decimal("10")), ("EMPL", "Descuento empleado", Decimal("15"))]:
+            await ins("pos_discounts", id=uuid.uuid4(), organization_id=org, code=code, name=name, value=value)
+        for sku, (pid, name, price) in prod_ids.items():
+            await ins("pos_stock_movements", id=uuid.uuid4(), organization_id=org, product_id=pid,
+                      location_id=loc_id, movement_type="in", quantity=Decimal("50"))
+        await s.commit()
+        print("  ✓ POS submódulos: cajas, impuestos, descuentos, movimientos de stock")
 
         # -------- Contabilidad: catálogo hotelero + asientos que RESUMEN lo real --------
         code_id = {}
