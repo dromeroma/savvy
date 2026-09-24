@@ -1540,7 +1540,8 @@ class PlatformAppService:
         if app is None:
             raise NotFoundError(f"App '{app_code}' not found.")
 
-        # Existing active row? Re-activate if cancelled; no-op if already on.
+        # Existing row? no-op if already active; trial (vigente o vencido) o
+        # cancelled pasan a active sin fecha de fin.
         existing = await db.scalar(
             select(OrganizationApp).where(
                 OrganizationApp.organization_id == org_id,
@@ -1549,7 +1550,7 @@ class PlatformAppService:
         )
         now = datetime.now(UTC)
         if existing is not None:
-            if existing.status in ("active", "trial"):
+            if existing.status == "active":
                 return existing
             existing.status = "active"
             existing.activated_at = now
