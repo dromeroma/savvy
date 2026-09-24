@@ -1,0 +1,13 @@
+// Despliegue del frontend en Cloudflare Workers (static assets, sin código de servidor).
+// Build:  npm run build   ->  dist/frontend/browser
+// Deploy: npx wrangler deploy
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "savvy-frontend",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": "./dist/frontend/browser",
+    // Rutas del router de Angular (/hotel/..., /pos/...) devuelven index.html
+    "not_found_handling": "single-page-application"
+  }
+}
