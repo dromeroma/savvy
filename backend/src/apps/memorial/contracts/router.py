@@ -7,6 +7,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import set_committed_value
 
 from src.apps.memorial.contracts.schemas import (
     BeneficiaryCreate,
@@ -46,6 +47,9 @@ def _beneficiary_response(b) -> BeneficiaryResponse:
 
 async def _hydrate(db: AsyncSession, org_id: uuid.UUID, contract_id: uuid.UUID) -> ContractResponse:
     c, plan, beneficiaries = await ContractsService.get_contract_with_relations(db, org_id, contract_id)
+    # Poblar la relación con lo ya consultado: si no, model_validate dispara un
+    # lazy-load síncrono sobre la sesión async (MissingGreenlet → 500).
+    set_committed_value(c, "beneficiaries", beneficiaries)
     resp = ContractResponse.model_validate(c)
     resp.plan_name = plan.name if plan else None
     resp.plan_type = plan.plan_type if plan else None

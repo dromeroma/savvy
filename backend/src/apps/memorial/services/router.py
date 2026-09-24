@@ -7,6 +7,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import set_committed_value
 
 from src.apps.memorial.services.schemas import (
     AddNoteRequest,
@@ -102,6 +103,8 @@ async def get_service(
         )
         for f in family
     ]
+    # Evita lazy-load síncrono de family_members en sesión async (MissingGreenlet).
+    set_committed_value(svc, "family_members", family)
     resp = ServiceResponse.model_validate(svc)
     resp.family_members = family_out
     return resp
@@ -122,6 +125,7 @@ async def create_service(
     svc = await MemorialServicesService.create_service(db, org_id, data, _user_uuid(user))
     # Hidratamos como en get_service
     _, family = await MemorialServicesService.get_service_with_family(db, org_id, svc.id)
+    set_committed_value(svc, "family_members", family)
     resp = ServiceResponse.model_validate(svc)
     resp.family_members = [
         FamilyMemberResponse(
