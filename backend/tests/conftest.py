@@ -1,12 +1,12 @@
 """Shared test fixtures for SavvyCore integration tests."""
 
-import asyncio
 import uuid
 from collections.abc import AsyncGenerator
 
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -36,22 +36,24 @@ test_session_factory = async_sessionmaker(
 )
 
 
-@pytest.fixture(scope="session")
-def event_loop():
-    """Create a single event loop for the entire test session."""
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
-
-
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def setup_database():
-    """Create all tables before tests, drop after."""
+    """Esquema limpio antes de los tests y borrado al final.
+
+    Se recrea el schema completo en lugar de drop_all(): hay FKs circulares
+    (p. ej. hr_employees <-> hr_departments) que drop_all no sabe ordenar.
+    """
+    async def _reset_schema(conn) -> None:
+        await conn.execute(text("DROP SCHEMA IF EXISTS public CASCADE"))
+        await conn.execute(text("CREATE SCHEMA public"))
+        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS unaccent"))
+
     async with test_engine.begin() as conn:
+        await _reset_schema(conn)
         await conn.run_sync(Base.metadata.create_all)
     yield
     async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+        await _reset_schema(conn)
     await test_engine.dispose()
 
 

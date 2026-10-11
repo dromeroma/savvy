@@ -27,6 +27,18 @@
             <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-1">¿Qué tipo de negocio tienes?</h2>
             <p class="text-sm text-gray-500 dark:text-gray-400 mb-5">Selecciona el tipo que mejor describe tu organización.</p>
 
+            @if (typesLoading()) {
+              <div class="flex items-center justify-center gap-3 rounded-2xl bg-brand-50 px-4 py-5 text-sm text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">
+                <svg class="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M21 12a9 9 0 1 1-6.22-8.56"/></svg>
+                Preparando el formulario…
+              </div>
+            } @else if (typesFailed()) {
+              <div class="rounded-2xl border border-error-200 bg-error-50 px-4 py-4 text-center text-sm text-error-700 dark:border-error-500/30 dark:bg-error-500/10 dark:text-error-400">
+                No pudimos conectar con el servidor.
+                <button type="button" (click)="loadBusinessTypes()" class="ml-1 font-semibold underline">Reintentar</button>
+              </div>
+            }
+
             <div class="grid grid-cols-1 gap-3">
               @for (bt of businessTypes(); track bt.code) {
                 <button type="button" (click)="selectBusinessType(bt.code)"

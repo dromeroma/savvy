@@ -94,10 +94,30 @@ export class RegisterComponent {
   readonly CUSTOM = CUSTOM_DENOMINATION;
 
   // --- Lifecycle ---
+  readonly typesLoading = signal(true);
+  readonly typesFailed = signal(false);
+
   constructor() {
+    this.loadBusinessTypes();
+  }
+
+  /** Carga los tipos con reintentos: el API en Render puede estar despertando (~30 s). */
+  loadBusinessTypes(attempt = 1): void {
+    this.typesLoading.set(true);
+    this.typesFailed.set(false);
     this.onboarding.listBusinessTypes().subscribe({
-      next: (types) => this.businessTypes.set(types),
-      error: () => this.error.set('No se pudieron cargar los tipos de negocio.'),
+      next: (types) => {
+        this.businessTypes.set(types);
+        this.typesLoading.set(false);
+      },
+      error: () => {
+        if (attempt < 3) {
+          setTimeout(() => this.loadBusinessTypes(attempt + 1), 4000 * attempt);
+          return;
+        }
+        this.typesLoading.set(false);
+        this.typesFailed.set(true);
+      },
     });
   }
 

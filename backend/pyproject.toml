@@ -38,6 +38,10 @@ packages = ["src"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+# Un solo event loop para fixtures de sesión (engine/BD) y tests: pytest-asyncio >= 1.0
+# ya no respeta la fixture event_loop personalizada.
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
 testpaths = ["tests"]
 
 [tool.ruff]

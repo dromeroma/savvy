@@ -19,7 +19,7 @@ from src.modules.savvy_ai.pricing import compute_cost
 def test_safe_eval_arithmetic():
     env = {"salario": Decimal("1000000"), "dias": Decimal("30")}
     assert _safe_eval("salario * 0.04", env) == Decimal("40000.00")
-    assert _safe_eval("salario / dias", env) == Decimal("33333.333333333333333333333333")
+    assert _safe_eval("salario / dias", env) == Decimal("1000000") / Decimal("30")
     assert _safe_eval("max(salario, 500000)", env) == Decimal("1000000")
     assert _safe_eval("round(salario * 0.0833, 0)", env) == Decimal("83300")
 

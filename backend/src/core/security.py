@@ -1,6 +1,7 @@
 """JWT token creation/verification, password hashing, and token hashing."""
 
 import hashlib
+import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -26,7 +27,9 @@ def create_refresh_token(data: dict[str, Any]) -> str:
     """Create a long-lived JWT refresh token."""
     to_encode = data.copy()
     expire = datetime.now(UTC) + timedelta(days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS)
-    to_encode.update({"exp": expire, "type": "refresh"})
+    # jti único: dos logins en el mismo segundo generaban el mismo token y su
+    # hash chocaba con el UNIQUE de refresh_tokens (500 al elegir organización).
+    to_encode.update({"exp": expire, "type": "refresh", "jti": uuid.uuid4().hex})
     return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 

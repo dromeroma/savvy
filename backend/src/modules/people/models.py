@@ -45,9 +45,9 @@ class Person(BaseMixin, OrgMixin, Base):
     marital_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
     occupation: Mapped[str | None] = mapped_column(String(100), nullable=True)
     photo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    tags: Mapped[list] = mapped_column(JSONB, default=list, server_default="'[]'")
+    tags: Mapped[list] = mapped_column(JSONB, default=list, server_default="[]")
     metadata_: Mapped[dict] = mapped_column(
-        "metadata", JSONB, default=dict, server_default="'{}'",
+        "metadata", JSONB, default=dict, server_default="{}",
     )
     status: Mapped[str] = mapped_column(String(30), default="active", server_default="active")
     deleted_at: Mapped[datetime | None] = mapped_column(

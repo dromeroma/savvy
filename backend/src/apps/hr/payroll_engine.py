@@ -57,7 +57,11 @@ def _safe_eval(expr: str, env: dict[str, Decimal]) -> Decimal:
     arbitrarias.
     """
     tree = ast.parse(expr, mode="eval")
-    allowed_funcs = {"min": min, "max": max, "round": round}
+    def _round(value: Decimal, ndigits: Decimal | None = None) -> Decimal:
+        # Los literales llegan como Decimal; round() exige un entero en ndigits.
+        return round(value, int(ndigits)) if ndigits is not None else round(value)
+
+    allowed_funcs = {"min": min, "max": max, "round": _round}
 
     def _eval(node: ast.AST) -> Decimal:
         if isinstance(node, ast.Expression):
