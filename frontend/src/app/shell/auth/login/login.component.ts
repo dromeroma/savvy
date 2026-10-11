@@ -3,18 +3,17 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { LoginRequest, OrgWithRole } from '../../../core/models/user.model';
-import { ThemeService } from '../../../shared/services/theme.service';
 import { NotificationService } from '../../../shared/services/notification.service';
+import { AuthShellComponent } from '../auth-shell/auth-shell.component';
 
 @Component({
   selector: 'app-login',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, AuthShellComponent],
   templateUrl: './login.component.html',
 })
 export class LoginComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
-  private readonly themeService = inject(ThemeService);
   private readonly notify = inject(NotificationService);
 
   showPassword = false;
@@ -56,11 +55,6 @@ export class LoginComponent {
         this.error.set(msg);
       },
     });
-  }
-
-  toggleTheme(): void {
-    const current = this.themeService.currentMode;
-    this.themeService.toggleTheme();
   }
 
   selectOrg(org: OrgWithRole): void {

@@ -11,6 +11,7 @@ import {
   Zone,
 } from '../../../core/models/user.model';
 import { ThemeService } from '../../../shared/services/theme.service';
+import { AuthShellComponent } from '../auth-shell/auth-shell.component';
 import { NotificationService } from '../../../shared/services/notification.service';
 
 // Logical step keys (we render only those that apply to the current selection)
@@ -25,7 +26,7 @@ const CUSTOM_DENOMINATION = '__custom__';
 
 @Component({
   selector: 'app-register',
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, AuthShellComponent],
   templateUrl: './register.component.html',
 })
 export class RegisterComponent {
